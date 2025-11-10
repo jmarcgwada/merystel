@@ -69,7 +69,7 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
   const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage, addCheque, updateSale } = usePos();
-  const { toast } = useToast();
+  const { toast } = useShadcnToast();
   const router = useRouter();
   
   const [view, setView] = useState<'payment' | 'advanced' | 'cheque'>('payment');
@@ -140,10 +140,10 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     const change = totalPaidForSale > displayTotalAmount ? totalPaidForSale - displayTotalAmount : 0;
   
     const saleInfo: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
-      items: order,
-      subtotal: orderTotal,
-      tax: orderTax,
-      total: totalAmount,
+      items: currentSaleContext?.items || order,
+      subtotal: currentSaleContext?.subtotal || orderTotal,
+      tax: currentSaleContext?.tax || orderTax,
+      total: currentSaleContext?.total || totalAmount,
       payments: allPayments.map(p => ({ ...p, date: p.date || paymentDate as any })),
       status: isFullyPaid ? 'paid' : 'pending',
       ...(change > 0.009 && { change: change }),
@@ -156,6 +156,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
       documentType: docType || 'ticket',
       userId: user?.id,
       userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+      notes: currentSaleContext?.notes || undefined
     };
   
     const recordedSale = await recordSale(saleInfo, currentSaleId ?? undefined);
@@ -180,6 +181,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           
           if(docType === 'invoice' || docType === 'quote' || docType === 'delivery_note' || docType === 'supplier_order' || docType === 'credit_note') {
             resetCommercialPage(docType);
+            router.push('/reports?docType=' + docType);
           }
           else if (currentSaleContext?.isTableSale || (cameFromRestaurant && selectedCustomer?.id !== 'takeaway')) {
               if(cameFromRestaurant) setCameFromRestaurant(false);
@@ -876,4 +878,5 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     </>
   );
 }
+
 
