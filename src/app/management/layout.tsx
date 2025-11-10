@@ -65,8 +65,6 @@ export default function ManagementLayout({
 
   const accountingNavLinks = [
     { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
-    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
-    { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
   ];
   
   const financeNavLinks = [
@@ -76,7 +74,14 @@ export default function ManagementLayout({
   const reportLinks = [
     { href: '/reports', label: 'Pièces de vente', icon: BarChart3 },
     { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
-    { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
+  ];
+  
+  const recurrenceLink = { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 };
+  const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
+  const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
+  
+  const diversLinks = [
+    { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
   ];
 
   const renderLink = (link: { href: string; label: string; icon: React.ElementType; count?: number }) => (
@@ -103,16 +108,19 @@ export default function ManagementLayout({
                 <SidebarGroupLabel>Comptabilité</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
+                    {renderLink(vatLink)}
+                    {renderLink(chequeLink)}
                     {accountingNavLinks.map(renderLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
               <Separator className="my-2" />
-              <SidebarGroup>
-                <SidebarGroupLabel>Rapports</SidebarGroupLabel>
+               <SidebarGroup>
+                <SidebarGroupLabel>Rapports &amp; Finance</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {reportLinks.map(renderLink)}
+                    {renderLink(recurrenceLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -121,7 +129,7 @@ export default function ManagementLayout({
                 <SidebarGroupLabel>Divers</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {financeNavLinks.map(renderLink)}
+                    {diversLinks.map(renderLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -140,9 +148,9 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
-        </main>
+        </div>
       </div>
     </SidebarProvider>
   );
