@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -17,6 +18,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarGroupContent,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
