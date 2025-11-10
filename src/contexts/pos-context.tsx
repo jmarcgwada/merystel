@@ -1794,27 +1794,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
     }, [sales, recordCommercialDocument]);
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
-        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
-        const toastId = shadcnToast({
-            title: 'Importation...',
-            description: `Préparation de ${jsonData.length} lignes.`
-        });
-    
+        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [] };
+        const toastId = shadcnToast({ title: 'Importation...', description: `Préparation de ${jsonData.length} lignes.` });
+
         const addError = (line: number, message: string) => {
             report.errorCount++;
             report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
-    
-        let localCategories = [...categories];
-        let localItems = [...items];
-        let localCustomers = [...customers];
-    
+
         if (dataType === 'articles') {
-            const itemBarcodes = new Set(localItems.map(i => i.barcode));
+            const itemBarcodes = new Set(items.map(i => i.barcode));
             for (const [index, row] of jsonData.entries()) {
                 try {
                     if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatCode) {
-                        throw new Error("Champs requis manquants: barcode, name, price, vatCode.");
+                        throw new Error("Champs article requis (barcode, name, price, vatCode).");
                     }
                     if (itemBarcodes.has(row.barcode)) {
                         throw new Error(`L'article avec le code-barres ${row.barcode} existe déjà.`);
@@ -1823,7 +1816,14 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     if (!vat) {
                         throw new Error(`Code TVA "${row.vatCode}" introuvable.`);
                     }
-                    await addItem({ ...row, vatId: vat.id });
+                    
+                    let category = categories.find(c => c.name === row.categoryId);
+                    if (!category && row.categoryId) {
+                      const newCategory = await addCategory({ name: row.categoryId });
+                      if(newCategory) category = newCategory;
+                    }
+
+                    await addItem({ ...row, vatId: vat.id, categoryId: category?.id });
                     report.successCount++;
                     itemBarcodes.add(row.barcode);
                 } catch (e: any) {
@@ -1831,7 +1831,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 }
             }
         } else {
-          // Fallback for other types
           for (const [index, row] of jsonData.entries()) {
               try {
                   if (dataType === 'clients') {
