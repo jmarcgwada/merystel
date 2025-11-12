@@ -42,6 +42,13 @@ export interface FormFieldDefinition {
   required?: boolean;
 }
 
+export interface FormSubmission {
+  id: string;
+  orderItemId: string;
+  formData: Record<string, any>;
+  createdAt: Date | Timestamp;
+}
+
 export interface Item {
   id: string;
   name: string;
@@ -91,7 +98,7 @@ export interface OrderItem {
   description?: string;
   description2?: string;
   barcode: string;
-  formData?: Record<string, any>;
+  formSubmissionId?: string;
 }
 
 export interface Table {

@@ -67,54 +67,62 @@ const generateSchema = (fields: FormFieldDefinition[]) => {
 
 
 export function FormInputModal() {
-  const { formItemRequest, setFormItemRequest, addFormItemToOrder, updateOrderItemFormData } = usePos();
+  const { formItemRequest, setFormItemRequest, addFormItemToOrder, updateOrderItemFormData, formSubmissions } = usePos();
 
   const item = formItemRequest?.item;
   const isEditing = formItemRequest?.isEditing;
   const formFields = item?.formFields || [];
   
-  const formSchema = useMemo(() => generateSchema(formFields), [formFields]);
+  const generateFormSchema = useCallback((fields: FormFieldDefinition[]) => generateSchema(fields), []);
+  const formSchema = useMemo(() => generateFormSchema(formFields), [formFields, generateFormSchema]);
   
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {},
   });
   
-  // Memoize default values to prevent re-renders
-  const defaultValues = useMemo(() => {
-    if (!item) return {};
-    const values: Record<string, any> = {};
-    const existingData = (item as OrderItem).formData || {};
+  useEffect(() => {
+    if (!item) return;
 
+    const orderItem = item as OrderItem;
+    let existingData = {};
+
+    if (isEditing && orderItem.formSubmissionId) {
+        const submission = formSubmissions.find(sub => sub.id === orderItem.formSubmissionId);
+        if (submission) {
+            existingData = submission.formData;
+        }
+    }
+
+    const newDefaultValues: Record<string, any> = {};
     (item.formFields || []).forEach(field => {
-        if (isEditing && existingData.hasOwnProperty(field.name)) {
-            values[field.name] = existingData[field.name];
+        if ((existingData as Record<string, any>).hasOwnProperty(field.name)) {
+            newDefaultValues[field.name] = (existingData as Record<string, any>)[field.name];
         } else {
-            if(field.type === 'checkbox') {
-                values[field.name] = false;
+            if (field.type === 'checkbox') {
+                newDefaultValues[field.name] = false;
             } else if (field.type === 'date') {
-                values[field.name] = new Date().toISOString().split('T')[0];
+                newDefaultValues[field.name] = new Date().toISOString().split('T')[0];
             } else {
-                values[field.name] = '';
+                newDefaultValues[field.name] = '';
             }
         }
     });
-    return values;
-  }, [item, isEditing]);
 
-  useEffect(() => {
-    // Only reset the form if the default values have actually changed.
-    if (item && !isEqual(form.getValues(), defaultValues)) {
-        form.reset(defaultValues);
+    if (!isEqual(form.getValues(), newDefaultValues)) {
+        form.reset(newDefaultValues);
     }
-  }, [item, defaultValues, form]);
+  }, [item, isEditing, formSubmissions, form]);
 
 
   const handleConfirm = (data: Record<string, any>) => {
     if (!item) return;
 
     if (isEditing) {
-        updateOrderItemFormData(item.id, data);
+        const orderItem = item as OrderItem;
+        if(orderItem.formSubmissionId) {
+            updateOrderItemFormData(orderItem.formSubmissionId, data);
+        }
     } else {
         addFormItemToOrder(item, data);
     }
