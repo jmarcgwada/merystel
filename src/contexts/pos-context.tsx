@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -99,7 +98,7 @@ export interface PosContextType {
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
   addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
-  addFormItemToOrder: (item: Item, formData: Record<string, any>) => void;
+  updateOrderItemFormData: (orderItemId: string, formData: Record<string, any>) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
@@ -128,8 +127,8 @@ export interface PosContextType {
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
   customVariantRequest: { item: Item, optionName: string, currentSelections: SelectedVariant[] } | null;
   setCustomVariantRequest: React.Dispatch<React.SetStateAction<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>>;
-  formItemRequest: { item: Item } | null;
-  setFormItemRequest: React.Dispatch<React.SetStateAction<{ item: Item } | null>>;
+  formItemRequest: { item: Item | OrderItem, isEditing: boolean } | null;
+  setFormItemRequest: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem, isEditing: boolean } | null>>;
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
@@ -346,8 +345,6 @@ export interface PosContextType {
   setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
   isCommercialNavVisible: boolean;
   setIsCommercialNavVisible: React.Dispatch<React.SetStateAction<boolean>>;
-  commercialViewLevel: number;
-  cycleCommercialViewLevel: () => void;
   smtpConfig: SmtpConfig;
   setSmtpConfig: React.Dispatch<React.SetStateAction<SmtpConfig>>;
   ftpConfig: FtpConfig;
@@ -495,7 +492,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#ffffff');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
   const [isCommercialNavVisible, setIsCommercialNavVisible] = usePersistentState('settings.isCommercialNavVisible', true);
-  const [commercialViewLevel, setCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
   const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
@@ -526,7 +522,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{ item: Item | OrderItem; quantity: number } | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [customVariantRequest, setCustomVariantRequest] = useState<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>(null);
-  const [formItemRequest, setFormItemRequest] = useState<{ item: Item } | null>(null);
+  const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
   const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
@@ -960,7 +956,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
         setDunningLogs(data.dunningLogs || []);
         setCheques(data.cheques || []);
         setPaiementsPartiels(data.paiementsPartiels || []);
-        setRemises(data.remises || []);
         setCompanyInfo(data.companyInfo || null);
         setUsers(data.users || []);
         setMappingTemplates(data.mappingTemplates || []);
@@ -1024,31 +1019,17 @@ export function PosProvider({ children }: { children: ReactNode }) {
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
   
-  const addFormItemToOrder = useCallback((item: Item, formData: Record<string, any>) => {
-    const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
-    const price = isSupplierOrder ? (item.purchasePrice ?? 0) : item.price;
-    const uniqueId = uuidv4();
-    const newItem: OrderItem = {
-        itemId: item.id,
-        id: uniqueId,
-        name: item.name,
-        price,
-        vatId: item.vatId,
-        image: item.image,
-        quantity: 1,
-        total: price,
-        discount: 0,
-        description: item.description,
-        description2: item.description2,
-        barcode: item.barcode || '',
-        formData,
-    };
-    setOrder(currentOrder => [newItem, ...currentOrder]);
-    if(item.image) setDynamicBgImage(item.image);
-    toast({ title: `${item.name} ajouté à la commande` });
+  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>) => {
+    setOrder(currentOrder =>
+      currentOrder.map(item =>
+        item.id === orderItemId
+          ? { ...item, formData }
+          : item
+      )
+    );
+    toast({ title: 'Données de formulaire enregistrées.' });
     setFormItemRequest(null);
-    setRecentlyAddedItemId(uniqueId);
-  }, [currentSaleContext, toast]);
+  }, [toast, setFormItemRequest]);
 
 
   const addToOrder = useCallback(
@@ -1073,9 +1054,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      if (itemToAdd.hasForm) {
-        setFormItemRequest({ item: itemToAdd });
-        return; // Important: stop execution here
+      if (itemToAdd.hasForm && itemToAdd.formFields && itemToAdd.formFields.length > 0) {
+        setFormItemRequest({ item: itemToAdd, isEditing: false });
+        return;
       }
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
@@ -1091,9 +1072,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
       }
 
       const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
+        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length && !item.formData
       );
-
 
       setOrder((currentOrder) => {
         if (existingItemIndex > -1) {
@@ -1806,10 +1786,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
       setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
     };
     
-    const cycleCommercialViewLevel = useCallback(() => {
-      setCommercialViewLevel(prev => (prev + 1) % 3);
-  }, [setCommercialViewLevel]);
-  
   const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
   }, [setCompanyInfo]);
@@ -2017,11 +1993,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
         shadcnToast({ id: toastId.id, title: "Importation terminée !", description: `${report.successCount} succès, ${report.errorCount} échecs.` });
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
-    
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, addFormItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
@@ -2058,7 +2033,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-      isCommercialNavVisible, setIsCommercialNavVisible, commercialViewLevel, setCommercialViewLevel, cycleCommercialViewLevel,
+      isCommercialNavVisible, setIsCommercialNavVisible,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
