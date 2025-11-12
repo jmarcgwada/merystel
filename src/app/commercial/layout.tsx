@@ -19,8 +19,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { FormInputModal } from '@/app/pos/components/form-input-modal';
-
 
 const navLinks = [
     { href: '/commercial/invoices', value: 'invoices', label: 'Factures', reportLabel: 'Liste Factures', reportFilter: 'invoice' },
@@ -185,7 +183,6 @@ export default function CommercialLayout({
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
-    <FormInputModal />
     </>
   );
 }

@@ -31,6 +31,7 @@ import { EditCustomerDialog } from '@/app/management/customers/components/edit-c
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CatalogSheet } from './catalog-sheet';
+import { FormInputModal } from '@/app/pos/components/form-input-modal';
 
 const ClientFormattedDate = ({ date, formatString, withIcon, label }: { date: Date | Timestamp | string | undefined; formatString: string, withIcon?: boolean; label?: string }) => {
   const [formatted, setFormatted] = useState('');
@@ -133,7 +134,7 @@ export const CommercialOrderForm = forwardRef<
   { submit: (notes?: string) => void },
   CommercialOrderFormProps
 >(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemPrice, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl, setFormItemRequest } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -156,6 +157,7 @@ export const CommercialOrderForm = forwardRef<
   const [priceDisplayType, setPriceDisplayType] = useState<'ht' | 'ttc'>('ttc');
   const [isCatalogOpen, setCatalogOpen] = useState(false);
   const previousTotals = useRef<{ subtotal: number, tax: number, total: number } | null>(null);
+  const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
 
 
     useEffect(() => {
@@ -859,6 +861,12 @@ export const CommercialOrderForm = forwardRef<
           />
       )}
       <CatalogSheet isOpen={isCatalogOpen} onClose={() => setCatalogOpen(false)} />
+      <FormInputModal
+        item={formItemRequest?.item}
+        isEditing={formItemRequest?.isEditing || false}
+        isOpen={!!formItemRequest}
+        onClose={() => setFormItemRequest(null)}
+      />
     </div>
   );
 });

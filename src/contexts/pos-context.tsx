@@ -415,21 +415,6 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-function PathStateTracker({ setLastReportsUrl }: { setLastReportsUrl: (url: string | null) => void }) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (pathname.startsWith('/reports')) {
-      const currentUrl = `${pathname}?${searchParams.toString()}`;
-      setLastReportsUrl(currentUrl);
-    }
-  }, [pathname, searchParams, setLastReportsUrl]);
-
-  return null; // This component does not render anything.
-}
-
-
 export function PosProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
@@ -442,15 +427,16 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
 
   // Settings States
-  const [formSubmissions, setFormSubmissions, rehydrateFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
   const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
   const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
   const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
   const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
+  const [formSubmissions, setFormSubmissions, rehydrateFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
   const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
+  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
   const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
   const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
@@ -511,7 +497,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
-  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
@@ -524,7 +509,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [cameFromRestaurant, setCameFromRestaurant] = useState(false);
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
-  const [serialNumberItem, setSerialNumberItem] = useState<{ item: Item | OrderItem; quantity: number } | null>(null);
+  const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [customVariantRequest, setCustomVariantRequest] = useState<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>(null);
   const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
@@ -818,7 +803,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
-    setFormSubmissions([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -829,7 +813,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       importDemoSuppliers();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
     toast({ title: 'Suppression en cours...' });
@@ -847,9 +831,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if (dataToReset.remises) setRemises([]);
     if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
     if (dataToReset.dunningLogs) setDunningLogs([]);
-    if (dataToReset.formSubmissions) setFormSubmissions([]);
     toast({ title: 'Données sélectionnées supprimées !' });
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, setDunningLogs, setFormSubmissions, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, setDunningLogs, toast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -882,6 +865,64 @@ export function PosProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Ventes et données liées supprimées' });
   }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
   
+  const exportFullData = useCallback(() => {
+    const allData = {
+        items, categories, customers, suppliers, tables: tablesData, sales, heldOrders,
+        paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises,
+        companyInfo, users, mappingTemplates
+    };
+    return JSON.stringify(allData, null, 2);
+  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, companyInfo, users, mappingTemplates]);
+
+  const importFullData = useCallback(async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target?.result as string);
+            const rehydrators = [
+                rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers,
+                rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates,
+                rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs, rehydrateCheques,
+                rehydratePaiementsPartiels, rehydrateRemises, rehydrateCompanyInfo, rehydrateUsers,
+                rehydrateMappingTemplates
+            ];
+
+            if (data.items) setItems(data.items);
+            if (data.categories) setCategories(data.categories);
+            if (data.customers) setCustomers(data.customers);
+            if (data.suppliers) setSuppliers(data.suppliers);
+            if (data.tables) setTablesData(data.tables);
+            if (data.sales) setSales(data.sales);
+            if (data.paymentMethods) setPaymentMethods(data.paymentMethods);
+            if (data.vatRates) setVatRates(data.vatRates);
+            if (data.heldOrders) setHeldOrders(data.heldOrders);
+            if (data.auditLogs) setAuditLogs(data.auditLogs);
+            if (data.dunningLogs) setDunningLogs(data.dunningLogs);
+            if (data.cheques) setCheques(data.cheques);
+            if (data.paiementsPartiels) setPaiementsPartiels(data.paiementsPartiels);
+            if (data.remises) setRemises(data.remises);
+            if (data.companyInfo) setCompanyInfo(data.companyInfo);
+            if (data.users) setUsers(data.users);
+            if (data.mappingTemplates) setMappingTemplates(data.mappingTemplates);
+            
+            rehydrators.forEach(rehydrate => rehydrate());
+            
+            toast({ title: 'Importation complète réussie!', description: 'Toutes les données ont été restaurées.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur d\'importation complète' });
+        }
+    };
+    reader.readAsText(file);
+  }, [
+      setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods,
+      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises,
+      setCompanyInfo, setUsers, setMappingTemplates, toast,
+      rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTables, rehydrateSales,
+      rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs,
+      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateCompanyInfo, rehydrateUsers,
+      rehydrateMappingTemplates
+  ]);
+
   const exportConfiguration = useCallback(() => {
     const config = {
         items,
@@ -913,7 +954,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
             if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
-            toast({ title: 'Importation de configuration réussie!', description: 'La configuration a été restaurée.' });
+            toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
@@ -921,71 +962,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
   
-  const exportFullData = useCallback(() => {
-      const allData = {
-          version: '1.0',
-          timestamp: new Date().toISOString(),
-          data: {
-              items, categories, customers, suppliers, tables: tablesData, sales, 
-              paymentMethods, vatRates, heldOrders, auditLogs, dunningLogs, 
-              cheques, paiementsPartiels, remises, companyInfo, users, mappingTemplates,
-              formSubmissions,
-          }
-      };
-      return JSON.stringify(allData, null, 2);
-  }, [
-      items, categories, customers, suppliers, tablesData, sales, paymentMethods, 
-      vatRates, heldOrders, auditLogs, dunningLogs, cheques, paiementsPartiels, 
-      remises, companyInfo, users, mappingTemplates, formSubmissions
-  ]);
-  
-  const importFullData = useCallback(async (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const fullData = JSON.parse(event.target?.result as string);
-        if (fullData.version !== '1.0' || !fullData.data) {
-          throw new Error('Format de sauvegarde invalide ou version non supportée.');
-        }
-        
-        const data = fullData.data;
-
-        // Reset and rehydrate all states
-        setItems(data.items || []);
-        setCategories(data.categories || []);
-        setCustomers(data.customers || []);
-        setSuppliers(data.suppliers || []);
-        setTablesData(data.tables || []);
-        setSales(data.sales || []);
-        setPaymentMethods(data.paymentMethods || []);
-        setVatRates(data.vatRates || []);
-        setHeldOrders(data.heldOrders || []);
-        setAuditLogs(data.auditLogs || []);
-        setDunningLogs(data.dunningLogs || []);
-        setCheques(data.cheques || []);
-        setPaiementsPartiels(data.paiementsPartiels || []);
-        setRemises(data.remises || []);
-        setCompanyInfo(data.companyInfo || null);
-        setUsers(data.users || []);
-        setMappingTemplates(data.mappingTemplates || []);
-        setFormSubmissions(data.formSubmissions || []);
-
-        toast({ title: 'Restauration complète réussie!', description: 'Toutes les données ont été restaurées depuis la sauvegarde.' });
-        // Force a page reload to ensure all components re-render with new data
-        setTimeout(() => window.location.reload(), 1500);
-      } catch (error: any) {
-        console.error("Full data import error:", error);
-        toast({ variant: 'destructive', title: 'Erreur de restauration', description: error.message || 'Le fichier de sauvegarde est invalide.' });
-      }
-    };
-    reader.readAsText(file);
-  }, [
-      setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
-      setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setDunningLogs,
-      setCheques, setPaiementsPartiels, setRemises, setCompanyInfo, setUsers, 
-      setMappingTemplates, setFormSubmissions, toast
-  ]);
-
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
@@ -1026,77 +1002,57 @@ export function PosProvider({ children }: { children: ReactNode }) {
     });
   
     if ('image' in item && item.image) setDynamicBgImage(item.image);
-    toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
+    toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
   }, [toast]);
   
-  const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
-    setOrder(currentOrder =>
-      currentOrder.map(item =>
-        item.id === itemId ? { ...item, note } : item
-      )
-    );
-    toast({ title: 'Note ajoutée à l\'article.' });
-  }, [toast]);
-
-  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>) => {
-    const orderItem = order.find(item => item.id === orderItemId);
-    const fullItem = items.find(i => i.id === orderItem?.itemId);
-
-    setFormSubmissions(prev =>
-      prev.map(sub =>
-        sub.orderItemId === orderItemId ? { ...sub, formData } : sub
-      )
-    );
-    
-    if (orderItem && fullItem?.formNoteField && formData[fullItem.formNoteField]) {
-      updateItemNote(orderItemId, String(formData[fullItem.formNoteField]));
-    }
-    
-    toast({ title: 'Données de formulaire mises à jour.' });
-    setFormItemRequest(null);
-  }, [order, items, setFormSubmissions, toast, setFormItemRequest, updateItemNote]);
-  
-  const addFormItemToOrder = useCallback((itemData: Item | OrderItem, formData: Record<string, any>) => {
-    const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
-    const price = isSupplierOrder ? (itemData.purchasePrice ?? 0) : itemData.price;
-    const orderItemId = uuidv4();
-
+  const addFormItemToOrder = useCallback((item: Item | OrderItem, formData: Record<string, any>) => {
+    const submissionId = uuidv4();
     const newSubmission: FormSubmission = {
+      id: submissionId,
+      orderItemId: '', // This will be set below
+      formData,
+      createdAt: new Date()
+    };
+    setFormSubmissions(prev => [...prev, newSubmission]);
+
+    const newOrderItem: OrderItem = {
+      itemId: 'itemId' in item ? item.itemId : item.id,
       id: uuidv4(),
-      orderItemId: orderItemId,
-      formData: formData,
-      createdAt: new Date(),
-    };
-    setFormSubmissions(prev => [newSubmission, ...prev]);
-    
-    const newItem: OrderItem = {
-      itemId: 'itemId' in itemData ? itemData.itemId : itemData.id,
-      id: orderItemId,
-      name: itemData.name,
-      price: price,
-      vatId: itemData.vatId,
-      image: itemData.image,
+      name: item.name,
+      price: item.price,
+      vatId: item.vatId,
+      image: item.image,
       quantity: 1,
-      total: price,
+      total: item.price,
       discount: 0,
-      description: itemData.description,
-      description2: itemData.description2,
-      barcode: itemData.barcode || '',
-      formSubmissionId: newSubmission.id,
+      description: item.description,
+      description2: item.description2,
+      barcode: 'barcode' in item ? (item.barcode || '') : '',
+      formSubmissionId: submissionId,
     };
-     if(itemData.formNoteField && formData[itemData.formNoteField]) {
-      newItem.note = String(formData[itemData.formNoteField]);
-    }
-    setOrder(prev => [newItem, ...prev]);
-    setRecentlyAddedItemId(newItem.id);
+    
+    // Now update the submission with the correct order item ID
+    setFormSubmissions(prev => prev.map(s => s.id === submissionId ? { ...s, orderItemId: newOrderItem.id } : s));
+
+    setOrder(prev => [newOrderItem, ...prev]);
+
+    if ('image' in item && item.image) setDynamicBgImage(item.image);
+    toast({ title: item.name + ' ajouté à la commande avec son formulaire.' });
     setFormItemRequest(null);
-    if(itemData.image) setDynamicBgImage(itemData.image);
-    toast({ title: `${itemData.name} ajouté à la commande` });
-  }, [currentSaleContext?.documentType, setFormItemRequest, toast, setFormSubmissions]);
+  }, [toast, setFormSubmissions]);
+
+  const updateOrderItemFormData = useCallback((submissionId: string, formData: Record<string, any>) => {
+      setFormSubmissions(prev => prev.map(sub => 
+          sub.id === submissionId ? { ...sub, formData } : sub
+      ));
+      toast({ title: 'Données de formulaire mises à jour.' });
+      setFormItemRequest(null);
+  }, [setFormSubmissions, toast]);
 
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
+      if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
@@ -1105,18 +1061,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
           return;
       }
       if (itemToAdd.manageStock && (itemToAdd.stock || 0) <= 0) {
-        toast({ variant: 'destructive', title: 'Rupture de stock', description: `L'article "${itemToAdd.name}" n'est plus en stock.` });
+        toast({ variant: 'destructive', title: 'Rupture de stock', description: "L'article \"" + itemToAdd.name + "\" n'est plus en stock." });
         return;
       }
       
       const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
 
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
-        toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat valide.` });
+        toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
-      }
-      
-      if (itemToAdd.hasForm && itemToAdd.formFields && itemToAdd.formFields.length > 0) {
+    }
+
+      if (itemToAdd.hasForm) {
         setFormItemRequest({ item: itemToAdd, isEditing: false });
         return;
       }
@@ -1128,19 +1084,22 @@ export function PosProvider({ children }: { children: ReactNode }) {
           return;
       }
       
-      if (itemToAdd.hasVariants && itemToAdd.variantOptions && itemToAdd.variantOptions.length > 0 && !selectedVariants) {
+      if (itemToAdd.hasVariants && itemToAdd.variantOptions && !selectedVariants) {
         setVariantItem(itemToAdd);
         return;
       }
 
       const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length && !item.formSubmissionId
+        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
       );
 
       setOrder((currentOrder) => {
+        let newOrder = [...currentOrder];
+        let newItemId = '';
+
         if (existingItemIndex > -1) {
-          const newOrder = [...currentOrder];
           const newQuantity = newOrder[existingItemIndex].quantity + 1;
+          newItemId = newOrder[existingItemIndex].id;
           newOrder[existingItemIndex] = {
             ...newOrder[existingItemIndex],
             quantity: newQuantity,
@@ -1148,8 +1107,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
               newOrder[existingItemIndex].price * newQuantity - (newOrder[existingItemIndex].discount || 0),
           };
            const itemToMove = newOrder.splice(existingItemIndex, 1)[0];
-           setRecentlyAddedItemId(itemToMove.id);
-          return [itemToMove, ...newOrder];
+          newOrder = [itemToMove, ...newOrder];
         } else {
           const uniqueId = uuidv4();
           const newItem: OrderItem = {
@@ -1167,12 +1125,15 @@ export function PosProvider({ children }: { children: ReactNode }) {
             selectedVariants,
             barcode: itemToAdd.barcode || '',
           };
-          setRecentlyAddedItemId(uniqueId);
-          return [newItem, ...currentOrder];
+          newItemId = newItem.id;
+          newOrder = [newItem, ...currentOrder];
         }
+
+        setRecentlyAddedItemId(newItemId);
+        return newOrder;
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-    toast({ title: `${itemToAdd.name} ajouté à la commande` });
+    toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
     [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest]
   );
@@ -1228,6 +1189,15 @@ export function PosProvider({ children }: { children: ReactNode }) {
     },
     [updateQuantity]
   );
+
+   const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
+    setOrder(currentOrder =>
+      currentOrder.map(item =>
+        item.id === itemId ? { ...item, note } : item
+      )
+    );
+    toast({ title: 'Note ajoutée à l\'article.' });
+  }, [toast]);
 
    const updateItemPrice = useCallback((itemId: string, newPriceTTC: number) => {
         setOrder(currentOrder =>
@@ -1419,13 +1389,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
     
             if (saleData.documentType === 'invoice') {
                 const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
-                ticketNumber = `Fact-${(invoiceCount + 1).toString().padStart(4, '0')}`;
+                ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
             } else {
                 const todaysSalesCount = sales.filter(s => {
                     const saleDate = new Date(s.date as Date);
                     return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
                 }).length;
-                ticketNumber = `Tick-${dayMonth}-${(todaysSalesCount + 1).toString().padStart(4, '0')}`;
+                ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
             }
             
             finalSale = {
@@ -1495,7 +1465,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 documentId: finalDoc.id,
                 documentNumber: finalDoc.ticketNumber,
                 details: `Mise à jour de la pièce.`,
-                richDetails: {
+                 richDetails: {
                   items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
                   total: docData.total,
                 }
@@ -1503,14 +1473,14 @@ export function PosProvider({ children }: { children: ReactNode }) {
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
         } else {
              const count = sales.filter(s => s.documentType === type).length;
-             const number = `${prefix}-${(count + 1).toString().padStart(4, '0')}`;
+             const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
              finalDoc = {
                 id: uuidv4(),
                 date: today,
                 ticketNumber: number,
                 documentType: type,
                 userId: user?.id,
-                userName: user ? `${user.firstName} ${user.lastName}` : 'N/A',
+                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
                 ...docData,
             };
             addAuditLog({
@@ -1612,10 +1582,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'|'createdAt'|'updatedAt'> & {id?: string}) => {
         const newId = customer.id || uuidv4();
         if (customers.some(c => c.id === newId)) {
-          throw new Error('Un client avec ce code existe déjà.');
-        }
-        if (customers.some(c => c.name.toLowerCase() === customer.name.toLowerCase())) {
-          throw new Error('Un client avec ce nom existe déjà.');
+            throw new Error('Un client avec ce code existe déjà.');
         }
         const newCustomer = { ...customer, id: newId, isDefault: customers.length === 0, createdAt: new Date() };
         setCustomers(prev => [...prev, newCustomer]);
@@ -1839,7 +1806,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
     };
     
-  const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
+    const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
   }, [setCompanyInfo]);
   
@@ -1873,7 +1840,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
         const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
-        const toastId = shadcnToast({
+        const toastId = toast({
             title: 'Importation...',
             description: `Préparation de ${jsonData.length} lignes.`
         });
@@ -1950,8 +1917,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         if (!item && row.itemName) {
                             let category = localCategories.find(c => c.name === row.itemCategory);
                             if (!category) {
-                                const newCategory = await addCategory({ name: row.itemCategory || 'Importé' });
-                                if (newCategory) { category = newCategory; localCategories.push(newCategory); }
+                                category = await addCategory({ name: row.itemCategory || 'Importé' });
+                                if (category) localCategories.push(category);
                             }
                             let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
                             if (!vat) vat = vatRates[0];
@@ -1981,21 +1948,23 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     }
     
                     const total = saleItems.reduce((sum, i) => sum + i.total, 0);
-                    const totalTax = saleItems.reduce((sum, i) => { const vat = vatRates.find(v => v.id === i.vatId); return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100)); }, 0);
+                    const totalTax = saleItems.reduce((sum, i) => {
+                        const vat = vatRates.find(v => v.id === i.vatId);
+                        return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
+                    }, 0);
                     
                     const paymentTotals: Record<string, number> = {};
-                    rows.forEach(row => {
+                    if(firstRow) {
                         ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
-                            if (row[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + row[pm];
+                            if (firstRow[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + firstRow[pm];
                         });
-                    });
+                    }
     
                     const payments: Payment[] = [];
                     const paymentMapping: Record<string, string> = {
                       paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
                       paymentCheck: 'Chèque', paymentOther: 'AUTRE'
                     };
-                    
                     Object.entries(paymentTotals).forEach(([key, amount]) => {
                       const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
                       if(method && amount > 0) payments.push({ method, amount, date: saleDate });
@@ -2004,16 +1973,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
                     const isPaid = totalPaid >= total - 0.01;
     
-                    await recordSale({
+                    const newSale: Omit<Sale, 'id'> = {
                         ticketNumber, date: saleDate, items: saleItems, subtotal: total - totalTax, tax: totalTax, total,
                         payments, status: isPaid ? 'paid' : 'pending',
                         customerId: customer?.id,
                         documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
                         userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
-                    });
+                    };
+                    
+                    await recordSale(newSale);
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
                     existingSaleNumbers.add(ticketNumber);
-                } catch (e: any) { addError(0, `Erreur sur pièce ${rows[0].ticketNumber}: ${e.message}`); }
+                } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
         } else {
             for (const [index, row] of jsonData.entries()) {
@@ -2023,16 +1994,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
                         await addCustomer(row);
                     } else if (dataType === 'articles') {
-                        if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatCode) throw new Error("Champs article requis manquants (barcode, name, price, vatCode).");
+                        if (!row.barcode || !row.name || !row.price || !row.vatId) throw new Error("Champs article requis.");
                         if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
-                        const vat = vatRates.find(v => v.code === parseInt(row.vatCode));
-                        if (!vat) throw new Error(`Code TVA "${row.vatCode}" introuvable.`);
-                        let category = localCategories.find(c => c.name === row.categoryId);
-                        if (!category && row.categoryId) {
-                          const newCategory = await addCategory({ name: row.categoryId });
-                          if (newCategory) { category = newCategory; localCategories.push(newCategory); }
-                        }
-                        await addItem({ ...row, vatId: vat.id, categoryId: category?.id });
+                        await addItem(row);
                     } else if (dataType === 'fournisseurs') {
                          if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
                         if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
@@ -2043,7 +2007,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
             }
         }
         
-        shadcnToast({ id: toastId.id, title: "Importation terminée !", description: `${report.successCount} succès, ${report.errorCount} échecs.` });
+        shadcnToast({
+            title: "Importation terminée !",
+            description: `${report.successCount} succès, ${report.errorCount} échecs.`
+        });
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
 
@@ -2051,7 +2018,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, formSubmissions, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, formSubmissions,
+      lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
       getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
@@ -2102,7 +2070,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   return (
     <PosContext.Provider value={value}>
-        <PathStateTracker setLastReportsUrl={setLastReportsUrl} />
       {children}
     </PosContext.Provider>
   );
