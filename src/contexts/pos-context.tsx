@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, {
   createContext,
@@ -130,6 +131,8 @@ export interface PosContextType {
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
   customVariantRequest: { item: Item, optionName: string, currentSelections: SelectedVariant[] } | null;
   setCustomVariantRequest: React.Dispatch<React.SetStateAction<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>>;
+  formItemRequest: { item: Item | OrderItem, isEditing: boolean } | null;
+  setFormItemRequest: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem, isEditing: boolean } | null>>;
   formSubmissions: FormSubmission[];
   tempFormSubmissions: Record<string, FormSubmission>;
   lastDirectSale: Sale | null;
@@ -436,7 +439,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
   const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
-  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
   const [showItemImagesInGrid, setShowItemImagesInGrid] = usePersistentState('settings.showItemImagesInGrid', true);
   const [descriptionDisplay, setDescriptionDisplay] = usePersistentState<'none' | 'first' | 'both'>('settings.descriptionDisplay', 'none');
@@ -497,6 +499,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
+  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
@@ -804,6 +807,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
+    setFormSubmissions([]);
+    setTempFormSubmissions({});
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -814,7 +819,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
       importDemoSuppliers();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
+  }, [
+    setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
+    setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs,
+    setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, setTempFormSubmissions,
+    toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders
+  ]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
     toast({ title: 'Suppression en cours...' });
@@ -864,8 +874,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
+    setFormSubmissions([]);
     toast({ title: 'Ventes et données liées supprimées' });
-  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
+  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, toast]);
   
   const exportConfiguration = useCallback(() => {
     const config = {
@@ -1014,7 +1025,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     const submissionId = `temp_${uuidv4()}`;
     const newSubmission: FormSubmission = {
       id: submissionId,
-      orderItemId: '', // This will be set below
+      orderItemId: '', // This will be set when the order item is created
       formData,
       createdAt: new Date()
     };
@@ -1038,22 +1049,23 @@ export function PosProvider({ children }: { children: ReactNode }) {
     };
     
     setOrder(prev => [newOrderItem, ...prev]);
+    setRecentlyAddedItemId(newOrderItem.id);
 
     if ('image' in item && item.image) setDynamicBgImage(item.image);
     toast({ title: item.name + ' ajouté à la commande avec son formulaire.' });
   }, [toast, setTempFormSubmissions]);
   
-  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => {
+  const updateOrderItemFormData = useCallback((formSubmissionId: string, formData: Record<string, any>, isTemporary: boolean) => {
     if (isTemporary) {
       setTempFormSubmissions(prev => {
-          if (prev[orderItemId]) {
-              return { ...prev, [orderItemId]: { ...prev[orderItemId], formData } };
+          if (prev[formSubmissionId]) {
+              return { ...prev, [formSubmissionId]: { ...prev[formSubmissionId], formData } };
           }
           return prev;
       });
     } else {
         setFormSubmissions(prev => prev.map(sub => 
-            sub.id === orderItemId ? { ...sub, formData } : sub
+            sub.id === formSubmissionId ? { ...sub, formData } : sub
         ));
     }
     toast({ title: 'Données de formulaire mises à jour.' });
@@ -1080,28 +1092,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
         toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
-      }
+    }
 
-      const isCommercialPage = !!currentSaleContext?.documentType && ['invoice', 'quote', 'delivery_note', 'supplier_order', 'credit_note'].includes(currentSaleContext.documentType);
-
-      if (itemToAdd.hasForm && isCommercialPage) {
-        const tempOrderItemId = `new_${uuidv4()}`; // Create a temporary ID
-        const tempSubmissionId = `temp_${tempOrderItemId}`;
-        const newSubmission: FormSubmission = {
-            id: tempSubmissionId, orderItemId: tempOrderItemId,
-            formData: {}, createdAt: new Date()
-        };
-        setTempFormSubmissions(prev => ({ ...prev, [tempSubmissionId]: newSubmission }));
-        const newOrderItem: OrderItem = {
-            itemId: itemToAdd.id, id: tempOrderItemId, name: itemToAdd.name,
-            price: itemToAdd.price, vatId: itemToAdd.vatId, image: itemToAdd.image,
-            quantity: 1, total: itemToAdd.price, discount: 0, barcode: itemToAdd.barcode || '',
-            formSubmissionId: tempSubmissionId
-        };
-        setOrder(prev => [newOrderItem, ...prev]);
-        setRecentlyAddedItemId(newOrderItem.id);
-        if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
-        toast({ title: itemToAdd.name + ' ajouté à la commande.' });
+      if (itemToAdd.hasForm) {
+        setFormItemRequest({ item: itemToAdd, isEditing: false });
         return;
       }
 
@@ -1163,7 +1157,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setTempFormSubmissions]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -2131,5 +2125,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

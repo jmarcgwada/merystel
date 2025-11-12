@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -251,8 +250,12 @@ export const CommercialOrderForm = forwardRef<
   }
 
   const handleAddItem = (item: Item) => {
-    addToOrder(item.id);
-  }
+    if (item.hasForm) {
+      setFormItemRequest({ item, isEditing: false });
+    } else {
+      addToOrder(item.id);
+    }
+  };
 
   const performSearch = useCallback((term: string, type: 'contains' | 'startsWith') => {
     if (!allItems) {
@@ -862,7 +865,7 @@ export const CommercialOrderForm = forwardRef<
       )}
       <CatalogSheet isOpen={isCatalogOpen} onClose={() => setCatalogOpen(false)} />
       <FormInputModal
-        item={formItemRequest?.item}
+        item={formItemRequest?.item || null}
         isEditing={formItemRequest?.isEditing || false}
         isOpen={!!formItemRequest}
         onClose={() => setFormItemRequest(null)}
