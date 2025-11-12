@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, Star, Utensils, RefreshCw, X, LayoutDashboard } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Utensils, RefreshCw, X, LayoutDashboard, ArrowUpDown } from 'lucide-react';
 import { AddCategoryDialog } from './components/add-category-dialog';
 import { EditCategoryDialog } from './components/edit-category-dialog';
 import { usePos } from '@/contexts/pos-context';
@@ -21,13 +21,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import type { Category, Item } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+
+type SortKey = 'name' | 'code' | 'itemCount';
 
 export default function CategoriesPage() {
   const { categories, items, deleteCategory, toggleCategoryFavorite, isLoading } = usePos();
@@ -42,6 +45,9 @@ export default function CategoriesPage() {
   const [isItemListOpen, setIsItemListOpen] = useState(false);
   const [selectedCategoryItems, setSelectedCategoryItems] = useState<Item[]>([]);
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
+  
+  const [filter, setFilter] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
 
   useEffect(() => {
@@ -52,6 +58,50 @@ export default function CategoriesPage() {
     if (!items) return 0;
     return items.filter(item => item.categoryId === categoryId).length;
   }, [items]);
+  
+  const sortedAndFilteredCategories = useMemo(() => {
+    if (!categories) return [];
+    
+    let filtered = categories.filter(category =>
+        category.name.toLowerCase().includes(filter.toLowerCase()) ||
+        (category.code && category.code.toLowerCase().includes(filter.toLowerCase()))
+    );
+
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        let aValue: string | number, bValue: string | number;
+
+        if (sortConfig.key === 'itemCount') {
+          aValue = getItemCountForCategory(a.id);
+          bValue = getItemCountForCategory(b.id);
+        } else {
+          aValue = a[sortConfig.key] || '';
+          bValue = b[sortConfig.key] || '';
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [categories, filter, sortConfig, getItemCountForCategory]);
+  
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+        direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIcon = (key: SortKey) => {
+    if (!sortConfig || sortConfig.key !== key) {
+        return <ArrowUpDown className="h-4 w-4 ml-2 opacity-30" />;
+    }
+    return sortConfig.direction === 'asc' ? '▲' : '▼';
+  };
 
 
   const handleDeleteCategory = () => {
@@ -76,7 +126,7 @@ export default function CategoriesPage() {
 
   return (
     <>
-      <PageHeader title="Gérer les catégories" subtitle={isClient && categories ? `Vous avez ${categories.length} catégories au total.` : "Organisez vos articles en catégories."}>
+      <PageHeader title="Gérer les catégories" subtitle={isClient && categories ? `Vous avez ${sortedAndFilteredCategories.length} catégories sur ${categories.length} au total.` : "Organisez vos articles en catégories."}>
         <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => router.refresh()}>
               <RefreshCw className="h-4 w-4" />
@@ -95,13 +145,33 @@ export default function CategoriesPage() {
       <div className="mt-8">
         <Card>
           <CardContent className="pt-6">
+            <div className="flex justify-between items-center mb-4">
+              <Input
+                placeholder="Filtrer par nom ou code..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">Image</TableHead>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Articles</TableHead>
+                  <TableHead>
+                    <Button variant="ghost" onClick={() => requestSort('name')}>
+                        Nom {getSortIcon('name')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('code')}>
+                        Code {getSortIcon('code')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                     <Button variant="ghost" onClick={() => requestSort('itemCount')}>
+                        Articles {getSortIcon('itemCount')}
+                    </Button>
+                  </TableHead>
                   <TableHead className="w-[100px]">Couleur</TableHead>
                   <TableHead>Mode Restaurant</TableHead>
                   <TableHead className="w-[160px] text-right">Actions</TableHead>
@@ -119,7 +189,7 @@ export default function CategoriesPage() {
                       <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                   </TableRow>
                 ))}
-                {isClient && !isLoading && categories && categories.map(category => (
+                {isClient && !isLoading && sortedAndFilteredCategories && sortedAndFilteredCategories.map(category => (
                   <TableRow key={category.id}>
                     <TableCell>
                         <Image 
@@ -165,6 +235,11 @@ export default function CategoriesPage() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {!isLoading && sortedAndFilteredCategories.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={7} className="text-center h-24">Aucune catégorie trouvée.</TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -227,3 +302,4 @@ export default function CategoriesPage() {
     </>
   );
 }
+
