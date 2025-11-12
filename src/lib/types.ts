@@ -1,3 +1,4 @@
+
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -34,21 +35,6 @@ export interface SelectedVariant {
   isCustom?: boolean; // To flag custom values
 }
 
-export interface FormFieldDefinition {
-  id: string;
-  name: string;
-  label: string;
-  type: 'text' | 'textarea' | 'date' | 'checkbox' | 'number';
-  required?: boolean;
-}
-
-export interface FormSubmission {
-  id: string;
-  orderItemId: string;
-  formData: Record<string, any>;
-  createdAt: Date | Timestamp;
-}
-
 export interface Item {
   id: string;
   name: string;
@@ -72,9 +58,6 @@ export interface Item {
   hasVariants?: boolean;
   variantOptions?: VariantOption[];
   isDisabled?: boolean;
-  hasForm?: boolean;
-  formFields?: FormFieldDefinition[];
-  formNoteField?: string;
   createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
 }
@@ -98,7 +81,6 @@ export interface OrderItem {
   description?: string;
   description2?: string;
   barcode: string;
-  formSubmissionId?: string;
 }
 
 export interface Table {

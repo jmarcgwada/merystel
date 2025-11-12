@@ -8,7 +8,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock, BarChart3, BookOpen, FileSignature } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock, BarChart3, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem, Sale, Timestamp } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +30,6 @@ import { EditCustomerDialog } from '@/app/management/customers/components/edit-c
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CatalogSheet } from './catalog-sheet';
-import { FormInputModal } from '@/app/pos/components/form-input-modal';
 
 const ClientFormattedDate = ({ date, formatString, withIcon, label }: { date: Date | Timestamp | string | undefined; formatString: string, withIcon?: boolean; label?: string }) => {
   const [formatted, setFormatted] = useState('');
@@ -156,10 +155,6 @@ export const CommercialOrderForm = forwardRef<
   const [isCatalogOpen, setCatalogOpen] = useState(false);
   const previousTotals = useRef<{ subtotal: number, tax: number, total: number } | null>(null);
   
-  // Local state for form modal
-  const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
-
-
     useEffect(() => {
         const storedColumns = localStorage.getItem('commercialOrderVisibleColumns');
         const storedPriceType = localStorage.getItem('commercialOrderPriceType');
@@ -251,11 +246,7 @@ export const CommercialOrderForm = forwardRef<
   }
 
   const handleAddItem = (item: Item) => {
-    if (item.hasForm) {
-      setFormItemRequest({ item, isEditing: false });
-    } else {
       addToOrder(item.id);
-    }
   };
 
   const performSearch = useCallback((term: string, type: 'contains' | 'startsWith') => {
@@ -470,9 +461,7 @@ export const CommercialOrderForm = forwardRef<
   const handleEditItemClick = (e: React.MouseEvent, item: OrderItem) => {
     e.stopPropagation();
     const fullItem = allItems.find(i => i.id === item.itemId);
-    if (fullItem?.hasForm) {
-      setFormItemRequest({ item: item, isEditing: true });
-    } else if (fullItem) {
+    if (fullItem) {
         setItemToEdit(fullItem);
         setIsEditItemOpen(true);
     }
@@ -700,14 +689,7 @@ export const CommercialOrderForm = forwardRef<
                                   {visibleColumns.designation && 
                                   <div className="flex flex-col">
                                       <div className="flex items-center gap-1">
-                                        {fullItem?.hasForm ? (
-                                            <Button variant="link" className="p-0 h-auto font-semibold text-base text-left" onClick={(e) => handleEditItemClick(e, field)}>
-                                                {field.name}
-                                                <FileSignature className="h-3 w-3 ml-1.5 text-muted-foreground"/>
-                                            </Button>
-                                        ) : (
-                                            <span className="font-semibold">{field.name}</span>
-                                        )}
+                                        <span className="font-semibold">{field.name}</span>
                                         <Button 
                                             type="button"
                                             variant="ghost" 
@@ -865,12 +847,6 @@ export const CommercialOrderForm = forwardRef<
           />
       )}
       <CatalogSheet isOpen={isCatalogOpen} onClose={() => setCatalogOpen(false)} />
-      <FormInputModal
-        item={formItemRequest?.item || null}
-        isEditing={formItemRequest?.isEditing || false}
-        isOpen={!!formItemRequest}
-        onClose={() => setFormItemRequest(null)}
-      />
     </div>
   );
 });

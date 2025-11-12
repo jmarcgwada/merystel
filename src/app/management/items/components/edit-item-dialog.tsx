@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { Item, Category, Timestamp, Supplier, FormFieldDefinition } from '@/lib/types';
+import type { Item, Category, Timestamp, Supplier } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,15 +56,6 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
   return <>{formatted}</>;
 };
 
-const formFieldSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "Le nom du champ est requis."),
-  label: z.string().min(1, "L'étiquette est requise."),
-  type: z.enum(['text', 'textarea', 'date', 'checkbox', 'number']),
-  required: z.boolean().optional(),
-});
-
-
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères.' }),
   price: z.coerce.number().min(0, { message: 'Le prix doit être positif.' }),
@@ -92,9 +83,6 @@ const formSchema = z.object({
         value: z.string().min(1, { message: "La valeur est requise." })
     })).min(1, { message: "Au moins une valeur est requise." })
   })).optional(),
-  hasForm: z.boolean().default(false),
-  formFields: z.array(formFieldSchema).optional(),
-  formNoteField: z.string().optional(),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -171,8 +159,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
       description: '', description2: '', isFavorite: false, image: '', showImage: true,
       barcode: '', marginPercentage: 30, requiresSerialNumber: false, additionalCosts: 0,
       manageStock: false, stock: 0, lowStockThreshold: 0, isDisabled: false,
-      hasVariants: false, variantOptions: [], hasForm: false, formFields: [],
-      formNoteField: '',
+      hasVariants: false, variantOptions: [],
     },
   });
 
@@ -181,11 +168,6 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
   const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
     control, name: "variantOptions"
   });
-
-  const { fields: formFields, append: appendFormField, remove: removeFormField } = useFieldArray({
-    control, name: "formFields"
-  });
-
 
   const watchedImage = watch('image');
   const watchedName = watch('name');
@@ -196,8 +178,6 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
   const watchedVatId = watch('vatId');
   const watchedManageStock = watch('manageStock');
   const watchedHasVariants = watch('hasVariants');
-  const watchedHasForm = watch('hasForm');
-  const watchedFormFields = watch('formFields');
 
   const vatRateInfo = useMemo(() => vatRates?.find(v => v.id === watchedVatId), [watchedVatId, vatRates]);
   const costPrice = useMemo(() => {
@@ -247,9 +227,6 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             lowStockThreshold: item.lowStockThreshold || 0, isDisabled: item.isDisabled || false,
             hasVariants: item.hasVariants || false,
             variantOptions: item.variantOptions?.map(opt => ({ name: opt.name, values: opt.values.map(val => ({ value: val }))})) || [],
-            hasForm: item.hasForm || false,
-            formFields: item.formFields || [],
-            formNoteField: item.formNoteField || '',
           });
         } else {
           reset({
@@ -257,8 +234,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             description: '', description2: '', isFavorite: false, image: `https://picsum.photos/seed/new/200/150`,
             showImage: true, barcode: '', marginPercentage: 30, requiresSerialNumber: false,
             additionalCosts: 0, manageStock: false, stock: 0, lowStockThreshold: 0,
-            isDisabled: false, hasVariants: false, variantOptions: [], hasForm: false, formFields: [],
-            formNoteField: '',
+            isDisabled: false, hasVariants: false, variantOptions: [],
           });
         }
     }
@@ -279,8 +255,6 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             name: opt.name,
             values: opt.values.map(val => val.value)
         })) : [],
-        formFields: data.hasForm ? data.formFields : [],
-        formNoteField: data.hasForm ? (data.formNoteField === 'none' ? undefined : data.formNoteField) : undefined,
     };
 
     if (isEditMode && item) {
@@ -331,7 +305,6 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
                       <TabsTrigger value="stock">Stock</TabsTrigger>
                       <TabsTrigger value="image">Image & Visibilité</TabsTrigger>
                       <TabsTrigger value="variants">Déclinaisons</TabsTrigger>
-                      <TabsTrigger value="form">Formulaire</TabsTrigger>
                   </TabsList>
                 </div>
                 <div className="flex-1 overflow-y-auto mt-2">
@@ -430,91 +403,6 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
                                             <Card key={field.id} className="p-4"><div className="flex items-center justify-between mb-4"><h4 className="font-semibold">Option #{index + 1}</h4><Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div><div className="grid grid-cols-1 gap-4"><FormField control={form.control} name={`variantOptions.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="ex: Taille, Couleur..." {...field} /></FormControl><FormMessage /></FormItem>)} /><VariantValues control={control} optionIndex={index} /></div></Card>
                                         ))}
                                         <Button type="button" variant="outline" onClick={() => appendVariant({ name: '', values: [{ value: '' }] })}><PlusCircle className="mr-2 h-4 w-4" />Ajouter une option</Button>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="form" className="p-6 pt-2">
-                        <Card className="border-none shadow-none -m-6">
-                            <CardHeader><CardTitle>Formulaire Personnalisé</CardTitle><CardDescription>Attachez un formulaire à cet article pour saisir des informations spécifiques lors de la vente.</CardDescription></CardHeader>
-                            <CardContent className="space-y-6 pt-6">
-                                <FormField control={form.control} name="hasForm" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel className="text-base">Activer le formulaire</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
-                                {watchedHasForm && (
-                                    <div className="space-y-4 pt-4 border-t">
-                                        <FormField
-                                            control={control}
-                                            name="formNoteField"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Champ pour la note</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value || 'none'}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Choisir un champ à afficher comme note..." />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="none">Aucun</SelectItem>
-                                                            {watchedFormFields?.map(f => (
-                                                                <SelectItem key={f.id} value={f.name}>{f.label}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormDescription>
-                                                        La valeur de ce champ sera affichée comme note sous le nom de l'article.
-                                                    </FormDescription>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <Separator/>
-                                        {formFields.map((field, index) => (
-                                            <Card key={field.id} className="p-4 bg-secondary/50">
-                                              <div className="flex items-start justify-between mb-4">
-                                                <h4 className="font-semibold pt-2">Champ #{index + 1}</h4>
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeFormField(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                              </div>
-                                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                <FormField control={control} name={`formFields.${index}.name`} render={({ field }) => (<FormItem><FormLabel>Nom du champ (unique)</FormLabel><FormControl><Input placeholder="ex: numero_serie" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                <FormField control={control} name={`formFields.${index}.label`} render={({ field }) => (<FormItem><FormLabel>Étiquette affichée</FormLabel><FormControl><Input placeholder="ex: Numéro de série" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                                <FormField control={control} name={`formFields.${index}.type`} render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Type de champ</FormLabel>
-                                                        <Select onValueChange={field.onChange} value={field.value}>
-                                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                            <SelectContent>
-                                                                <SelectItem value="text">Texte court</SelectItem>
-                                                                <SelectItem value="textarea">Texte long</SelectItem>
-                                                                <SelectItem value="number">Nombre</SelectItem>
-                                                                <SelectItem value="date">Date</SelectItem>
-                                                                <SelectItem value="checkbox">Case à cocher</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}/>
-                                              </div>
-                                                <FormField
-                                                  control={control}
-                                                  name={`formFields.${index}.required`}
-                                                  render={({ field }) => (
-                                                      <FormItem className="flex flex-row items-center space-x-2 mt-4">
-                                                          <FormControl>
-                                                              <Checkbox
-                                                                  checked={field.value}
-                                                                  onCheckedChange={field.onChange}
-                                                              />
-                                                          </FormControl>
-                                                          <FormLabel>Ce champ est obligatoire</FormLabel>
-                                                      </FormItem>
-                                                  )}
-                                                />
-                                            </Card>
-                                        ))}
-                                        <Button type="button" variant="outline" onClick={() => appendFormField({ id: uuidv4(), name: '', label: '', type: 'text', required: false })}>
-                                            <PlusCircle className="mr-2 h-4 w-4" />Ajouter un champ
-                                        </Button>
                                     </div>
                                 )}
                             </CardContent>
