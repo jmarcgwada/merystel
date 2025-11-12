@@ -132,7 +132,7 @@ export const CommercialOrderForm = forwardRef<
   { submit: (notes?: string) => void },
   CommercialOrderFormProps
 >(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemPrice, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl, setFormItemRequest } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -247,6 +247,10 @@ export const CommercialOrderForm = forwardRef<
   }
 
   const handleAddItem = (item: Item) => {
+     if (item.hasForm && item.formFields && item.formFields.length > 0) {
+      setFormItemRequest({ item, isEditing: false });
+      return;
+    }
     addToOrder(item.id);
   }
 
@@ -836,14 +840,8 @@ export const CommercialOrderForm = forwardRef<
                   setIsEditItemOpen(false);
                   setItemToEdit(null);
               }}
-              onItemUpdated={(updatedItem) => {
-                   setOrder(currentOrder => 
-                    currentOrder.map(orderItem => 
-                      orderItem.itemId === updatedItem.id 
-                        ? { ...orderItem, name: updatedItem.name, price: updatedItem.price, description: updatedItem.description, description2: updatedItem.description2, barcode: updatedItem.barcode }
-                        : orderItem
-                    )
-                  );
+              onItemSaved={() => {
+                   // This logic is now handled by the usePos context
               }}
           />
       )}
