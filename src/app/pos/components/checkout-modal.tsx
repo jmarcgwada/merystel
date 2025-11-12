@@ -69,7 +69,7 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
   const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage, addCheque } = usePos();
-  const { toast } = useToast();
+  const { toast } = useShadcnToast();
   const router = useRouter();
   
   const [view, setView] = useState<'payment' | 'advanced' | 'cheque'>('payment');
