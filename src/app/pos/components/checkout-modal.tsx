@@ -717,7 +717,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           </Button>
 
         {(balanceDue < 0.009 || isInvoiceMode || isCreditNote) && (
-          <Button onClick={() => handleFinalizeSale(balanceDue < 0.009)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
+          <Button onClick={() => handleFinalizeSale(true)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               {isCreditNote ? 'Confirmer le remboursement' : 'Finaliser'}
           </Button>
         )}
