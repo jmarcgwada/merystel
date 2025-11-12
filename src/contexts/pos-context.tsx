@@ -97,6 +97,7 @@ export interface PosContextType {
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
+  addFormItemToOrder: (item: Item | OrderItem, formData: Record<string, any>) => void;
   addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
   updateOrderItemFormData: (orderItemId: string, formData: Record<string, any>) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
@@ -1019,22 +1020,54 @@ export function PosProvider({ children }: { children: ReactNode }) {
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
   
+  const addFormItemToOrder = useCallback((itemData: Item | OrderItem, formData: Record<string, any>) => {
+    const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
+    const price = isSupplierOrder ? (itemData.purchasePrice ?? 0) : itemData.price;
+    const newItem: OrderItem = {
+      itemId: 'itemId' in itemData ? itemData.itemId : itemData.id,
+      id: uuidv4(),
+      name: itemData.name,
+      price: price,
+      vatId: itemData.vatId,
+      image: itemData.image,
+      quantity: 1,
+      total: price,
+      discount: 0,
+      description: itemData.description,
+      description2: itemData.description2,
+      barcode: itemData.barcode || '',
+      formData: formData,
+    };
+     if(itemData.formNoteField && formData[itemData.formNoteField]) {
+      newItem.note = String(formData[itemData.formNoteField]);
+    }
+    setOrder(prev => [newItem, ...prev]);
+    setFormItemRequest(null);
+    if(itemData.image) setDynamicBgImage(itemData.image);
+    toast({ title: `${itemData.name} ajouté à la commande` });
+  }, [currentSaleContext?.documentType, setFormItemRequest, toast]);
+
   const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>) => {
     setOrder(currentOrder =>
-      currentOrder.map(item =>
-        item.id === orderItemId
-          ? { ...item, formData }
-          : item
-      )
+      currentOrder.map(item => {
+        if (item.id === orderItemId) {
+          const updatedItem = { ...item, formData };
+          const formNoteField = allItems.find(i => i.id === item.itemId)?.formNoteField;
+          if (formNoteField && formData[formNoteField]) {
+            updatedItem.note = String(formData[formNoteField]);
+          }
+          return updatedItem;
+        }
+        return item;
+      })
     );
-    toast({ title: 'Données de formulaire enregistrées.' });
+    toast({ title: 'Données de formulaire mises à jour.' });
     setFormItemRequest(null);
-  }, [toast, setFormItemRequest]);
+  }, [toast, setFormItemRequest, allItems]);
 
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
-      if (!items) return;
       const itemToAdd = items.find((i) => i.id === itemId);
       if (!itemToAdd) return;
       
@@ -1056,7 +1089,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       
       if (itemToAdd.hasForm && itemToAdd.formFields && itemToAdd.formFields.length > 0) {
         setFormItemRequest({ item: itemToAdd, isEditing: false });
-        return;
+        return; // Stop execution to wait for form modal
       }
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
@@ -1066,7 +1099,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
           return;
       }
       
-      if (itemToAdd.hasVariants && itemToAdd.variantOptions && !selectedVariants) {
+      if (itemToAdd.hasVariants && itemToAdd.variantOptions && itemToAdd.variantOptions.length > 0 && !selectedVariants) {
         setVariantItem(itemToAdd);
         return;
       }
@@ -1996,7 +2029,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
+      addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
