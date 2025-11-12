@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, {
   createContext,
@@ -1055,17 +1054,17 @@ export function PosProvider({ children }: { children: ReactNode }) {
     toast({ title: item.name + ' ajouté à la commande avec son formulaire.' });
   }, [toast, setTempFormSubmissions]);
   
-  const updateOrderItemFormData = useCallback((formSubmissionId: string, formData: Record<string, any>, isTemporary: boolean) => {
+  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => {
     if (isTemporary) {
       setTempFormSubmissions(prev => {
-          if (prev[formSubmissionId]) {
-              return { ...prev, [formSubmissionId]: { ...prev[formSubmissionId], formData } };
+          if (prev[orderItemId]) {
+              return { ...prev, [orderItemId]: { ...prev[orderItemId], formData } };
           }
           return prev;
       });
     } else {
         setFormSubmissions(prev => prev.map(sub => 
-            sub.id === formSubmissionId ? { ...sub, formData } : sub
+            sub.id === orderItemId ? { ...sub, formData } : sub
         ));
     }
     toast({ title: 'Données de formulaire mises à jour.' });
@@ -1092,13 +1091,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
         toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
-    }
+      }
 
-      if (itemToAdd.hasForm) {
+      if (itemToAdd.hasForm && !pathname.startsWith('/commercial')) {
         setFormItemRequest({ item: itemToAdd, isEditing: false });
         return;
       }
-
+      
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
           const existingItem = order.find(i => i.itemId === itemId);
@@ -1157,7 +1156,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest, pathname]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -2125,3 +2124,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
