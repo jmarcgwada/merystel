@@ -2,7 +2,7 @@
 'use client';
 
 import { usePos } from '@/contexts/pos-context';
-import { useSearchParams, useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useParams, useRouter, usePathname } from 'next/navigation';
 import React, { useEffect, Suspense, useState } from 'react';
 import CommercialPageLayout from '../components/commercial-page-layout';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,6 +18,7 @@ function DocumentPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const docType = params.documentType as string;
   const saleIdToEdit = searchParams.get('edit');
   const fromConversion = searchParams.get('fromConversion');
