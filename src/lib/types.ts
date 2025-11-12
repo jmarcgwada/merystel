@@ -36,6 +36,14 @@ export interface SelectedVariant {
   isCustom?: boolean; // To flag custom values
 }
 
+export interface FormFieldDefinition {
+  id: string;
+  name: string;
+  label: string;
+  type: 'text' | 'textarea' | 'date' | 'checkbox' | 'number';
+  required?: boolean;
+}
+
 export interface Item {
   id: string;
   name: string;
@@ -59,6 +67,8 @@ export interface Item {
   hasVariants?: boolean;
   variantOptions?: VariantOption[];
   isDisabled?: boolean;
+  hasForm?: boolean;
+  formFields?: FormFieldDefinition[];
   createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
 }
@@ -82,6 +92,7 @@ export interface OrderItem {
   description?: string;
   description2?: string;
   barcode: string;
+  formData?: Record<string, any>;
 }
 
 export interface Table {
