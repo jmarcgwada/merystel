@@ -1,5 +1,3 @@
-
-
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -69,6 +67,7 @@ export interface Item {
   isDisabled?: boolean;
   hasForm?: boolean;
   formFields?: FormFieldDefinition[];
+  formNoteField?: string;
   createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
 }

@@ -33,6 +33,7 @@ import { AddCategoryDialog } from '@/app/management/categories/components/add-ca
 import { AddSupplierDialog } from '@/app/management/suppliers/components/add-supplier-dialog';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | string | undefined; formatString: string }) => {
   const [formatted, setFormatted] = useState('');
@@ -93,6 +94,7 @@ const formSchema = z.object({
   })).optional(),
   hasForm: z.boolean().default(false),
   formFields: z.array(formFieldSchema).optional(),
+  formNoteField: z.string().optional(),
 });
 
 type ItemFormValues = z.infer<typeof formSchema>;
@@ -103,6 +105,54 @@ interface EditItemDialogProps {
   onClose: () => void;
   onItemSaved?: () => void;
 }
+
+const VariantValues = ({ control, optionIndex }: { control: Control<ItemFormValues>; optionIndex: number }) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `variantOptions.${optionIndex}.values` as const,
+  });
+
+  return (
+    <div className="space-y-2 pl-4 border-l-2">
+      <FormLabel>Valeurs</FormLabel>
+      <FormDescription>Utilisez '*' pour permettre une saisie manuelle.</FormDescription>
+      {fields.map((field, valueIndex) => (
+        <div key={field.id} className="flex items-center gap-2">
+          <FormField
+            control={control}
+            name={`variantOptions.${optionIndex}.values.${valueIndex}.value`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input placeholder="ex: S, M, Rouge, Bleu... ou *" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => remove(valueIndex)}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => append({ value: '' })}
+      >
+        <PlusCircle className="mr-2 h-4 w-4" />
+        Ajouter une valeur
+      </Button>
+    </div>
+  );
+};
+
 
 export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemDialogProps) {
   const { toast } = useToast();
@@ -122,6 +172,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
       barcode: '', marginPercentage: 30, requiresSerialNumber: false, additionalCosts: 0,
       manageStock: false, stock: 0, lowStockThreshold: 0, isDisabled: false,
       hasVariants: false, variantOptions: [], hasForm: false, formFields: [],
+      formNoteField: '',
     },
   });
 
@@ -146,6 +197,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
   const watchedManageStock = watch('manageStock');
   const watchedHasVariants = watch('hasVariants');
   const watchedHasForm = watch('hasForm');
+  const watchedFormFields = watch('formFields');
 
   const vatRateInfo = useMemo(() => vatRates?.find(v => v.id === watchedVatId), [watchedVatId, vatRates]);
   const costPrice = useMemo(() => {
@@ -197,6 +249,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             variantOptions: item.variantOptions?.map(opt => ({ name: opt.name, values: opt.values.map(val => ({ value: val }))})) || [],
             hasForm: item.hasForm || false,
             formFields: item.formFields || [],
+            formNoteField: item.formNoteField || '',
           });
         } else {
           reset({
@@ -205,6 +258,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             showImage: true, barcode: '', marginPercentage: 30, requiresSerialNumber: false,
             additionalCosts: 0, manageStock: false, stock: 0, lowStockThreshold: 0,
             isDisabled: false, hasVariants: false, variantOptions: [], hasForm: false, formFields: [],
+            formNoteField: '',
           });
         }
     }
@@ -226,6 +280,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             values: opt.values.map(val => val.value)
         })) : [],
         formFields: data.hasForm ? data.formFields : [],
+        formNoteField: data.hasForm ? data.formNoteField : undefined,
     };
 
     if (isEditMode && item) {
@@ -387,6 +442,33 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
                                 <FormField control={form.control} name="hasForm" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel className="text-base">Activer le formulaire</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
                                 {watchedHasForm && (
                                     <div className="space-y-4 pt-4 border-t">
+                                        <FormField
+                                            control={control}
+                                            name="formNoteField"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Champ pour la note</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Choisir un champ à afficher comme note..." />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="">Aucun</SelectItem>
+                                                            {watchedFormFields?.map(f => (
+                                                                <SelectItem key={f.id} value={f.name}>{f.label}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormDescription>
+                                                        La valeur de ce champ sera affichée comme note sous le nom de l'article.
+                                                    </FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Separator/>
                                         {formFields.map((field, index) => (
                                             <Card key={field.id} className="p-4 bg-secondary/50">
                                               <div className="flex items-start justify-between mb-4">
@@ -413,9 +495,24 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
                                                     </FormItem>
                                                 )}/>
                                               </div>
+                                                <FormField
+                                                  control={control}
+                                                  name={`formFields.${index}.required`}
+                                                  render={({ field }) => (
+                                                      <FormItem className="flex flex-row items-center space-x-2 mt-4">
+                                                          <FormControl>
+                                                              <Checkbox
+                                                                  checked={field.value}
+                                                                  onCheckedChange={field.onChange}
+                                                              />
+                                                          </FormControl>
+                                                          <FormLabel>Ce champ est obligatoire</FormLabel>
+                                                      </FormItem>
+                                                  )}
+                                                />
                                             </Card>
                                         ))}
-                                        <Button type="button" variant="outline" onClick={() => appendFormField({ id: uuidv4(), name: '', label: '', type: 'text' })}>
+                                        <Button type="button" variant="outline" onClick={() => appendFormField({ id: uuidv4(), name: '', label: '', type: 'text', required: false })}>
                                             <PlusCircle className="mr-2 h-4 w-4" />Ajouter un champ
                                         </Button>
                                     </div>
@@ -438,26 +535,3 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
     </>
   );
 }
-
-const VariantValues = ({ control, optionIndex }: { control: Control<ItemFormValues>; optionIndex: number }) => {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: `variantOptions.${optionIndex}.values` as const,
-  });
-
-  return (
-    <div className="space-y-2 pl-4 border-l-2">
-      <FormLabel>Valeurs</FormLabel>
-      <FormDescription>Utilisez '*' pour permettre une saisie manuelle.</FormDescription>
-      {fields.map((field, valueIndex) => (
-        <div key={field.id} className="flex items-center gap-2">
-          <FormField control={control} name={`variantOptions.${optionIndex}.values.${valueIndex}.value`} render={({ field }) => (<FormItem className="flex-1"><FormControl><Input placeholder="ex: S, M, Rouge, Bleu... ou *" {...field} /></FormControl><FormMessage /></FormItem>)} />
-          <Button type="button" variant="ghost" size="icon" onClick={() => remove(valueIndex)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-        </div>
-      ))}
-      <Button type="button" variant="outline" size="sm" onClick={() => append({ value: '' })}>Ajouter une valeur</Button>
-    </div>
-  );
-};
-
-    
