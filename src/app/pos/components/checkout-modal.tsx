@@ -69,7 +69,7 @@ const KeypadButton = ({ children, onClick, className, flex = 1 }: { children: Re
 
 export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalProps) {
   const { clearOrder, recordSale, order, orderTotal, orderTax, paymentMethods, customers, currentSaleId, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentMethodImageOpacity, resetCommercialPage, addCheque } = usePos();
-  const { toast } = useShadcnToast();
+  const { toast } = useToast();
   const router = useRouter();
   
   const [view, setView] = useState<'payment' | 'advanced' | 'cheque'>('payment');
@@ -279,7 +279,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
         if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
         if (Math.abs(newBalance) < 0.009) { // Exactly paid
             autoFinalizeTimer.current = setTimeout(() => {
-                handleFinalizeSale(newPayments);
+                handleFinalizeSale(true);
             }, 1000);
         }
     }
@@ -359,7 +359,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     if (Math.abs(newBalance) < 0.01) {
       if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
       autoFinalizeTimer.current = setTimeout(() => {
-          handleFinalizeSale(newPayments);
+          handleFinalizeSale(true);
       }, 1000);
     } else {
         setCurrentAmount(newBalance.toFixed(2));
@@ -684,7 +684,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           </Button>
 
         {(balanceDue < 0.009 || isInvoiceMode || isCreditNote) && (
-          <Button onClick={() => handleFinalizeSale(payments)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
+          <Button onClick={() => handleFinalizeSale(true)} disabled={finalizeButtonDisabled} className="w-full sm:w-auto">
               {isCreditNote ? 'Confirmer le remboursement' : 'Finaliser'}
           </Button>
         )}
