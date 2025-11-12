@@ -143,7 +143,6 @@ export const CommercialOrderForm = forwardRef<
   const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
   const router = useRouter();
 
-  const { setTargetInput, inputValue, targetInput, isKeyboardOpen } = useKeyboard();
   const [searchTerm, setSearchTerm] = useState('');
   const [listContent, setListContent] = useState<Item[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -156,6 +155,8 @@ export const CommercialOrderForm = forwardRef<
   const [priceDisplayType, setPriceDisplayType] = useState<'ht' | 'ttc'>('ttc');
   const [isCatalogOpen, setCatalogOpen] = useState(false);
   const previousTotals = useRef<{ subtotal: number, tax: number, total: number } | null>(null);
+  
+  // Local state for form modal
   const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
 
 

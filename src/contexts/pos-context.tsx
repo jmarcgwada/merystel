@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -978,10 +977,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
   ]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
+    const itemToRemove = order.find(item => item.id === itemId);
+    if (itemToRemove && itemToRemove.formSubmissionId && itemToRemove.formSubmissionId.startsWith('temp_')) {
+      setTempFormSubmissions(prev => {
+        const newTemp = { ...prev };
+        delete newTemp[itemToRemove.formSubmissionId!];
+        return newTemp;
+      });
+    }
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
     );
-  }, []);
+  }, [order, setTempFormSubmissions]);
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
@@ -1052,7 +1059,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
     if ('image' in item && item.image) setDynamicBgImage(item.image);
     toast({ title: item.name + ' ajouté à la commande avec son formulaire.' });
-  }, [toast, setTempFormSubmissions]);
+  }, [toast, setTempFormSubmissions, setRecentlyAddedItemId]);
   
   const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => {
     if (isTemporary) {
@@ -1093,7 +1100,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (itemToAdd.hasForm && !pathname.startsWith('/commercial')) {
+      if (itemToAdd.hasForm) {
         setFormItemRequest({ item: itemToAdd, isEditing: false });
         return;
       }
@@ -2124,5 +2131,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
