@@ -32,7 +32,7 @@ const generateSchema = (fields: FormFieldDefinition[]) => {
         if (field.required) {
           numSchema = numSchema.min(0, "Ce champ est requis.");
         } else {
-          numSchema = numSchema.optional();
+          numSchema = numSchema.optional().or(z.literal(''));
         }
         shape[field.name] = numSchema;
         break;
@@ -70,7 +70,10 @@ export function FormInputModal() {
   const isEditing = formItemRequest?.isEditing;
   const formFields = item?.formFields || [];
 
-  const formSchema = useMemo(() => generateSchema(formFields), [formFields]);
+  const stableFormFields = useMemo(() => item?.formFields || [], [item]);
+
+  const formSchema = useMemo(() => generateSchema(stableFormFields), [stableFormFields]);
+  
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {},
@@ -107,6 +110,7 @@ export function FormInputModal() {
     } else {
         addFormItemToOrder(item, data);
     }
+    handleClose();
   };
 
   const handleClose = () => {
@@ -155,9 +159,9 @@ export function FormInputModal() {
                                     <FormLabel>{field.label}{field.required && ' *'}</FormLabel>
                                     <FormControl>
                                         {field.type === 'textarea' ? (
-                                            <Textarea {...controllerField} />
+                                            <Textarea {...controllerField} value={controllerField.value || ''}/>
                                         ) : (
-                                            <Input type={field.type} {...controllerField} />
+                                            <Input type={field.type} {...controllerField} value={controllerField.value || ''} />
                                         )}
                                     </FormControl>
                                     <FormMessage />

@@ -249,10 +249,6 @@ export const CommercialOrderForm = forwardRef<
   }
 
   const handleAddItem = (item: Item) => {
-     if (item.hasForm && item.formFields && item.formFields.length > 0) {
-      setFormItemRequest({ item, isEditing: false });
-      return;
-    }
     addToOrder(item.id);
   }
 
@@ -401,9 +397,9 @@ export const CommercialOrderForm = forwardRef<
     const newTotals = { subtotal: subTotalHT, tax: totalTVA, total: totalTTC };
     if (
         !previousTotals.current ||
-        previousTotals.current.subtotal !== newTotals.subtotal ||
-        previousTotals.current.tax !== newTotals.tax ||
-        previousTotals.current.total !== newTotals.total
+        previousTotals.current.subtotal.toFixed(2) !== newTotals.subtotal.toFixed(2) ||
+        previousTotals.current.tax.toFixed(2) !== newTotals.tax.toFixed(2) ||
+        previousTotals.current.total.toFixed(2) !== newTotals.total.toFixed(2)
     ) {
         onTotalsChange(newTotals);
         previousTotals.current = newTotals;
@@ -469,7 +465,7 @@ export const CommercialOrderForm = forwardRef<
     e.stopPropagation();
     const fullItem = allItems.find(i => i.id === item.itemId);
     if (fullItem?.hasForm) {
-      setFormItemRequest({ item, isEditing: true });
+      setFormItemRequest({ item: item, isEditing: true });
     } else if (fullItem) {
         setItemToEdit(fullItem);
         setIsEditItemOpen(true);
