@@ -280,7 +280,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             values: opt.values.map(val => val.value)
         })) : [],
         formFields: data.hasForm ? data.formFields : [],
-        formNoteField: data.hasForm ? data.formNoteField : undefined,
+        formNoteField: data.hasForm ? (data.formNoteField === 'none' ? undefined : data.formNoteField) : undefined,
     };
 
     if (isEditMode && item) {
@@ -448,14 +448,14 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Champ pour la note</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value || 'none'}>
                                                         <FormControl>
                                                             <SelectTrigger>
                                                                 <SelectValue placeholder="Choisir un champ à afficher comme note..." />
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="">Aucun</SelectItem>
+                                                            <SelectItem value="none">Aucun</SelectItem>
                                                             {watchedFormFields?.map(f => (
                                                                 <SelectItem key={f.id} value={f.name}>{f.label}</SelectItem>
                                                             ))}
