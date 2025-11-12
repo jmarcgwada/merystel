@@ -33,7 +33,7 @@ import type {
   PaiementPartiel,
   RemiseCheque,
   Payment,
-  FormSubmission,
+  SupportTicket,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
@@ -76,7 +76,7 @@ export type DeletableDataKeys =
   | 'remises'
   | 'paiementsPartiels'
   | 'dunningLogs'
-  | 'formSubmissions';
+  | 'supportTickets';
 
 export interface ImportReport {
   successCount: number;
@@ -98,9 +98,7 @@ export interface PosContextType {
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
-  addFormItemToOrder: (item: Item | OrderItem, formData: Record<string, any>) => void;
   addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
-  updateOrderItemFormData: (orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
@@ -129,10 +127,6 @@ export interface PosContextType {
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
   customVariantRequest: { item: Item, optionName: string, currentSelections: SelectedVariant[] } | null;
   setCustomVariantRequest: React.Dispatch<React.SetStateAction<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>>;
-  formItemRequest: { item: Item | OrderItem, isEditing: boolean } | null;
-  setFormItemRequest: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem, isEditing: boolean } | null>>;
-  formSubmissions: FormSubmission[];
-  tempFormSubmissions: Record<string, FormSubmission>;
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
@@ -223,6 +217,8 @@ export interface PosContextType {
   addPaiementPartiel: (paiement: Omit<PaiementPartiel, 'id'>) => Promise<PaiementPartiel | null>;
   remises: RemiseCheque[];
   addRemise: (remise: Omit<RemiseCheque, 'id'|'createdAt'>) => Promise<RemiseCheque | null>;
+  supportTickets: SupportTicket[];
+  addSupportTicket: (ticket: Omit<SupportTicket, 'id'|'ticketNumber'|'createdAt'|'status'>) => Promise<SupportTicket | null>;
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
@@ -431,8 +427,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
   const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
   const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
   const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
-  const [formSubmissions, setFormSubmissions, rehydrateFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
-  const [tempFormSubmissions, setTempFormSubmissions, rehydrateTempFormSubmissions] = usePersistentState<Record<string, FormSubmission>>('data.tempFormSubmissions', {});
+  const [supportTickets, setSupportTickets, rehydrateSupportTickets] = usePersistentState<SupportTicket[]>('data.supportTickets', []);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -513,7 +508,6 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [customVariantRequest, setCustomVariantRequest] = useState<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>(null);
-  const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
   const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
@@ -648,6 +642,23 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     return newRemise;
   }, [setRemises]);
 
+  const addSupportTicket = useCallback(async (ticketData: Omit<SupportTicket, 'id'|'ticketNumber'|'createdAt'|'status'>): Promise<SupportTicket | null> => {
+    const count = supportTickets.length;
+    const ticketNumber = `SAV-${(count + 1).toString().padStart(4, '0')}`;
+    
+    const newTicket: SupportTicket = {
+      ...ticketData,
+      id: uuidv4(),
+      ticketNumber,
+      createdAt: new Date(),
+      status: 'Ouvert',
+    };
+    
+    setSupportTickets(prev => [newTicket, ...prev]);
+    toast({ title: 'Prise en charge créée', description: `La fiche #${ticketNumber} a été enregistrée.` });
+    return newTicket;
+  }, [supportTickets, setSupportTickets, toast]);
+
   const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
@@ -655,8 +666,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-    setTempFormSubmissions({}); // Clear temporary form data
-  }, [readOnlyOrder, setTempFormSubmissions]);
+  }, [readOnlyOrder]);
   
   const closeNavConfirm = useCallback(() => {
     setNextUrl(null);
@@ -805,8 +815,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
-    setFormSubmissions([]);
-    setTempFormSubmissions({});
+    setSupportTickets([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -820,7 +829,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
     setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs,
-    setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, setTempFormSubmissions,
+    setCheques, setRemises, setPaiementsPartiels, setSupportTickets,
     toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders
   ]);
   
@@ -840,9 +849,13 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     if (dataToReset.remises) setRemises([]);
     if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
     if (dataToReset.dunningLogs) setDunningLogs([]);
-    if (dataToReset.formSubmissions) setFormSubmissions([]);
+    if (dataToReset.supportTickets) setSupportTickets([]);
     toast({ title: 'Données sélectionnées supprimées !' });
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, setDunningLogs, setFormSubmissions, toast]);
+  }, [
+    setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, 
+    setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, 
+    setRemises, setPaiementsPartiels, setDunningLogs, setSupportTickets, toast
+  ]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -872,9 +885,8 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
-    setFormSubmissions([]);
     toast({ title: 'Ventes et données liées supprimées' });
-  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, toast]);
+  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
   
   const exportConfiguration = useCallback(() => {
     const config = {
@@ -919,11 +931,11 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     const allData = {
         items, categories, customers, suppliers, tables: tablesData, sales, heldOrders,
         paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises,
-        formSubmissions,
+        supportTickets,
         companyInfo, users, mappingTemplates
     };
     return JSON.stringify(allData, null, 2);
-  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, formSubmissions, companyInfo, users, mappingTemplates]);
+  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, supportTickets, companyInfo, users, mappingTemplates]);
 
   const importFullData = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -934,7 +946,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
                 rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers,
                 rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates,
                 rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs, rehydrateCheques,
-                rehydratePaiementsPartiels, rehydrateRemises, rehydrateFormSubmissions, 
+                rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, 
                 rehydrateCompanyInfo, rehydrateUsers,
                 rehydrateMappingTemplates
             ];
@@ -953,7 +965,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
             if (data.cheques) setCheques(data.cheques);
             if (data.paiementsPartiels) setPaiementsPartiels(data.paiementsPartiels);
             if (data.remises) setRemises(data.remises);
-            if (data.formSubmissions) setFormSubmissions(data.formSubmissions);
+            if (data.supportTickets) setSupportTickets(data.supportTickets);
             if (data.companyInfo) setCompanyInfo(data.companyInfo);
             if (data.users) setUsers(data.users);
             if (data.mappingTemplates) setMappingTemplates(data.mappingTemplates);
@@ -968,27 +980,19 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     reader.readAsText(file);
   }, [
       setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods,
-      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setFormSubmissions,
+      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setSupportTickets,
       setCompanyInfo, setUsers, setMappingTemplates, toast,
       rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTables, rehydrateSales,
       rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs,
-      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateFormSubmissions, rehydrateCompanyInfo, rehydrateUsers,
+      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateCompanyInfo, rehydrateUsers,
       rehydrateMappingTemplates
   ]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
-    const itemToRemove = order.find(item => item.id === itemId);
-    if (itemToRemove && itemToRemove.formSubmissionId && itemToRemove.formSubmissionId.startsWith('temp_')) {
-      setTempFormSubmissions(prev => {
-        const newTemp = { ...prev };
-        delete newTemp[itemToRemove.formSubmissionId!];
-        return newTemp;
-      });
-    }
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
     );
-  }, [order, setTempFormSubmissions]);
+  }, []);
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
@@ -1028,54 +1032,12 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
   
   const addFormItemToOrder = useCallback((item: Item | OrderItem, formData: Record<string, any>) => {
-    const submissionId = `temp_${uuidv4()}`;
-    const newSubmission: FormSubmission = {
-      id: submissionId,
-      orderItemId: '', // This will be set when the order item is created
-      formData,
-      createdAt: new Date()
-    };
-    
-    setTempFormSubmissions(prev => ({ ...prev, [submissionId]: newSubmission }));
-
-    const newOrderItem: OrderItem = {
-      itemId: 'itemId' in item ? item.itemId : item.id,
-      id: uuidv4(),
-      name: item.name,
-      price: item.price,
-      vatId: item.vatId,
-      image: item.image,
-      quantity: 1,
-      total: item.price,
-      discount: 0,
-      description: item.description,
-      description2: item.description2,
-      barcode: 'barcode' in item ? (item.barcode || '') : '',
-      formSubmissionId: submissionId,
-    };
-    
-    setOrder(prev => [newOrderItem, ...prev]);
-    setRecentlyAddedItemId(newOrderItem.id);
-
-    if ('image' in item && item.image) setDynamicBgImage(item.image);
-    toast({ title: item.name + ' ajouté à la commande avec son formulaire.' });
-  }, [toast, setTempFormSubmissions, setRecentlyAddedItemId]);
+    // This function is now a placeholder as the form feature is removed.
+  }, []);
   
   const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => {
-    if (isTemporary) {
-      setTempFormSubmissions(prev => {
-          if (prev[orderItemId]) {
-              return { ...prev, [orderItemId]: { ...prev[orderItemId], formData } };
-          }
-          return prev;
-      });
-    } else {
-        setFormSubmissions(prev => prev.map(sub => 
-            sub.id === orderItemId ? { ...sub, formData } : sub
-        ));
-    }
-    toast({ title: 'Données de formulaire mises à jour.' });
-  }, [setFormSubmissions, setTempFormSubmissions, toast]);
+    // This function is now a placeholder.
+  }, []);
 
 
   const addToOrder = useCallback(
@@ -1099,11 +1061,6 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
         toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
     }
-
-      if (itemToAdd.hasForm) {
-        setFormItemRequest({ item: itemToAdd, isEditing: false });
-        return;
-      }
       
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
@@ -1118,7 +1075,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length && !item.formSubmissionId
+        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
       );
 
       setOrder((currentOrder) => {
@@ -1163,7 +1120,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest, pathname]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, pathname]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -1476,33 +1433,12 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
         
         let finalDoc: Sale;
 
-        // Move temp form submissions to permanent storage
-        const newSubmissions: FormSubmission[] = [];
-        const finalItems = docData.items.map(item => {
-          if (item.formSubmissionId && item.formSubmissionId.startsWith('temp_')) {
-            const tempSubmission = tempFormSubmissions[item.formSubmissionId];
-            if (tempSubmission) {
-              const newSubmissionId = uuidv4();
-              newSubmissions.push({ ...tempSubmission, id: newSubmissionId, orderItemId: item.id });
-              return { ...item, formSubmissionId: newSubmissionId };
-            }
-          }
-          return item;
-        });
-
-        if (newSubmissions.length > 0) {
-            setFormSubmissions(prev => [...prev, ...newSubmissions]);
-            setTempFormSubmissions({});
-        }
-
-        const finalDocData = { ...docData, items: finalItems };
-
         if (docIdToUpdate) {
             const existingDoc = sales.find(s => s.id === docIdToUpdate);
             if (!existingDoc) return;
             finalDoc = {
                 ...existingDoc,
-                ...finalDocData,
+                ...docData,
                 documentType: type,
                 modifiedAt: today,
             };
@@ -1515,8 +1451,8 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
                 documentNumber: finalDoc.ticketNumber,
                 details: `Mise à jour de la pièce.`,
                  richDetails: {
-                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: finalDocData.total,
+                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: docData.total,
                 }
             });
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
@@ -1530,7 +1466,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
                 documentType: type,
                 userId: user?.id,
                 userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
-                ...finalDocData,
+                ...docData,
             };
             addAuditLog({
                 userId: user?.id || 'system',
@@ -1541,8 +1477,8 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
                 documentNumber: finalDoc.ticketNumber,
                 details: `Création d'une nouvelle pièce.`,
                  richDetails: {
-                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: finalDocData.total,
+                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: docData.total,
                 }
             });
             setSales(prev => [finalDoc, ...prev]);
@@ -1559,7 +1495,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
                         : type === 'delivery_note' ? '/reports?docType=delivery_note'
                         : '/reports';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, tempFormSubmissions, setFormSubmissions, setTempFormSubmissions]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
         if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
@@ -2067,7 +2003,8 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, formSubmissions, tempFormSubmissions,
+      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest: null, setFormItemRequest: () => {},
+      formSubmissions, tempFormSubmissions,
       lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
@@ -2080,6 +2017,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       cheques, addCheque, updateCheque, deleteCheque, 
       paiementsPartiels, addPaiementPartiel, 
       remises, addRemise,
+      supportTickets, addSupportTicket,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 

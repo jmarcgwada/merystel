@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -20,6 +19,7 @@ import Link from 'next/link';
 
 const formSchema = z.object({
   customerId: z.string().min(1, 'Un client est requis.'),
+  customerName: z.string(),
   equipmentType: z.string().min(2, { message: 'Le type est requis.' }),
   equipmentBrand: z.string().min(1, { message: 'La marque est requise.' }),
   equipmentModel: z.string().min(1, { message: 'Le modèle est requis.' }),
@@ -32,7 +32,7 @@ type SupportTicketFormValues = z.infer<typeof formSchema>;
 function NewSupportTicketPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { customers } = usePos();
+  const { customers, addSupportTicket } = usePos();
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
@@ -40,6 +40,7 @@ function NewSupportTicketPageContent() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       customerId: '',
+      customerName: '',
       equipmentType: '',
       equipmentBrand: '',
       equipmentModel: '',
@@ -55,6 +56,7 @@ function NewSupportTicketPageContent() {
       if (customer) {
         setSelectedCustomer(customer);
         form.setValue('customerId', customer.id);
+        form.setValue('customerName', customer.name);
       }
     }
   }, [searchParams, customers, form]);
@@ -62,14 +64,15 @@ function NewSupportTicketPageContent() {
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
     form.setValue('customerId', customer.id);
+    form.setValue('customerName', customer.name);
     setCustomerSearchOpen(false);
   };
 
-  const onSubmit = (data: SupportTicketFormValues) => {
-    // Logic to save the support ticket will be added here
-    console.log(data);
-    alert("La sauvegarde n'est pas encore implémentée.");
-    // router.push('/management/support-tickets');
+  const onSubmit = async (data: SupportTicketFormValues) => {
+    const newTicket = await addSupportTicket(data);
+    if (newTicket) {
+      router.push('/management/support-tickets');
+    }
   };
 
   return (
