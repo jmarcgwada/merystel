@@ -28,6 +28,7 @@ import {
   Library,
   BarChart3,
   LayoutDashboard,
+  FileSignature,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -53,6 +54,7 @@ export default function ManagementLayout({
       sales,
       cheques,
       remises,
+      formSubmissions,
   } = usePos();
 
   const mainNavLinks = [
@@ -68,7 +70,7 @@ export default function ManagementLayout({
     { href: '/reports/payments', label: 'Paiements', icon: CreditCard },
   ];
   
-  const accountingNavLinks = [
+  const financeNavLinks = [
       { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
       { href: '/management/recurring', label: 'Récurrences', icon: History, count: sales?.filter(s => s.isRecurring).length || 0 },
       { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
@@ -76,6 +78,7 @@ export default function ManagementLayout({
 
   const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
   const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
+  const formsLink = { href: '/management/forms', label: 'Formulaires', icon: FileSignature, count: formSubmissions?.length || 0 };
 
 
   const renderLink = (link: { href: string; label: string; icon: React.ElementType; count?: number }) => (
@@ -114,6 +117,15 @@ export default function ManagementLayout({
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {reportLinks.map(renderLink)}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+               <Separator className="my-2" />
+               <SidebarGroup>
+                <SidebarGroupLabel>Données</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {renderLink(formsLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
