@@ -3,7 +3,7 @@
 
 import { usePos } from '@/contexts/pos-context';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
-import React, { useEffect, Suspense, useMemo, useState } from 'react';
+import React, { useEffect, Suspense, useState } from 'react';
 import CommercialPageLayout from '../components/commercial-page-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -18,63 +18,71 @@ function DocumentPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const docType = params.documentType as string;
+  const saleIdToEdit = searchParams.get('edit');
+  const fromConversion = searchParams.get('fromConversion');
 
   const {
     loadSaleForEditing,
     resetCommercialPage,
     currentSaleId,
     loadSaleForConversion,
-    order,
-    currentSaleContext,
-    isLoading: isPosLoading
+    isLoading: isPosLoading,
+    currentSaleContext
   } = usePos();
   
-  const docType = useMemo(() => typeMap[params.documentType as string], [params.documentType]);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const mappedDocType = typeMap[docType];
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   useEffect(() => {
-    const saleIdToEdit = searchParams.get('edit');
-    const saleIdToConvert = searchParams.get('fromConversion');
+    if (!mappedDocType || initialLoadComplete) return;
 
     const performLoad = async () => {
       if (saleIdToEdit) {
         if (currentSaleId !== saleIdToEdit) {
-          const success = await loadSaleForEditing(saleIdToEdit, docType);
-          if (!success) {
-            router.push('/reports');
-          }
+            await loadSaleForEditing(saleIdToEdit, mappedDocType);
         }
-      } else if (saleIdToConvert) {
-        await loadSaleForConversion(saleIdToConvert);
-        const newUrl = window.location.pathname; // Remove query params
-        router.replace(newUrl, { scroll: false });
+      } else if (fromConversion) {
+        if (!currentSaleContext?.fromConversion) {
+            await loadSaleForConversion(fromConversion);
+             // Clean the URL to prevent re-triggering
+            router.replace(`/commercial/${docType}`, { scroll: false });
+        }
       } else {
-        if (!currentSaleId && (!currentSaleContext || currentSaleContext.documentType !== docType)) {
-          resetCommercialPage(docType);
-        }
+         if (!currentSaleId) {
+             resetCommercialPage(mappedDocType);
+         }
       }
+      setInitialLoadComplete(true);
     };
-    
-    if (docType && !initialLoadDone) {
-      performLoad();
-      setInitialLoadDone(true);
-    }
-  }, [docType, searchParams, loadSaleForEditing, loadSaleForConversion, resetCommercialPage, router, currentSaleId, currentSaleContext, initialLoadDone]);
 
+    performLoad();
+
+  }, [
+    mappedDocType, 
+    saleIdToEdit, 
+    fromConversion, 
+    loadSaleForEditing, 
+    loadSaleForConversion, 
+    resetCommercialPage, 
+    router, 
+    docType,
+    currentSaleId,
+    currentSaleContext,
+    initialLoadComplete
+  ]);
+  
   useEffect(() => {
-    const newItemId = searchParams.get('newItemId');
-    const updatedItemId = searchParams.get('updatedItemId');
-    if (newItemId && !order.some(item => item.id === newItemId)) {
-        const newUrl = window.location.pathname + window.location.search.replace(`&newItemId=${newItemId}`, '').replace(`?newItemId=${newItemId}`, '');
-        router.replace(newUrl, { scroll: false });
-    } else if (updatedItemId) {
-        const newUrl = window.location.pathname + window.location.search.replace(`&updatedItemId=${updatedItemId}`, '').replace(`?updatedItemId=${updatedItemId}`, '');
-        router.replace(newUrl, { scroll: false });
+    // This effect ensures that if the user navigates away and back, the state is correct.
+    if (!saleIdToEdit && !fromConversion && currentSaleId) {
+        if(mappedDocType !== currentSaleContext?.documentType) {
+            resetCommercialPage(mappedDocType);
+        }
     }
-  }, [searchParams, order, router]);
+  }, [pathname, saleIdToEdit, fromConversion, currentSaleId, mappedDocType, resetCommercialPage, currentSaleContext]);
 
 
-  if (isPosLoading && !currentSaleContext) {
+  if (isPosLoading && !initialLoadComplete) {
     return (
         <div className="p-8">
             <Skeleton className="h-16 w-1/2 mb-8" />
@@ -83,11 +91,11 @@ function DocumentPageContent() {
     );
   }
 
-  if (!docType) {
+  if (!mappedDocType) {
     return <div className="p-8">Type de document non valide.</div>;
   }
 
-  return <CommercialPageLayout documentType={docType} />;
+  return <CommercialPageLayout documentType={mappedDocType} />;
 }
 
 

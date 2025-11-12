@@ -66,15 +66,20 @@ const generateSchema = (fields: FormFieldDefinition[]) => {
 };
 
 
-export function FormInputModal() {
-  const { formItemRequest, setFormItemRequest, addFormItemToOrder, updateOrderItemFormData, formSubmissions } = usePos();
+interface FormInputModalProps {
+  item: Item | OrderItem | null;
+  isEditing: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+}
 
-  const item = formItemRequest?.item;
-  const isEditing = formItemRequest?.isEditing;
+
+export function FormInputModal({ item, isEditing, isOpen, onClose }: FormInputModalProps) {
+  const { addFormItemToOrder, updateOrderItemFormData, formSubmissions, tempFormSubmissions } = usePos();
+  
   const formFields = item?.formFields || [];
   
-  const generateFormSchema = useCallback((fields: FormFieldDefinition[]) => generateSchema(fields), []);
-  const formSchema = useMemo(() => generateFormSchema(formFields), [formFields, generateFormSchema]);
+  const formSchema = useMemo(() => generateSchema(formFields), [formFields]);
   
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -82,37 +87,30 @@ export function FormInputModal() {
   });
   
   useEffect(() => {
-    if (!item) return;
-
-    const orderItem = item as OrderItem;
-    let existingData = {};
-
-    if (isEditing && orderItem.formSubmissionId) {
-        const submission = formSubmissions.find(sub => sub.id === orderItem.formSubmissionId);
-        if (submission) {
-            existingData = submission.formData;
-        }
-    }
-
-    const newDefaultValues: Record<string, any> = {};
-    (item.formFields || []).forEach(field => {
-        if ((existingData as Record<string, any>).hasOwnProperty(field.name)) {
-            newDefaultValues[field.name] = (existingData as Record<string, any>)[field.name];
-        } else {
-            if (field.type === 'checkbox') {
-                newDefaultValues[field.name] = false;
-            } else if (field.type === 'date') {
-                newDefaultValues[field.name] = new Date().toISOString().split('T')[0];
-            } else {
-                newDefaultValues[field.name] = '';
+    if (isOpen && item) {
+        const orderItem = item as OrderItem;
+        let existingData = {};
+        
+        const submissionId = orderItem.formSubmissionId;
+        if (submissionId) {
+            const submission = formSubmissions.find(sub => sub.id === submissionId) || tempFormSubmissions[submissionId];
+            if (submission) {
+                existingData = submission.formData;
             }
         }
-    });
 
-    if (!isEqual(form.getValues(), newDefaultValues)) {
+        const newDefaultValues: Record<string, any> = {};
+        (item.formFields || []).forEach(field => {
+            const existingValue = (existingData as Record<string, any>)[field.name];
+            if (existingValue !== undefined) {
+                newDefaultValues[field.name] = existingValue;
+            } else {
+                 newDefaultValues[field.name] = field.type === 'checkbox' ? false : (field.type === 'date' ? new Date().toISOString().split('T')[0] : '');
+            }
+        });
         form.reset(newDefaultValues);
     }
-  }, [item, isEditing, formSubmissions, form]);
+  }, [isOpen, item, formSubmissions, tempFormSubmissions, form]);
 
 
   const handleConfirm = (data: Record<string, any>) => {
@@ -121,24 +119,20 @@ export function FormInputModal() {
     if (isEditing) {
         const orderItem = item as OrderItem;
         if(orderItem.formSubmissionId) {
-            updateOrderItemFormData(orderItem.formSubmissionId, data);
+            updateOrderItemFormData(orderItem.formSubmissionId, data, !orderItem.sourceSale);
         }
     } else {
         addFormItemToOrder(item, data);
     }
-    handleClose();
+    onClose();
   };
 
-  const handleClose = () => {
-    setFormItemRequest(null);
-  };
-
-  if (!item) {
+  if (!isOpen || !item) {
     return null;
   }
 
   return (
-    <Dialog open={!!item} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{item.name}</DialogTitle>
@@ -187,7 +181,7 @@ export function FormInputModal() {
                     ))}
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" type="button" onClick={handleClose}>Annuler</Button>
+                    <Button variant="outline" type="button" onClick={onClose}>Annuler</Button>
                     <Button type="submit">{isEditing ? 'Sauvegarder' : 'Ajouter à la commande'}</Button>
                 </DialogFooter>
             </form>
