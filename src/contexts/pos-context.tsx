@@ -319,7 +319,7 @@ export interface PosContextType {
   dashboardButtonTextColor: string;
   setDashboardButtonTextColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -2097,4 +2097,3 @@ export function usePos() {
   return context;
 }
 
-    
