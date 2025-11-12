@@ -50,9 +50,10 @@ function DocumentPageContent() {
         await loadSaleForConversion(saleIdToConvert);
         const newUrl = window.location.pathname; // Remove query params
         router.replace(newUrl, { scroll: false });
-      } else if (!newItemId && !updatedItemId) {
-        if (!currentSaleContext || currentSaleContext.documentType !== docType) {
-           resetCommercialPage(docType);
+      } else {
+        // Only reset if we are on a NEW page (no edit/convert) AND the context is for a different doc type or doesn't exist
+        if (!currentSaleId && (!currentSaleContext || currentSaleContext.documentType !== docType)) {
+          resetCommercialPage(docType);
         }
       }
     };
