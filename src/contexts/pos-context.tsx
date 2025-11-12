@@ -415,7 +415,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-export function PosProvider({ children }: { children: ReactNode }) {
+export const PosProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -1098,7 +1098,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
         toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
-      }
+    }
 
       if (itemToAdd.hasForm) {
         setFormItemRequest({ item: itemToAdd, isEditing: false });

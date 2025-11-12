@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useEffect,
   useRef,
+  ReactNode,
 } from 'react';
 import type {
   OrderItem,
@@ -31,11 +32,12 @@ import type {
   Cheque,
   PaiementPartiel,
   RemiseCheque,
-  Payment
+  Payment,
+  FormSubmission,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useUser as useFirebaseUser } from '@/firebase/auth/use-user';
 import { v4 as uuidv4 } from 'uuid';
 import demoData from '@/lib/demodata.json';
@@ -73,7 +75,8 @@ export type DeletableDataKeys =
   | 'cheques'
   | 'remises'
   | 'paiementsPartiels'
-  | 'dunningLogs';
+  | 'dunningLogs'
+  | 'formSubmissions';
 
 export interface ImportReport {
   successCount: number;
@@ -90,10 +93,14 @@ export interface PosContextType {
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   systemDate: Date;
   dynamicBgImage: string | null;
+  recentlyAddedItemId: string | null;
+  setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
+  addFormItemToOrder: (item: Item | OrderItem, formData: Record<string, any>) => void;
   addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
+  updateOrderItemFormData: (orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
@@ -120,6 +127,12 @@ export interface PosContextType {
   setSerialNumberItem: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem; quantity: number } | null>>;
   variantItem: Item | null;
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
+  customVariantRequest: { item: Item, optionName: string, currentSelections: SelectedVariant[] } | null;
+  setCustomVariantRequest: React.Dispatch<React.SetStateAction<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>>;
+  formItemRequest: { item: Item | OrderItem, isEditing: boolean } | null;
+  setFormItemRequest: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem, isEditing: boolean } | null>>;
+  formSubmissions: FormSubmission[];
+  tempFormSubmissions: Record<string, FormSubmission>;
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
@@ -219,6 +232,8 @@ export interface PosContextType {
   selectivelyResetData: (dataToReset: Record<DeletableDataKeys, boolean>) => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
+  exportFullData: () => string;
+  importFullData: (file: File) => Promise<void>;
   importDataFromJson: (dataType: string, jsonData: any[]) => Promise<ImportReport>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
@@ -230,6 +245,8 @@ export interface PosContextType {
   toast: (props: any) => void;
   isCalculatorOpen: boolean;
   setIsCalculatorOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isFullscreen: boolean;
+  toggleFullscreen: () => void;
   enableDynamicBg: boolean;
   setEnableDynamicBg: React.Dispatch<React.SetStateAction<boolean>>;
   dynamicBgOpacity: number;
@@ -266,12 +283,6 @@ export interface PosContextType {
   setExternalLinkModalWidth: React.Dispatch<React.SetStateAction<number>>;
   externalLinkModalHeight: number;
   setExternalLinkModalHeight: React.Dispatch<React.SetStateAction<number>>;
-  emailModalWidth: number;
-  setEmailModalWidth: React.Dispatch<React.SetStateAction<number>>;
-  emailModalHeight: number;
-  setEmailModalHeight: React.Dispatch<React.SetStateAction<number>>;
-  emailModalPosition: { x: number; y: number };
-  setEmailModalPosition: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>;
   showDashboardStats: boolean;
   setShowDashboardStats: React.Dispatch<React.SetStateAction<boolean>>;
   enableRestaurantCategoryFilter: boolean;
@@ -336,8 +347,8 @@ export interface PosContextType {
   setCreditNoteBgColor: React.Dispatch<React.SetStateAction<string>>;
   creditNoteBgOpacity: number;
   setCreditNoteBgOpacity: React.Dispatch<React.SetStateAction<number>>;
-  commercialViewLevel: number;
-  cycleCommercialViewLevel: () => void;
+  isCommercialNavVisible: boolean;
+  setIsCommercialNavVisible: React.Dispatch<React.SetStateAction<boolean>>;
   smtpConfig: SmtpConfig;
   setSmtpConfig: React.Dispatch<React.SetStateAction<SmtpConfig>>;
   ftpConfig: FtpConfig;
@@ -363,6 +374,7 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -403,7 +415,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-export function PosProvider({ children }: { children: React.ReactNode }) {
+export const PosProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -419,9 +431,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
   const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
   const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
-  const [emailModalWidth, setEmailModalWidth] = usePersistentState('settings.emailModalWidth', 0);
-  const [emailModalHeight, setEmailModalHeight] = usePersistentState('settings.emailModalHeight', 0);
-  const [emailModalPosition, setEmailModalPosition] = usePersistentState('settings.emailModalPosition', { x: 0, y: 0 });
+  const [formSubmissions, setFormSubmissions, rehydrateFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
+  const [tempFormSubmissions, setTempFormSubmissions, rehydrateTempFormSubmissions] = usePersistentState<Record<string, FormSubmission>>('data.tempFormSubmissions', {});
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -471,7 +482,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [supplierOrderBgOpacity, setSupplierOrderBgOpacity] = usePersistentState('settings.supplierOrderBgOpacity', 100);
   const [creditNoteBgColor, setCreditNoteBgColor] = usePersistentState('settings.creditNoteBgColor', '#ffffff');
   const [creditNoteBgOpacity, setCreditNoteBgOpacity] = usePersistentState('settings.creditNoteBgOpacity', 100);
-  const [commercialViewLevel, setCommercialViewLevel] = usePersistentState('settings.commercialViewLevel', 0);
+  const [isCommercialNavVisible, setIsCommercialNavVisible] = usePersistentState('settings.isCommercialNavVisible', true);
   const [smtpConfig, setSmtpConfig] = usePersistentState<SmtpConfig>('settings.smtpConfig', {});
   const [ftpConfig, setFtpConfig] = usePersistentState<FtpConfig>('settings.ftpConfig', {});
   const [twilioConfig, setTwilioConfig] = usePersistentState<TwilioConfig>('settings.twilioConfig', {});
@@ -486,6 +497,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
+  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
@@ -500,6 +512,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
   const [sessionInvalidated, setSessionInvalidated] = useState(false);
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
+  const [customVariantRequest, setCustomVariantRequest] = useState<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>(null);
+  const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
   const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
@@ -517,13 +531,38 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading = userLoading || !isHydrated;
   
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const toggleFullscreen = useCallback(() => {
+        if (typeof document === 'undefined') return;
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+              console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
   const toast = useCallback((props: Parameters<typeof useShadcnToast>[0]) => {
     if (showNotifications) {
-      shadcnToast({
+      return shadcnToast({
         ...props,
         duration: props?.duration || notificationDuration,
       });
     }
+    return { id: '', dismiss: () => {}, update: () => {} };
   }, [showNotifications, notificationDuration, shadcnToast]);
   
   const addDunningLog = useCallback(async (logData: Omit<DunningLog, 'id' | 'date'>) => {
@@ -616,7 +655,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [readOnlyOrder]);
+    setTempFormSubmissions({}); // Clear temporary form data
+  }, [readOnlyOrder, setTempFormSubmissions]);
   
   const closeNavConfirm = useCallback(() => {
     setNextUrl(null);
@@ -667,9 +707,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     }
 
     const defaultVatRates: VatRate[] = [
-        { id: 'vat_20', name: 'Taux Normal', rate: 20, code: 1, createdAt: new Date() },
-        { id: 'vat_10', name: 'Taux Intermédiaire', rate: 10, code: 2, createdAt: new Date() },
-        { id: 'vat_5', name: 'Taux Réduit', rate: 5.5, code: 3, createdAt: new Date() },
+        { id: 'vat_0', name: 'EXO', rate: 0, code: 1, createdAt: new Date() },
+        { id: 'vat_20', name: 'FRANCE', rate: 20, code: 2, createdAt: new Date() },
+        { id: 'vat_8.5', name: 'ANTILLES', rate: 8.5, code: 3, createdAt: new Date() },
     ];
     setVatRates(defaultVatRates);
 
@@ -765,6 +805,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
+    setFormSubmissions([]);
+    setTempFormSubmissions({});
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -775,7 +817,12 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       importDemoSuppliers();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
+  }, [
+    setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
+    setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs,
+    setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, setTempFormSubmissions,
+    toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders
+  ]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
     toast({ title: 'Suppression en cours...' });
@@ -793,8 +840,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if (dataToReset.remises) setRemises([]);
     if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
     if (dataToReset.dunningLogs) setDunningLogs([]);
+    if (dataToReset.formSubmissions) setFormSubmissions([]);
     toast({ title: 'Données sélectionnées supprimées !' });
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, setDunningLogs, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, setRemises, setPaiementsPartiels, setDunningLogs, setFormSubmissions, toast]);
   
   useEffect(() => {
     if(isHydrated) {
@@ -824,8 +872,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
+    setFormSubmissions([]);
     toast({ title: 'Ventes et données liées supprimées' });
-  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast]);
+  }, [setSales, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, toast]);
   
   const exportConfiguration = useCallback(() => {
     const config = {
@@ -866,11 +915,80 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
   
+    const exportFullData = useCallback(() => {
+    const allData = {
+        items, categories, customers, suppliers, tables: tablesData, sales, heldOrders,
+        paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises,
+        formSubmissions,
+        companyInfo, users, mappingTemplates
+    };
+    return JSON.stringify(allData, null, 2);
+  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, formSubmissions, companyInfo, users, mappingTemplates]);
+
+  const importFullData = useCallback(async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target?.result as string);
+            const rehydrators = [
+                rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers,
+                rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates,
+                rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs, rehydrateCheques,
+                rehydratePaiementsPartiels, rehydrateRemises, rehydrateFormSubmissions, 
+                rehydrateCompanyInfo, rehydrateUsers,
+                rehydrateMappingTemplates
+            ];
+
+            if (data.items) setItems(data.items);
+            if (data.categories) setCategories(data.categories);
+            if (data.customers) setCustomers(data.customers);
+            if (data.suppliers) setSuppliers(data.suppliers);
+            if (data.tables) setTablesData(data.tables);
+            if (data.sales) setSales(data.sales);
+            if (data.paymentMethods) setPaymentMethods(data.paymentMethods);
+            if (data.vatRates) setVatRates(data.vatRates);
+            if (data.heldOrders) setHeldOrders(data.heldOrders);
+            if (data.auditLogs) setAuditLogs(data.auditLogs);
+            if (data.dunningLogs) setDunningLogs(data.dunningLogs);
+            if (data.cheques) setCheques(data.cheques);
+            if (data.paiementsPartiels) setPaiementsPartiels(data.paiementsPartiels);
+            if (data.remises) setRemises(data.remises);
+            if (data.formSubmissions) setFormSubmissions(data.formSubmissions);
+            if (data.companyInfo) setCompanyInfo(data.companyInfo);
+            if (data.users) setUsers(data.users);
+            if (data.mappingTemplates) setMappingTemplates(data.mappingTemplates);
+            
+            rehydrators.forEach(rehydrate => rehydrate());
+            
+            toast({ title: 'Importation complète réussie!', description: 'Toutes les données ont été restaurées.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erreur d\'importation complète' });
+        }
+    };
+    reader.readAsText(file);
+  }, [
+      setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods,
+      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setFormSubmissions,
+      setCompanyInfo, setUsers, setMappingTemplates, toast,
+      rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTables, rehydrateSales,
+      rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs,
+      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateFormSubmissions, rehydrateCompanyInfo, rehydrateUsers,
+      rehydrateMappingTemplates
+  ]);
+  
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
+    const itemToRemove = order.find(item => item.id === itemId);
+    if (itemToRemove && itemToRemove.formSubmissionId && itemToRemove.formSubmissionId.startsWith('temp_')) {
+      setTempFormSubmissions(prev => {
+        const newTemp = { ...prev };
+        delete newTemp[itemToRemove.formSubmissionId!];
+        return newTemp;
+      });
+    }
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
     );
-  }, []);
+  }, [order, setTempFormSubmissions]);
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
@@ -908,6 +1026,57 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     if ('image' in item && item.image) setDynamicBgImage(item.image);
     toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
   }, [toast]);
+  
+  const addFormItemToOrder = useCallback((item: Item | OrderItem, formData: Record<string, any>) => {
+    const submissionId = `temp_${uuidv4()}`;
+    const newSubmission: FormSubmission = {
+      id: submissionId,
+      orderItemId: '', // This will be set when the order item is created
+      formData,
+      createdAt: new Date()
+    };
+    
+    setTempFormSubmissions(prev => ({ ...prev, [submissionId]: newSubmission }));
+
+    const newOrderItem: OrderItem = {
+      itemId: 'itemId' in item ? item.itemId : item.id,
+      id: uuidv4(),
+      name: item.name,
+      price: item.price,
+      vatId: item.vatId,
+      image: item.image,
+      quantity: 1,
+      total: item.price,
+      discount: 0,
+      description: item.description,
+      description2: item.description2,
+      barcode: 'barcode' in item ? (item.barcode || '') : '',
+      formSubmissionId: submissionId,
+    };
+    
+    setOrder(prev => [newOrderItem, ...prev]);
+    setRecentlyAddedItemId(newOrderItem.id);
+
+    if ('image' in item && item.image) setDynamicBgImage(item.image);
+    toast({ title: item.name + ' ajouté à la commande avec son formulaire.' });
+  }, [toast, setTempFormSubmissions, setRecentlyAddedItemId]);
+  
+  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => {
+    if (isTemporary) {
+      setTempFormSubmissions(prev => {
+          if (prev[orderItemId]) {
+              return { ...prev, [orderItemId]: { ...prev[orderItemId], formData } };
+          }
+          return prev;
+      });
+    } else {
+        setFormSubmissions(prev => prev.map(sub => 
+            sub.id === orderItemId ? { ...sub, formData } : sub
+        ));
+    }
+    toast({ title: 'Données de formulaire mises à jour.' });
+  }, [setFormSubmissions, setTempFormSubmissions, toast]);
+
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -931,10 +1100,11 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
     }
 
-      const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
-      );
-
+      if (itemToAdd.hasForm) {
+        setFormItemRequest({ item: itemToAdd, isEditing: false });
+        return;
+      }
+      
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
           const existingItem = order.find(i => i.itemId === itemId);
@@ -947,10 +1117,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      const existingItemIndex = order.findIndex(
+        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length && !item.formSubmissionId
+      );
+
       setOrder((currentOrder) => {
+        let newOrder = [...currentOrder];
+        let newItemId = '';
+
         if (existingItemIndex > -1) {
-          const newOrder = [...currentOrder];
           const newQuantity = newOrder[existingItemIndex].quantity + 1;
+          newItemId = newOrder[existingItemIndex].id;
           newOrder[existingItemIndex] = {
             ...newOrder[existingItemIndex],
             quantity: newQuantity,
@@ -958,7 +1135,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
               newOrder[existingItemIndex].price * newQuantity - (newOrder[existingItemIndex].discount || 0),
           };
            const itemToMove = newOrder.splice(existingItemIndex, 1)[0];
-          return [itemToMove, ...newOrder];
+          newOrder = [itemToMove, ...newOrder];
         } else {
           const uniqueId = uuidv4();
           const newItem: OrderItem = {
@@ -976,13 +1153,17 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
             selectedVariants,
             barcode: itemToAdd.barcode || '',
           };
-          return [newItem, ...currentOrder];
+          newItemId = newItem.id;
+          newOrder = [newItem, ...currentOrder];
         }
+
+        setRecentlyAddedItemId(newItemId);
+        return newOrder;
       });
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest, pathname]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -1295,12 +1476,33 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
         
         let finalDoc: Sale;
 
+        // Move temp form submissions to permanent storage
+        const newSubmissions: FormSubmission[] = [];
+        const finalItems = docData.items.map(item => {
+          if (item.formSubmissionId && item.formSubmissionId.startsWith('temp_')) {
+            const tempSubmission = tempFormSubmissions[item.formSubmissionId];
+            if (tempSubmission) {
+              const newSubmissionId = uuidv4();
+              newSubmissions.push({ ...tempSubmission, id: newSubmissionId, orderItemId: item.id });
+              return { ...item, formSubmissionId: newSubmissionId };
+            }
+          }
+          return item;
+        });
+
+        if (newSubmissions.length > 0) {
+            setFormSubmissions(prev => [...prev, ...newSubmissions]);
+            setTempFormSubmissions({});
+        }
+
+        const finalDocData = { ...docData, items: finalItems };
+
         if (docIdToUpdate) {
             const existingDoc = sales.find(s => s.id === docIdToUpdate);
             if (!existingDoc) return;
             finalDoc = {
                 ...existingDoc,
-                ...docData,
+                ...finalDocData,
                 documentType: type,
                 modifiedAt: today,
             };
@@ -1312,9 +1514,9 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentId: finalDoc.id,
                 documentNumber: finalDoc.ticketNumber,
                 details: `Mise à jour de la pièce.`,
-                richDetails: {
-                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: docData.total,
+                 richDetails: {
+                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: finalDocData.total,
                 }
             });
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
@@ -1328,7 +1530,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentType: type,
                 userId: user?.id,
                 userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
-                ...docData,
+                ...finalDocData,
             };
             addAuditLog({
                 userId: user?.id || 'system',
@@ -1339,8 +1541,8 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                 documentNumber: finalDoc.ticketNumber,
                 details: `Création d'une nouvelle pièce.`,
                  richDetails: {
-                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: docData.total,
+                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: finalDocData.total,
                 }
             });
             setSales(prev => [finalDoc, ...prev]);
@@ -1357,7 +1559,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
                         : type === 'delivery_note' ? '/reports?docType=delivery_note'
                         : '/reports';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, tempFormSubmissions, setFormSubmissions, setTempFormSubmissions]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
         if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
@@ -1653,11 +1855,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
     };
     
-    const cycleCommercialViewLevel = useCallback(() => {
-      setCommercialViewLevel(prev => (prev + 1) % 3);
-  }, [setCommercialViewLevel]);
-
-  const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
+    const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
     setCompanyInfo(info);
   }, [setCompanyInfo]);
   
@@ -1691,216 +1889,186 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
         const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
+        const toastId = toast({
+            title: 'Importation...',
+            description: `Préparation de ${jsonData.length} lignes.`
+        });
     
         const addError = (line: number, message: string) => {
             report.errorCount++;
             report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
-
-        if (dataType === 'clients') {
-            const customerIds = new Set(customers.map(c => c.id));
-            for (const [index, row] of jsonData.entries()) {
-                if (!row.id || !row.name) {
-                    addError(index, "L'ID et le nom du client sont requis."); continue;
-                }
-                if (customerIds.has(row.id)) {
-                    addError(index, `Le client avec l'ID ${row.id} existe déjà.`); continue;
-                }
-                await addCustomer(row);
-                report.successCount++;
-                customerIds.add(row.id);
-            }
-        } else if (dataType === 'articles') {
-            const itemBarcodes = new Set(items.map(i => i.barcode));
-            for (const [index, row] of jsonData.entries()) {
-                if (!row.barcode || !row.name || !row.price || !row.vatId) {
-                    addError(index, 'Champs article manquants (code-barres, nom, prix, TVA).'); continue;
-                }
-                if (itemBarcodes.has(row.barcode)) {
-                    addError(index, `L'article avec le code-barres ${row.barcode} existe déjà.`); continue;
-                }
-                await addItem(row);
-                report.successCount++;
-                itemBarcodes.add(row.barcode);
-            }
-        } else if (dataType === 'fournisseurs') {
-             const supplierIds = new Set(suppliers.map(s => s.id));
-             for (const [index, row] of jsonData.entries()) {
-                if (!row.id || !row.name) {
-                    addError(index, "L'ID et le nom du fournisseur sont requis."); continue;
-                }
-                if (supplierIds.has(row.id)) {
-                    addError(index, `Le fournisseur avec l'ID ${row.id} existe déjà.`); continue;
-                }
-                await addSupplier(row);
-                report.successCount++;
-                supplierIds.add(row.id);
-             }
-        } else if (dataType === 'ventes_completes') {
-            const groupedRows: Record<string, any[]> = {};
-            jsonData.forEach(row => {
-                const ticketNum = row.ticketNumber;
-                if (!ticketNum) return;
-                if (!groupedRows[ticketNum]) groupedRows[ticketNum] = [];
-                groupedRows[ticketNum].push(row);
-            });
-
+    
+        let localCategories = [...categories];
+        let localItems = [...items];
+        let localCustomers = [...customers];
+    
+        if (dataType === 'ventes_completes') {
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-            const salesMap = new Map<string, { sale: Omit<Sale, 'id'>, paymentTotals: Record<string, number> }>();
-
-            for (const ticketNumber in groupedRows) {
-                const rows = groupedRows[ticketNumber];
-                const firstRow = rows[0];
+            const groupedByTicket = new Map<string, any[]>();
+                
+            jsonData.forEach((row, index) => {
+                const ticketNum = row.ticketNumber;
+                if (!ticketNum) {
+                    addError(index, 'Numéro de pièce manquant.');
+                    return;
+                }
+                if (!groupedByTicket.has(ticketNum)) {
+                    groupedByTicket.set(ticketNum, []);
+                }
+                groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: index + 1 });
+            });
+    
+            for (const [ticketNumber, rows] of groupedByTicket.entries()) {
+                if (existingSaleNumbers.has(ticketNumber)) {
+                    addError(rows[0].originalIndex, `La pièce #${ticketNumber} existe déjà.`);
+                    continue;
+                }
+    
                 try {
-                    const finalTicketNumber = firstRow.ticketNumber;
-                    if (existingSaleNumbers.has(finalTicketNumber)) {
-                        addError(0, `La pièce #${finalTicketNumber} existe déjà.`); continue;
-                    }
-                    
-                    
-                    let saleDate: Date | null = null;
+                    const firstRow = rows[0];
+                    let saleDate: Date;
                     const dateString = firstRow.saleDate;
                     const timeString = firstRow.saleTime || '00:00';
                     const fullDateTimeString = `${dateString} ${timeString}`;
-                    
-                    let parsed;
-                    if (dateString.includes('/')) {
-                        parsed = parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date());
-                    } else if (dateString.includes('-')) {
-                        parsed = parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-                    } else {
-                        parsed = new Date('invalid');
-                    }
-
-                    if (isValid(parsed)) {
-                        saleDate = parsed;
-                    }
-
-                    if (!saleDate) {
-                        addError(0, `Format de date invalide pour la pièce #${finalTicketNumber}. Attendu: JJ/MM/AAAA ou YYYY-MM-DD.`);
+                    const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+    
+                    if (!isValid(parsed)) {
+                        addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`);
                         continue;
                     }
-
-                    let saleEntry = salesMap.get(finalTicketNumber);
-                    if (!saleEntry) {
-                        report.newSalesCount = (report.newSalesCount || 0) + 1;
-                        let customer: Customer | null = null;
-                        if(firstRow.customerCode) customer = customers.find(c => c.id === firstRow.customerCode) || null;
-                        if (!customer && firstRow.customerName) {
-                            customer = await addCustomer({
-                                id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
-                                name: firstRow.customerName,
-                                email: firstRow.customerEmail,
-                                phone: firstRow.customerPhone,
-                                address: firstRow.customerAddress,
-                                postalCode: firstRow.customerPostalCode,
-                                city: firstRow.customerCity
-                            });
-                            if(customer) report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                    saleDate = parsed;
+    
+                    let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
+                    if (!customer && firstRow.customerName) {
+                        const newCustomer = await addCustomer({
+                            id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
+                            name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
+                            address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
+                        });
+                        if (newCustomer) { 
+                            customer = newCustomer; 
+                            report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                            localCustomers.push(newCustomer);
                         }
-
-                        saleEntry = {
-                            sale: {
-                                ticketNumber: finalTicketNumber,
-                                date: saleDate,
-                                items: [],
-                                subtotal: 0, tax: 0, total: 0,
-                                payments: [],
-                                status: 'paid',
-                                customerId: customer?.id,
-                                documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
-                                userId: user?.id,
-                                userName: firstRow.sellerName || user?.firstName || 'Import',
-                            },
-                            paymentTotals: {}
-                        };
-                        salesMap.set(finalTicketNumber, saleEntry);
                     }
-
-                    for(let i = 0; i < rows.length; i++) {
-                        const row = rows[i];
+    
+                    const saleItems: OrderItem[] = [];
+                    for (const row of rows) {
                         if (!row.itemBarcode) {
-                            if (saleEntry.sale.items.length > 0 && row.itemName) {
-                                const lastItem = saleEntry.sale.items[saleEntry.sale.items.length - 1];
-                                lastItem.note = ((lastItem.note || '') + '\n' + row.itemName).trim();
+                            if (saleItems.length > 0 && row.itemName) {
+                                saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim();
                             }
                             continue;
                         }
                         
-                        let item = items.find(i => i.barcode === row.itemBarcode);
+                        let item = localItems.find(i => i.barcode === row.itemBarcode);
                         if (!item && row.itemName) {
-                            let category = categories.find(c => c.name === row.itemCategory);
+                            let category = localCategories.find(c => c.name === row.itemCategory);
                             if (!category) {
                                 category = await addCategory({ name: row.itemCategory || 'Importé' });
+                                if (category) localCategories.push(category);
                             }
                             let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
                             if (!vat) vat = vatRates[0];
                              
                             item = await addItem({
-                                name: row.itemName,
-                                barcode: row.itemBarcode,
+                                name: row.itemName, barcode: row.itemBarcode,
                                 price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
-                                purchasePrice: row.itemPurchasePrice,
-                                categoryId: category?.id,
-                                vatId: vat?.id || '',
+                                purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
                             });
-                            if(item) report.newItemsCount = (report.newItemsCount || 0) + 1;
+                            if(item) {
+                                report.newItemsCount = (report.newItemsCount || 0) + 1;
+                                localItems.push(item);
+                            }
                         }
-
+    
                         if (item) {
                              const vatInfo = vatRates.find(v => v.id === item!.vatId);
                              const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
-                             saleEntry.sale.items.push({
-                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC,
-                                vatId: item.vatId, quantity: row.quantity, total: priceTTC * row.quantity,
-                                discount: 0, barcode: item.barcode!,
+                             const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
+                             const total = priceTTC * row.quantity - discountAmount;
+                             saleItems.push({
+                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId,
+                                quantity: row.quantity, total, discount: discountAmount,
+                                discountPercent: row.discountPercentage, barcode: item.barcode!,
                             });
                         }
                     }
+    
+                    const total = saleItems.reduce((sum, i) => sum + i.total, 0);
+                    const totalTax = saleItems.reduce((sum, i) => {
+                        const vat = vatRates.find(v => v.id === i.vatId);
+                        return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
+                    }, 0);
                     
-                    rows.forEach(row => {
+                    const paymentTotals: Record<string, number> = {};
+                    if(firstRow) {
                         ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
-                            if (row[pm]) {
-                                saleEntry!.paymentTotals[pm] = (saleEntry!.paymentTotals[pm] || 0) + row[pm];
-                            }
+                            if (firstRow[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + firstRow[pm];
                         });
+                    }
+    
+                    const payments: Payment[] = [];
+                    const paymentMapping: Record<string, string> = {
+                      paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
+                      paymentCheck: 'Chèque', paymentOther: 'AUTRE'
+                    };
+                    Object.entries(paymentTotals).forEach(([key, amount]) => {
+                      const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
+                      if(method && amount > 0) payments.push({ method, amount, date: saleDate });
                     });
-
+                    
+                    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+                    const isPaid = totalPaid >= total - 0.01;
+    
+                    const newSale: Omit<Sale, 'id'> = {
+                        ticketNumber, date: saleDate, items: saleItems, subtotal: total - totalTax, tax: totalTax, total,
+                        payments, status: isPaid ? 'paid' : 'pending',
+                        customerId: customer?.id,
+                        documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
+                        userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
+                    };
+                    
+                    await recordSale(newSale);
+                    report.newSalesCount = (report.newSalesCount || 0) + 1;
+                    existingSaleNumbers.add(ticketNumber);
                 } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
             }
-
-            for (const { sale, paymentTotals } of salesMap.values()) {
-                const total = sale.items.reduce((sum, i) => sum + i.total, 0);
-                sale.total = total;
-                const totalTax = sale.items.reduce((sum, i) => {
-                    const vat = vatRates.find(v => v.id === i.vatId);
-                    return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
-                }, 0);
-                sale.tax = totalTax;
-                sale.subtotal = total - totalTax;
-
-                const paymentMapping: Record<string, string> = {
-                  paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
-                  paymentCheck: 'Chèque', paymentOther: 'AUTRE'
-                };
-                
-                Object.entries(paymentTotals).forEach(([key, amount]) => {
-                  const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
-                  if(method && amount > 0) sale.payments.push({ method, amount, date: sale.date });
-                });
-                
-                await recordSale(sale);
+        } else {
+            for (const [index, row] of jsonData.entries()) {
+                try {
+                    if (dataType === 'clients') {
+                        if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
+                        if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
+                        await addCustomer(row);
+                    } else if (dataType === 'articles') {
+                        if (!row.barcode || !row.name || !row.price || !row.vatId) throw new Error("Champs article requis.");
+                        if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
+                        await addItem(row);
+                    } else if (dataType === 'fournisseurs') {
+                         if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
+                        if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
+                        await addSupplier(row);
+                    }
+                    report.successCount++;
+                } catch (e: any) { addError(index, e.message); }
             }
         }
-    
+        
+        shadcnToast({
+            title: "Importation terminée !",
+            description: `${report.successCount} succès, ${report.errorCount} échecs.`
+        });
         return report;
-    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers]);
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
 
   const value: PosContextType = {
-      order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
+      order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
+      addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, formSubmissions, tempFormSubmissions,
+      lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
       getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
@@ -1913,15 +2081,15 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       paiementsPartiels, addPaiementPartiel, 
       remises, addRemise,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-      seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, importDemoData, importDemoCustomers, importDemoSuppliers,
+      seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-      isCalculatorOpen, setIsCalculatorOpen,
+      isCalculatorOpen, setIsCalculatorOpen, isFullscreen, toggleFullscreen,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
       setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
       setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight, emailModalWidth, setEmailModalWidth, emailModalHeight, setEmailModalHeight, emailModalPosition, setEmailModalPosition,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight,
       showDashboardStats, setShowDashboardStats,
       enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
       enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
@@ -1935,7 +2103,7 @@ export function PosProvider({ children }: { children: React.ReactNode }) {
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-      commercialViewLevel, cycleCommercialViewLevel,
+      isCommercialNavVisible, setIsCommercialNavVisible,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
