@@ -155,6 +155,7 @@ export const CommercialOrderForm = forwardRef<
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
   const [priceDisplayType, setPriceDisplayType] = useState<'ht' | 'ttc'>('ttc');
   const [isCatalogOpen, setCatalogOpen] = useState(false);
+  const previousTotals = useRef<{ subtotal: number, tax: number, total: number } | null>(null);
 
 
     useEffect(() => {
@@ -397,7 +398,16 @@ export const CommercialOrderForm = forwardRef<
   const { subTotalHT, vatBreakdown, totalTVA, totalTTC } = calculationResult;
 
   useEffect(() => {
-    onTotalsChange({ subtotal: subTotalHT, tax: totalTVA, total: totalTTC });
+    const newTotals = { subtotal: subTotalHT, tax: totalTVA, total: totalTTC };
+    if (
+        !previousTotals.current ||
+        previousTotals.current.subtotal !== newTotals.subtotal ||
+        previousTotals.current.tax !== newTotals.tax ||
+        previousTotals.current.total !== newTotals.total
+    ) {
+        onTotalsChange(newTotals);
+        previousTotals.current = newTotals;
+    }
   }, [subTotalHT, totalTVA, totalTTC, onTotalsChange]);
 
 
