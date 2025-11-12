@@ -319,7 +319,7 @@ export interface PosContextType {
   dashboardButtonTextColor: string;
   setDashboardButtonTextColor: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonOpacity: number;
-  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<number>>;
+  setDashboardButtonOpacity: React.Dispatch<React.SetStateAction<string>>;
   dashboardButtonShowBorder: boolean;
   setDashboardButtonShowBorder: React.Dispatch<React.SetStateAction<boolean>>;
   dashboardButtonBorderColor: string;
@@ -957,6 +957,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         setDunningLogs(data.dunningLogs || []);
         setCheques(data.cheques || []);
         setPaiementsPartiels(data.paiementsPartiels || []);
+        setRemises(data.remises || []);
         setCompanyInfo(data.companyInfo || null);
         setUsers(data.users || []);
         setMappingTemplates(data.mappingTemplates || []);
@@ -1052,7 +1053,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       currentOrder.map(item => {
         if (item.id === orderItemId) {
           const updatedItem = { ...item, formData };
-          const formNoteField = allItems.find(i => i.id === item.itemId)?.formNoteField;
+          const formNoteField = items.find(i => i.id === item.itemId)?.formNoteField;
           if (formNoteField && formData[formNoteField]) {
             updatedItem.note = String(formData[formNoteField]);
           }
@@ -1063,7 +1064,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     );
     toast({ title: 'Données de formulaire mises à jour.' });
     setFormItemRequest(null);
-  }, [toast, setFormItemRequest, allItems]);
+  }, [toast, setFormItemRequest, items]);
 
 
   const addToOrder = useCallback(
@@ -1089,7 +1090,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       
       if (itemToAdd.hasForm && itemToAdd.formFields && itemToAdd.formFields.length > 0) {
         setFormItemRequest({ item: itemToAdd, isEditing: false });
-        return; // Stop execution to wait for form modal
+        return;
       }
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
@@ -2095,3 +2096,5 @@ export function usePos() {
   }
   return context;
 }
+
+    
