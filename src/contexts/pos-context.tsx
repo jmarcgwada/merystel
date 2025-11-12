@@ -97,6 +97,7 @@ export interface PosContextType {
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
   addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
+  addFormItemToOrder: (item: Item, formData: Record<string, any>) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
@@ -125,6 +126,8 @@ export interface PosContextType {
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
   customVariantRequest: { item: Item, optionName: string, currentSelections: SelectedVariant[] } | null;
   setCustomVariantRequest: React.Dispatch<React.SetStateAction<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>>;
+  formItemRequest: { item: Item } | null;
+  setFormItemRequest: React.Dispatch<React.SetStateAction<{ item: Item } | null>>;
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
@@ -520,6 +523,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{ item: Item | OrderItem; quantity: number } | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [customVariantRequest, setCustomVariantRequest] = useState<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>(null);
+  const [formItemRequest, setFormItemRequest] = useState<{ item: Item } | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
   const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
@@ -1016,6 +1020,31 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if ('image' in item && item.image) setDynamicBgImage(item.image);
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
+  
+  const addFormItemToOrder = useCallback((item: Item, formData: Record<string, any>) => {
+    const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
+    const price = isSupplierOrder ? (item.purchasePrice ?? 0) : item.price;
+    const newItem: OrderItem = {
+        itemId: item.id,
+        id: uuidv4(),
+        name: item.name,
+        price,
+        vatId: item.vatId,
+        image: item.image,
+        quantity: 1,
+        total: price,
+        discount: 0,
+        description: item.description,
+        description2: item.description2,
+        barcode: item.barcode || '',
+        formData,
+    };
+    setOrder(currentOrder => [newItem, ...currentOrder]);
+    if(item.image) setDynamicBgImage(item.image);
+    toast({ title: `${item.name} ajouté à la commande` });
+    setFormItemRequest(null);
+  }, [currentSaleContext, toast]);
+
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -1037,11 +1066,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
       if (isSupplierOrder && (typeof itemToAdd.purchasePrice !== 'number' || itemToAdd.purchasePrice <= 0)) {
         toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: `L'article "${itemToAdd.name}" n'a pas de prix d'achat valide.` });
         return;
-    }
-
-      const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
-      );
+      }
+      
+      if (itemToAdd.hasForm) {
+        setFormItemRequest({ item: itemToAdd });
+        return;
+      }
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
@@ -1054,6 +1084,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
         setVariantItem(itemToAdd);
         return;
       }
+
+      const existingItemIndex = order.findIndex(
+        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
+      );
+
 
       setOrder((currentOrder) => {
         if (existingItemIndex > -1) {
@@ -1090,7 +1125,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: `${itemToAdd.name} ajouté à la commande` });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -1817,13 +1852,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
         let localCustomers = [...customers];
     
         if (dataType === 'ventes_completes') {
-            const groupedByTicket = new Map<string, any[]>();
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-    
+            const groupedByTicket = new Map<string, any[]>();
+                
             jsonData.forEach((row, index) => {
                 const ticketNum = row.ticketNumber;
-                if (!ticketNum) { addError(index, 'Numéro de pièce manquant.'); return; }
-                if (!groupedByTicket.has(ticketNum)) groupedByTicket.set(ticketNum, []);
+                if (!ticketNum) {
+                    addError(index, 'Numéro de pièce manquant.');
+                    return;
+                }
+                if (!groupedByTicket.has(ticketNum)) {
+                    groupedByTicket.set(ticketNum, []);
+                }
                 groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: index + 1 });
             });
     
@@ -1840,35 +1880,55 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     const timeString = firstRow.saleTime || '00:00';
                     const fullDateTimeString = `${dateString} ${timeString}`;
                     const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-                    
-                    if (!isValid(parsed)) { addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`); continue; }
+    
+                    if (!isValid(parsed)) {
+                        addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`);
+                        continue;
+                    }
                     saleDate = parsed;
     
                     let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
                     if (!customer && firstRow.customerName) {
-                        const newCustomer = await addCustomer({ id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`, name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone, address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity });
-                        if (newCustomer) { customer = newCustomer; report.newCustomersCount!++; localCustomers.push(newCustomer); }
+                        const newCustomer = await addCustomer({
+                            id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
+                            name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
+                            address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
+                        });
+                        if (newCustomer) { 
+                            customer = newCustomer; 
+                            report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                            localCustomers.push(newCustomer);
+                        }
                     }
     
                     const saleItems: OrderItem[] = [];
                     for (const row of rows) {
                         if (!row.itemBarcode) {
-                            if (saleItems.length > 0 && row.itemName) saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim();
+                            if (saleItems.length > 0 && row.itemName) {
+                                saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim();
+                            }
                             continue;
                         }
                         
                         let item = localItems.find(i => i.barcode === row.itemBarcode);
                         if (!item && row.itemName) {
                             let category = localCategories.find(c => c.name === row.itemCategory);
-                            if (!category && row.itemCategory) {
-                                const newCategory = await addCategory({ name: row.itemCategory });
+                            if (!category) {
+                                const newCategory = await addCategory({ name: row.itemCategory || 'Importé' });
                                 if (newCategory) { category = newCategory; localCategories.push(newCategory); }
                             }
                             let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
                             if (!vat) vat = vatRates[0];
                              
-                            item = await addItem({ name: row.itemName, barcode: row.itemBarcode, price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100), purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '' });
-                            if(item) { report.newItemsCount!++; localItems.push(item); }
+                            item = await addItem({
+                                name: row.itemName, barcode: row.itemBarcode,
+                                price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
+                                purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
+                            });
+                            if(item) {
+                                report.newItemsCount = (report.newItemsCount || 0) + 1;
+                                localItems.push(item);
+                            }
                         }
     
                         if (item) {
@@ -1876,7 +1936,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
                              const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
                              const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
                              const total = priceTTC * row.quantity - discountAmount;
-                             saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId, quantity: row.quantity, total, discount: discountAmount, discountPercent: row.discountPercentage, barcode: item.barcode! });
+                             saleItems.push({
+                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId,
+                                quantity: row.quantity, total, discount: discountAmount,
+                                discountPercent: row.discountPercentage, barcode: item.barcode!,
+                            });
                         }
                     }
     
@@ -1885,20 +1949,33 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     
                     const paymentTotals: Record<string, number> = {};
                     rows.forEach(row => {
-                        ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => { if (row[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + row[pm]; });
+                        ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
+                            if (row[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + row[pm];
+                        });
                     });
     
                     const payments: Payment[] = [];
-                    const paymentMapping: Record<string, string> = { paymentCash: 'Espèces', paymentCard: 'Carte Bancaire', paymentCheck: 'Chèque', paymentOther: 'AUTRE' };
-                    Object.entries(paymentTotals).forEach(([key, amount]) => { const method = paymentMethods.find(pm => pm.name === paymentMapping[key]); if(method && amount > 0) payments.push({ method, amount, date: saleDate }); });
+                    const paymentMapping: Record<string, string> = {
+                      paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
+                      paymentCheck: 'Chèque', paymentOther: 'AUTRE'
+                    };
+                    Object.entries(paymentTotals).forEach(([key, amount]) => {
+                      const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
+                      if(method && amount > 0) payments.push({ method, amount, date: saleDate });
+                    });
                     
                     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
                     const isPaid = totalPaid >= total - 0.01;
     
-                    await recordSale({ ticketNumber, date: saleDate, items: saleItems, subtotal: total - totalTax, tax: totalTax, total, payments, status: isPaid ? 'paid' : 'pending', customerId: customer?.id, documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any, userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import' });
-                    report.newSalesCount!++;
+                    await recordSale({
+                        ticketNumber, date: saleDate, items: saleItems, subtotal: total - totalTax, tax: totalTax, total,
+                        payments, status: isPaid ? 'paid' : 'pending',
+                        customerId: customer?.id,
+                        documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
+                        userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
+                    });
+                    report.newSalesCount = (report.newSalesCount || 0) + 1;
                     existingSaleNumbers.add(ticketNumber);
-
                 } catch (e: any) { addError(0, `Erreur sur pièce ${rows[0].ticketNumber}: ${e.message}`); }
             }
         } else {
@@ -1911,7 +1988,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     } else if (dataType === 'articles') {
                         if (!row.barcode || !row.name || typeof row.price !== 'number' || !row.vatCode) throw new Error("Champs article requis manquants (barcode, name, price, vatCode).");
                         if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
-                        const vat = vatRates.find(v => v.code === row.vatCode);
+                        const vat = vatRates.find(v => v.code === parseInt(row.vatCode));
                         if (!vat) throw new Error(`Code TVA "${row.vatCode}" introuvable.`);
                         let category = localCategories.find(c => c.name === row.categoryId);
                         if (!category && row.categoryId) {
@@ -1936,9 +2013,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, addFormItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
       getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,

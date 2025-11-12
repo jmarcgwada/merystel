@@ -15,9 +15,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useKeyboard } from '@/contexts/keyboard-context';
+import { useKeyboard } from '@/components/keyboard-context';
 import { SerialNumberModal } from './components/serial-number-modal';
 import { VariantSelectionModal } from './components/variant-selection-modal';
+import { FormInputModal } from './components/form-input-modal';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -282,6 +283,7 @@ export default function PosPage() {
       <HeldOrdersDrawer isOpen={isHeldOpen} onClose={() => setHeldOpen(false)} />
       <SerialNumberModal />
       <VariantSelectionModal />
+      <FormInputModal />
     </>
   );
 }
