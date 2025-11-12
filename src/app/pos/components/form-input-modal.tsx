@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -63,10 +64,10 @@ const generateSchema = (fields: FormFieldDefinition[]) => {
 
 
 export function FormInputModal() {
-  const { formItemRequest, setFormItemRequest, addFormItemToOrder } = usePos();
-  const { toast } = useToast();
+  const { formItemRequest, setFormItemRequest, addFormItemToOrder, updateOrderItemFormData } = usePos();
 
   const item = formItemRequest?.item;
+  const isEditing = formItemRequest?.isEditing;
   const formFields = item?.formFields || [];
 
   const formSchema = useMemo(() => generateSchema(formFields), [formFields]);
@@ -78,23 +79,34 @@ export function FormInputModal() {
   useEffect(() => {
     if(item) {
         const defaultValues: Record<string, any> = {};
+        const existingData = (item as any).formData || {};
+
         formFields.forEach(field => {
-            if(field.type === 'checkbox') {
-                defaultValues[field.name] = false;
-            } else if (field.type === 'date') {
-                 defaultValues[field.name] = new Date().toISOString().split('T')[0];
+            if (isEditing && existingData.hasOwnProperty(field.name)) {
+                defaultValues[field.name] = existingData[field.name];
             } else {
-                defaultValues[field.name] = '';
+                if(field.type === 'checkbox') {
+                    defaultValues[field.name] = false;
+                } else if (field.type === 'date') {
+                    defaultValues[field.name] = new Date().toISOString().split('T')[0];
+                } else {
+                    defaultValues[field.name] = '';
+                }
             }
         });
         form.reset(defaultValues);
     }
-  }, [item, form, formFields]);
+  }, [item, isEditing, form, formFields]);
 
 
   const handleConfirm = (data: Record<string, any>) => {
     if (!item) return;
-    addFormItemToOrder(item, data);
+
+    if (isEditing) {
+        updateOrderItemFormData(item.id, data);
+    } else {
+        addFormItemToOrder(item, data);
+    }
   };
 
   const handleClose = () => {
@@ -156,7 +168,7 @@ export function FormInputModal() {
                 </div>
                 <DialogFooter>
                     <Button variant="outline" type="button" onClick={handleClose}>Annuler</Button>
-                    <Button type="submit">Ajouter à la commande</Button>
+                    <Button type="submit">{isEditing ? 'Sauvegarder' : 'Ajouter à la commande'}</Button>
                 </DialogFooter>
             </form>
         </Form>
