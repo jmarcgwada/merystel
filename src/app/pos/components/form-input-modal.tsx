@@ -15,15 +15,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePos } from '@/contexts/pos-context';
 import { useToast } from '@/hooks/use-toast';
-import type { FormFieldDefinition } from '@/lib/types';
+import type { FormFieldDefinition, Item, OrderItem } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import isEqual from 'lodash.isequal';
+
 
 const generateSchema = (fields: FormFieldDefinition[]) => {
+  if (!fields) return z.object({});
   const shape: Record<string, z.ZodType<any, any>> = {};
   fields.forEach(field => {
     switch (field.type) {
@@ -69,37 +72,42 @@ export function FormInputModal() {
   const item = formItemRequest?.item;
   const isEditing = formItemRequest?.isEditing;
   const formFields = item?.formFields || [];
-
-  const stableFormFields = useMemo(() => item?.formFields || [], [item]);
-
-  const formSchema = useMemo(() => generateSchema(stableFormFields), [stableFormFields]);
+  
+  const formSchema = useMemo(() => generateSchema(formFields), [formFields]);
   
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {},
   });
   
-  useEffect(() => {
-    if(item) {
-        const defaultValues: Record<string, any> = {};
-        const existingData = (item as any).formData || {};
+  // Memoize default values to prevent re-renders
+  const defaultValues = useMemo(() => {
+    if (!item) return {};
+    const values: Record<string, any> = {};
+    const existingData = (item as OrderItem).formData || {};
 
-        formFields.forEach(field => {
-            if (isEditing && existingData.hasOwnProperty(field.name)) {
-                defaultValues[field.name] = existingData[field.name];
+    (item.formFields || []).forEach(field => {
+        if (isEditing && existingData.hasOwnProperty(field.name)) {
+            values[field.name] = existingData[field.name];
+        } else {
+            if(field.type === 'checkbox') {
+                values[field.name] = false;
+            } else if (field.type === 'date') {
+                values[field.name] = new Date().toISOString().split('T')[0];
             } else {
-                if(field.type === 'checkbox') {
-                    defaultValues[field.name] = false;
-                } else if (field.type === 'date') {
-                    defaultValues[field.name] = new Date().toISOString().split('T')[0];
-                } else {
-                    defaultValues[field.name] = '';
-                }
+                values[field.name] = '';
             }
-        });
+        }
+    });
+    return values;
+  }, [item, isEditing]);
+
+  useEffect(() => {
+    // Only reset the form if the default values have actually changed.
+    if (item && !isEqual(form.getValues(), defaultValues)) {
         form.reset(defaultValues);
     }
-  }, [item, isEditing, form, formFields]);
+  }, [item, defaultValues, form]);
 
 
   const handleConfirm = (data: Record<string, any>) => {
