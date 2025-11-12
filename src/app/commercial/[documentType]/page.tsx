@@ -3,7 +3,7 @@
 
 import { usePos } from '@/contexts/pos-context';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
-import React, { useEffect, Suspense, useMemo, useRef } from 'react';
+import React, { useEffect, Suspense, useMemo, useState } from 'react';
 import CommercialPageLayout from '../components/commercial-page-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -30,13 +30,11 @@ function DocumentPageContent() {
   } = usePos();
   
   const docType = useMemo(() => typeMap[params.documentType as string], [params.documentType]);
-  const initialLoadDone = useRef(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   useEffect(() => {
     const saleIdToEdit = searchParams.get('edit');
     const saleIdToConvert = searchParams.get('fromConversion');
-    const newItemId = searchParams.get('newItemId');
-    const updatedItemId = searchParams.get('updatedItemId');
 
     const performLoad = async () => {
       if (saleIdToEdit) {
@@ -51,18 +49,17 @@ function DocumentPageContent() {
         const newUrl = window.location.pathname; // Remove query params
         router.replace(newUrl, { scroll: false });
       } else {
-        // Only reset if we are on a NEW page (no edit/convert) AND the context is for a different doc type or doesn't exist
         if (!currentSaleId && (!currentSaleContext || currentSaleContext.documentType !== docType)) {
           resetCommercialPage(docType);
         }
       }
     };
     
-    if (docType && !initialLoadDone.current) {
+    if (docType && !initialLoadDone) {
       performLoad();
-      initialLoadDone.current = true;
+      setInitialLoadDone(true);
     }
-  }, [docType, searchParams, loadSaleForEditing, loadSaleForConversion, resetCommercialPage, router, currentSaleId, currentSaleContext]);
+  }, [docType, searchParams, loadSaleForEditing, loadSaleForConversion, resetCommercialPage, router, currentSaleId, currentSaleContext, initialLoadDone]);
 
   useEffect(() => {
     const newItemId = searchParams.get('newItemId');
