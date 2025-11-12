@@ -93,6 +93,8 @@ export interface PosContextType {
   setOrder: React.Dispatch<React.SetStateAction<OrderItem[]>>;
   systemDate: Date;
   dynamicBgImage: string | null;
+  recentlyAddedItemId: string | null;
+  setRecentlyAddedItemId: React.Dispatch<React.SetStateAction<string | null>>;
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
@@ -508,6 +510,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [systemDate, setSystemDate] = useState(new Date());
   const [dynamicBgImage, setDynamicBgImage] = useState<string | null>(null);
+  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(null);
   const [readOnlyOrder, setReadOnlyOrder] = useState<OrderItem[] | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [isKeypadOpen, setIsKeypadOpen] = useState(false);
@@ -1024,9 +1027,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const addFormItemToOrder = useCallback((item: Item, formData: Record<string, any>) => {
     const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
     const price = isSupplierOrder ? (item.purchasePrice ?? 0) : item.price;
+    const uniqueId = uuidv4();
     const newItem: OrderItem = {
         itemId: item.id,
-        id: uuidv4(),
+        id: uniqueId,
         name: item.name,
         price,
         vatId: item.vatId,
@@ -1043,6 +1047,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(item.image) setDynamicBgImage(item.image);
     toast({ title: `${item.name} ajouté à la commande` });
     setFormItemRequest(null);
+    setRecentlyAddedItemId(uniqueId);
   }, [currentSaleContext, toast]);
 
 
@@ -1070,7 +1075,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       
       if (itemToAdd.hasForm) {
         setFormItemRequest({ item: itemToAdd });
-        return;
+        return; // Important: stop execution here
       }
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
@@ -1101,6 +1106,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
               newOrder[existingItemIndex].price * newQuantity - (newOrder[existingItemIndex].discount || 0),
           };
            const itemToMove = newOrder.splice(existingItemIndex, 1)[0];
+           setRecentlyAddedItemId(itemToMove.id);
           return [itemToMove, ...newOrder];
         } else {
           const uniqueId = uuidv4();
@@ -1119,6 +1125,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             selectedVariants,
             barcode: itemToAdd.barcode || '',
           };
+          setRecentlyAddedItemId(uniqueId);
           return [newItem, ...currentOrder];
         }
       });
@@ -1959,6 +1966,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                       paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
                       paymentCheck: 'Chèque', paymentOther: 'AUTRE'
                     };
+                    
                     Object.entries(paymentTotals).forEach(([key, amount]) => {
                       const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
                       if(method && amount > 0) payments.push({ method, amount, date: saleDate });
@@ -2012,7 +2020,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     
 
   const value: PosContextType = {
-      order, setOrder, systemDate, dynamicBgImage, readOnlyOrder, setReadOnlyOrder,
+      order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, addFormItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
@@ -2050,7 +2058,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
       supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
       creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-      isCommercialNavVisible, setIsCommercialNavVisible, commercialViewLevel, cycleCommercialViewLevel,
+      isCommercialNavVisible, setIsCommercialNavVisible, commercialViewLevel, setCommercialViewLevel, cycleCommercialViewLevel,
       smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
       lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
       itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
