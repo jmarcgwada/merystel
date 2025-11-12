@@ -1031,14 +1031,6 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
   }, [toast]);
   
-  const addFormItemToOrder = useCallback((item: Item | OrderItem, formData: Record<string, any>) => {
-    // This function is now a placeholder as the form feature is removed.
-  }, []);
-  
-  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => {
-    // This function is now a placeholder.
-  }, []);
-
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -2001,10 +1993,9 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest: null, setFormItemRequest: () => {},
-      formSubmissions, tempFormSubmissions,
+      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest,
       lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
