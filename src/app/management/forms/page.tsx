@@ -11,7 +11,7 @@ import type { FormSubmission, Sale } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ArrowRight, Eye, LayoutDashboard, RefreshCw, X, SlidersHorizontal, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, LayoutDashboard, RefreshCw, X, SlidersHorizontal, ChevronDown, CalendarIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FormSubmissionDetailDialog } from './components/form-submission-detail-dialog';
@@ -23,6 +23,8 @@ import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format, startOfDay, endOfDay } from 'date-fns';
+import { Separator } from '@/components/ui/separator';
+
 
 export default function FormSubmissionsPage() {
     const { formSubmissions, sales, items, customers, isLoading } = usePos();
@@ -32,24 +34,28 @@ export default function FormSubmissionsPage() {
     const [filterCustomerName, setFilterCustomerName] = useState('');
     const [filterSaleId, setFilterSaleId] = useState('');
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
-    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [isFiltersOpen, setFiltersOpen] = useState(false);
     
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(15);
     const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
     const filteredSubmissions = useMemo(() => {
         return formSubmissions.filter(submission => {
             const sale = sales.find(s => s.items.some(i => i.formSubmissionId === submission.id));
-            if (!sale) return false; // Should not happen
+            if (!sale) return false;
 
-            const itemName = items.find(i => i.id === submission.orderItemId)?.name || '';
+            const orderItem = sale.items.find(i => i.formSubmissionId === submission.id);
+            if (!orderItem) return false;
+
+            const itemName = items.find(i => i.id === orderItem.itemId)?.name || '';
             const customerName = customers.find(c => c.id === sale.customerId)?.name || '';
             
             const itemMatch = !filterItemName || itemName.toLowerCase().includes(filterItemName.toLowerCase());
             const customerMatch = !filterCustomerName || customerName.toLowerCase().includes(filterCustomerName.toLowerCase());
-            const saleMatch = !filterSaleId || sale.ticketNumber.toLowerCase().includes(filterSaleId.toLowerCase());
+            const saleMatch = !filterSaleId || (sale.ticketNumber && sale.ticketNumber.toLowerCase().includes(filterSaleId.toLowerCase()));
 
             let dateMatch = true;
             const subDate = new Date(submission.createdAt as any);
@@ -78,6 +84,10 @@ export default function FormSubmissionsPage() {
         setDateRange(undefined);
     };
 
+    const toggleDetails = (submissionId: string) => {
+        setOpenDetails(prev => ({...prev, [submissionId]: !prev[submissionId]}));
+    };
+
     return (
         <>
             <PageHeader title="Soumissions de Formulaires" subtitle={`Total de ${filteredSubmissions.length} formulaires trouvés`}>
@@ -91,7 +101,7 @@ export default function FormSubmissionsPage() {
                 </div>
             </PageHeader>
             <div className="mt-8 space-y-4">
-                <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen} asChild>
+                <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                     <Card>
                         <CardHeader className="p-4">
                              <div className="flex items-center justify-between">
@@ -159,6 +169,7 @@ export default function FormSubmissionsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-[50px]"></TableHead>
                                     <TableHead>Date</TableHead>
                                     <TableHead>Article</TableHead>
                                     <TableHead>Pièce</TableHead>
@@ -169,15 +180,22 @@ export default function FormSubmissionsPage() {
                             <TableBody>
                                 {isLoading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
-                                        <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-8 w-full"/></TableCell></TableRow>
+                                        <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full"/></TableCell></TableRow>
                                     ))
                                 ) : paginatedSubmissions.length > 0 ? (
                                     paginatedSubmissions.map(submission => {
                                         const sale = sales.find(s => s.items.some(i => i.formSubmissionId === submission.id));
-                                        const item = items.find(i => i.id === submission.orderItemId);
+                                        const orderItem = sale?.items.find(i => i.formSubmissionId === submission.id);
+                                        const item = items.find(i => i.id === orderItem?.itemId);
                                         const customer = customers.find(c => c.id === sale?.customerId);
                                         return (
-                                            <TableRow key={submission.id}>
+                                          <React.Fragment key={submission.id}>
+                                            <TableRow>
+                                                <TableCell>
+                                                  <Button variant="ghost" size="icon" onClick={() => toggleDetails(submission.id)}>
+                                                    <ChevronDown className={cn("h-4 w-4 transition-transform", openDetails[submission.id] && "rotate-180")} />
+                                                  </Button>
+                                                </TableCell>
                                                 <TableCell><ClientFormattedDate date={submission.createdAt} formatString="d MMM yyyy, HH:mm"/></TableCell>
                                                 <TableCell>{item?.name || 'Article supprimé'}</TableCell>
                                                 <TableCell>
@@ -190,10 +208,32 @@ export default function FormSubmissionsPage() {
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
+                                            {openDetails[submission.id] && (
+                                              <TableRow>
+                                                <TableCell colSpan={6} className="p-0">
+                                                  <div className="bg-muted/50 p-4 pl-16">
+                                                    <h4 className="font-semibold mb-2 text-sm">Données du formulaire :</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+                                                      {Object.entries(submission.formData).map(([key, value]) => {
+                                                          const fieldDefinition = item?.formFields?.find(f => f.name === key);
+                                                          return (
+                                                              <div key={key}>
+                                                                  <p className="font-medium text-muted-foreground">{fieldDefinition?.label || key}</p>
+                                                                  <p>{String(value)}</p>
+                                                              </div>
+                                                          )
+                                                      })}
+                                                    </div>
+                                                  </div>
+                                                  <Separator/>
+                                                </TableCell>
+                                              </TableRow>
+                                            )}
+                                          </React.Fragment>
                                         );
                                     })
                                 ) : (
-                                    <TableRow><TableCell colSpan={5} className="text-center h-24">Aucune soumission trouvée.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={6} className="text-center h-24">Aucune soumission trouvée.</TableCell></TableRow>
                                 )}
                             </TableBody>
                         </Table>
@@ -210,3 +250,4 @@ export default function FormSubmissionsPage() {
         </>
     );
 }
+
