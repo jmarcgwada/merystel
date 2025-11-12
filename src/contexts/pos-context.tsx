@@ -818,6 +818,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setCheques([]);
     setRemises([]);
     setPaiementsPartiels([]);
+    setFormSubmissions([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -828,7 +829,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       importDemoSuppliers();
       localStorage.setItem('data.seeded', 'true');
     }, 100);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs, setCheques, setRemises, setPaiementsPartiels, setFormSubmissions, toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders]);
   
   const selectivelyResetData = useCallback(async (dataToReset: Record<DeletableDataKeys, boolean>) => {
     toast({ title: 'Suppression en cours...' });
@@ -1028,6 +1029,33 @@ export function PosProvider({ children }: { children: ReactNode }) {
     toast({ title: `${item.name} ajouté/mis à jour dans la commande` });
   }, [toast]);
   
+  const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
+    setOrder(currentOrder =>
+      currentOrder.map(item =>
+        item.id === itemId ? { ...item, note } : item
+      )
+    );
+    toast({ title: 'Note ajoutée à l\'article.' });
+  }, [toast]);
+
+  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>) => {
+    const orderItem = order.find(item => item.id === orderItemId);
+    const fullItem = items.find(i => i.id === orderItem?.itemId);
+
+    setFormSubmissions(prev =>
+      prev.map(sub =>
+        sub.orderItemId === orderItemId ? { ...sub, formData } : sub
+      )
+    );
+    
+    if (orderItem && fullItem?.formNoteField && formData[fullItem.formNoteField]) {
+      updateItemNote(orderItemId, String(formData[fullItem.formNoteField]));
+    }
+    
+    toast({ title: 'Données de formulaire mises à jour.' });
+    setFormItemRequest(null);
+  }, [order, items, setFormSubmissions, toast, setFormItemRequest, updateItemNote]);
+  
   const addFormItemToOrder = useCallback((itemData: Item | OrderItem, formData: Record<string, any>) => {
     const isSupplierOrder = currentSaleContext?.documentType === 'supplier_order';
     const price = isSupplierOrder ? (itemData.purchasePrice ?? 0) : itemData.price;
@@ -1065,24 +1093,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(itemData.image) setDynamicBgImage(itemData.image);
     toast({ title: `${itemData.name} ajouté à la commande` });
   }, [currentSaleContext?.documentType, setFormItemRequest, toast, setFormSubmissions]);
-
-  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>) => {
-    const orderItem = order.find(item => item.id === orderItemId);
-    const fullItem = items.find(i => i.id === orderItem?.itemId);
-
-    setFormSubmissions(prev =>
-      prev.map(sub =>
-        sub.orderItemId === orderItemId ? { ...sub, formData } : sub
-      )
-    );
-    
-    if (orderItem && fullItem?.formNoteField && formData[fullItem.formNoteField]) {
-      updateItemNote(orderItemId, String(formData[fullItem.formNoteField]));
-    }
-    
-    toast({ title: 'Données de formulaire mises à jour.' });
-    setFormItemRequest(null);
-  }, [order, items, setFormSubmissions, toast, setFormItemRequest, updateItemNote]);
 
 
   const addToOrder = useCallback(
@@ -1218,15 +1228,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
     },
     [updateQuantity]
   );
-
-   const updateItemNote = useCallback((itemId: OrderItem['id'], note: string) => {
-    setOrder(currentOrder =>
-      currentOrder.map(item =>
-        item.id === itemId ? { ...item, note } : item
-      )
-    );
-    toast({ title: 'Note ajoutée à l\'article.' });
-  }, [toast]);
 
    const updateItemPrice = useCallback((itemId: string, newPriceTTC: number) => {
         setOrder(currentOrder =>
@@ -1611,7 +1612,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'|'createdAt'|'updatedAt'> & {id?: string}) => {
         const newId = customer.id || uuidv4();
         if (customers.some(c => c.id === newId)) {
-            throw new Error('Un client avec ce code existe déjà.');
+          throw new Error('Un client avec ce code existe déjà.');
         }
         if (customers.some(c => c.name.toLowerCase() === customer.name.toLowerCase())) {
           throw new Error('Un client avec ce nom existe déjà.');
