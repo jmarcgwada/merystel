@@ -81,6 +81,7 @@ export interface OrderItem {
   description?: string;
   description2?: string;
   barcode: string;
+  formSubmissionId?: string;
 }
 
 export interface Table {
@@ -326,4 +327,19 @@ export interface MappingTemplate {
   mappings: Record<string, number | null>;
   mappingModes: Record<string, 'column' | 'fixed'>;
   fixedValues: Record<string, string>;
+}
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: string;
+  createdAt: Date | Timestamp;
+  customerId: string;
+  customerName: string;
+  equipmentType: string;
+  equipmentBrand: string;
+  equipmentModel: string;
+  issueDescription: string;
+  notes?: string;
+  status: 'Ouvert' | 'En cours' | 'En attente de pièces' | 'Terminé' | 'Facturé' | 'Annulé';
+  updatedAt?: Date | Timestamp;
 }

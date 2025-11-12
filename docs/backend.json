@@ -303,6 +303,26 @@
             "montantTotal": { "type": "number" }
         },
         "required": ["id", "dateRemise", "chequeIds", "montantTotal"]
+    },
+    "SupportTicket": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SupportTicket",
+      "type": "object",
+      "description": "Represents a support ticket for service or repair.",
+      "properties": {
+        "id": { "type": "string" },
+        "ticketNumber": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "equipmentType": { "type": "string" },
+        "equipmentBrand": { "type": "string" },
+        "equipmentModel": { "type": "string" },
+        "issueDescription": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["Ouvert", "En cours", "En attente de pièces", "Terminé", "Facturé", "Annulé"] }
+      },
+      "required": ["id", "ticketNumber", "createdAt", "customerId", "equipmentType", "issueDescription", "status"]
     }
   },
   "auth": {
@@ -372,6 +392,10 @@
     "/companies/{companyId}/remisesCheques/{remiseId}": {
       "schema": { "$ref": "#/entities/RemiseCheque" },
       "description": "Bank deposit slips for checks."
+    },
+    "/companies/{companyId}/supportTickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/SupportTicket" },
+      "description": "Support tickets for customer service and repairs."
     }
   }
 }

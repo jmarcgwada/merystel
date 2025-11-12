@@ -28,6 +28,7 @@ import {
   Library,
   BarChart3,
   LayoutDashboard,
+  Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -61,6 +62,10 @@ export default function ManagementLayout({
     { href: '/management/tables', label: 'Tables', icon: Utensils, count: tables?.filter(t => t.id !== 'takeaway').length || 0 },
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
+  ];
+
+  const serviceLinks = [
+    { href: '/management/support-tickets', label: 'Prises en charge', icon: Wrench, count: 0 },
   ];
   
   const reportLinks = [
@@ -96,6 +101,15 @@ export default function ManagementLayout({
           <SidebarContent className="p-2">
             <SidebarMenu>
               {mainNavLinks.map(renderLink)}
+              <Separator className="my-2" />
+               <SidebarGroup>
+                <SidebarGroupLabel>Services</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {serviceLinks.map(renderLink)}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
               <Separator className="my-2" />
               <SidebarGroup>
                 <SidebarGroupLabel>Comptabilité</SidebarGroupLabel>
