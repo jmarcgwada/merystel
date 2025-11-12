@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -8,7 +9,7 @@ import { usePos } from '@/contexts/pos-context';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock, BarChart3, BookOpen } from 'lucide-react';
+import { Trash2, User as UserIcon, List, Search, Pencil, StickyNote, Columns, ArrowLeftRight, Calendar, Clock, BarChart3, BookOpen, FileSignature } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer, Item, OrderItem, Sale, Timestamp } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -454,11 +455,13 @@ export const CommercialOrderForm = forwardRef<
     }
   }));
 
-  const handleEditItemClick = (e: React.MouseEvent, itemId: string) => {
+  const handleEditItemClick = (e: React.MouseEvent, item: OrderItem) => {
     e.stopPropagation();
-    const item = allItems.find(i => i.id === itemId);
-    if (item) {
-        setItemToEdit(item);
+    const fullItem = allItems.find(i => i.id === item.itemId);
+    if (fullItem?.hasForm) {
+      setFormItemRequest({ item, isEditing: true });
+    } else if (fullItem) {
+        setItemToEdit(fullItem);
         setIsEditItemOpen(true);
     }
   }
@@ -685,13 +688,20 @@ export const CommercialOrderForm = forwardRef<
                                   {visibleColumns.designation && 
                                   <div className="flex flex-col">
                                       <div className="flex items-center gap-1">
-                                        <span className="font-semibold">{field.name}</span>
+                                        {fullItem?.hasForm ? (
+                                            <Button variant="link" className="p-0 h-auto font-semibold text-base text-left" onClick={(e) => handleEditItemClick(e, field)}>
+                                                {field.name}
+                                                <FileSignature className="h-3 w-3 ml-1.5 text-muted-foreground"/>
+                                            </Button>
+                                        ) : (
+                                            <span className="font-semibold">{field.name}</span>
+                                        )}
                                         <Button 
                                             type="button"
                                             variant="ghost" 
                                             size="icon" 
                                             className="h-6 w-6 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" 
-                                            onClick={(e) => handleEditItemClick(e, field.itemId)}
+                                            onClick={(e) => handleEditItemClick(e, field)}
                                           >
                                             <Pencil className="h-3 w-3" />
                                         </Button>
@@ -839,9 +849,6 @@ export const CommercialOrderForm = forwardRef<
               onClose={() => {
                   setIsEditItemOpen(false);
                   setItemToEdit(null);
-              }}
-              onItemSaved={() => {
-                   // This logic is now handled by the usePos context
               }}
           />
       )}
