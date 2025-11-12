@@ -11,7 +11,7 @@ import type { FormSubmission, Sale } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ArrowRight, Eye, LayoutDashboard, RefreshCw, X, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, LayoutDashboard, RefreshCw, X, SlidersHorizontal, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FormSubmissionDetailDialog } from './components/form-submission-detail-dialog';
