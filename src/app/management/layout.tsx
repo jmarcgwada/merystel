@@ -107,7 +107,7 @@ export default function ManagementLayout({
                   <SidebarMenu>
                     {renderLink(vatLink)}
                     {renderLink(chequeLink)}
-                    {accountingNavLinks.map(renderLink)}
+                    {financeNavLinks.map(renderLink)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
