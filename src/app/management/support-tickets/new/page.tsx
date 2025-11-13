@@ -17,6 +17,7 @@ import type { Customer, Item } from '@/lib/types';
 import { ArrowLeft, Save, User, Euro, PackageSearch } from 'lucide-react';
 import Link from 'next/link';
 import { ItemSelectionDialog } from './components/item-selection-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const formSchema = z.object({
@@ -78,8 +79,6 @@ function NewSupportTicketPageContent() {
   const onItemSelect = (item: Item) => {
     form.setValue('itemId', item.id);
     form.setValue('equipmentType', item.name);
-    // You can decide how to map brand/model if that data exists on your item
-    // For now, we clear them or you can parse from name
     form.setValue('equipmentBrand', '');
     form.setValue('equipmentModel', '');
     setItemSearchOpen(false);
@@ -108,67 +107,96 @@ function NewSupportTicketPageContent() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 max-w-4xl mx-auto space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Détails de la Prise en Charge</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="customerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Client *</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          type="button"
-                          className="w-full justify-start"
-                          onClick={() => setCustomerSearchOpen(true)}
-                        >
-                           <User className="mr-2 h-4 w-4"/>
-                           {selectedCustomer ? selectedCustomer.name : 'Sélectionner un client'}
+           <Tabs defaultValue="customer" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="customer">Client</TabsTrigger>
+              <TabsTrigger value="equipment">Matériel</TabsTrigger>
+              <TabsTrigger value="issue">Panne & Devis</TabsTrigger>
+            </TabsList>
+            <TabsContent value="customer">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations du Client</CardTitle>
+                   <CardDescription>Sélectionnez le client qui dépose le matériel.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Client *</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              type="button"
+                              className="w-full justify-start"
+                              onClick={() => setCustomerSearchOpen(true)}
+                            >
+                              <User className="mr-2 h-4 w-4"/>
+                              {selectedCustomer ? selectedCustomer.name : 'Sélectionner un client'}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="equipment">
+              <Card>
+                <CardHeader>
+                   <CardTitle>Informations sur le Matériel</CardTitle>
+                   <CardDescription>Détaillez l'équipement pris en charge.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex justify-end">
+                        <Button type="button" variant="secondary" onClick={() => setItemSearchOpen(true)}>
+                            <PackageSearch className="mr-2 h-4 w-4" />
+                            Lier à un article existant
                         </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+             <TabsContent value="issue">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Description du Problème et Devis</CardTitle>
+                  <CardDescription>Décrivez la panne constatée et le montant estimé de l'intervention.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                   <FormField control={form.control} name="issueDescription" render={({ field }) => (<FormItem><FormLabel>Description de la panne / Demande *</FormLabel><FormControl><Textarea placeholder="L'écran ne s'allume plus après une mise à jour..." {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
+                   <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Observations (interne)</FormLabel><FormControl><Textarea placeholder="Le client semble pressé. A noter, une rayure sur le capot." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                   <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Montant de la prestation (€)</FormLabel>
+                           <div className="relative">
+                               <Euro className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                               <FormControl>
+                                <Input type="number" placeholder="0.00" {...field} className="pl-8"/>
+                               </FormControl>
+                           </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="flex justify-end">
-                <Button type="button" variant="secondary" onClick={() => setItemSearchOpen(true)}>
-                    <PackageSearch className="mr-2 h-4 w-4" />
-                    Rechercher un article existant
-                </Button>
-              </div>
-
-              <FormField control={form.control} name="issueDescription" render={({ field }) => (<FormItem><FormLabel>Description de la panne / Demande *</FormLabel><FormControl><Textarea placeholder="L'écran ne s'allume plus après une mise à jour..." {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Observations (interne)</FormLabel><FormControl><Textarea placeholder="Le client semble pressé. A noter, une rayure sur le capot." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-               <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Montant de la prestation (€)</FormLabel>
-                       <div className="relative">
-                           <Euro className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                           <FormControl>
-                            <Input type="number" placeholder="0.00" {...field} className="pl-8"/>
-                           </FormControl>
-                       </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </CardContent>
-          </Card>
           <div className="flex justify-end">
             <Button type="submit" size="lg">
               <Save className="mr-2 h-4 w-4" />
