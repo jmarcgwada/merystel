@@ -114,23 +114,44 @@ export default function SupportTicketsPage() {
   };
 
   const handleGenerateInvoice = (ticket: SupportTicket) => {
-    if (ticket.saleId) return; // Already invoiced
-    
-    let article = items.find(item => item.name === 'Prise en charge');
-    if (!article) {
-        // This is a placeholder; ideally the item should be created via a proper form/flow
-        // For now, we'll assume it exists or fail gracefully
-        alert("L'article 'Prise en charge' n'existe pas. Veuillez le créer.");
+    if (ticket.saleId) {
+        toast({ variant: 'destructive', title: 'Déjà facturé', description: 'Cette prise en charge a déjà une facture associée.' });
         return;
     }
+    
+    let article = items.find(item => item.name.toLowerCase() === 'prise en charge');
+    if (!article) {
+        toast({ 
+            variant: 'destructive', 
+            title: "Article 'Prise en charge' manquant", 
+            description: "Veuillez créer un article nommé 'Prise en charge' dans la gestion des articles pour pouvoir facturer.",
+            duration: 7000
+        });
+        return;
+    }
+
+    const vatInfo = vatRates.find(v => v.id === article?.vatId);
+    if (!vatInfo) {
+        toast({ 
+            variant: 'destructive', 
+            title: "TVA manquante sur l'article", 
+            description: "L'article 'Prise en charge' doit avoir un taux de TVA valide.",
+            duration: 7000
+        });
+        return;
+    }
+
+    const amountTTC = ticket.amount || 0;
+    const amountHT = amountTTC / (1 + vatInfo.rate / 100);
+    const taxAmount = amountTTC - amountHT;
 
     const saleItem = {
       id: uuidv4(),
       itemId: article.id,
       name: article.name,
-      price: ticket.amount || 0,
+      price: amountTTC,
       quantity: 1,
-      total: ticket.amount || 0,
+      total: amountTTC,
       vatId: article.vatId,
       discount: 0,
       barcode: article.barcode,
@@ -140,9 +161,9 @@ export default function SupportTicketsPage() {
     recordCommercialDocument({
         items: [saleItem],
         customerId: ticket.customerId,
-        subtotal: (ticket.amount || 0) / (1 + (vatRates.find(v => v.id === article.vatId)?.rate || 0)/100),
-        tax: (ticket.amount || 0) - ((ticket.amount || 0) / (1 + (vatRates.find(v => v.id === article.vatId)?.rate || 0)/100)),
-        total: ticket.amount || 0,
+        subtotal: amountHT,
+        tax: taxAmount,
+        total: amountTTC,
         status: 'pending',
         payments: [],
     }, 'invoice');
