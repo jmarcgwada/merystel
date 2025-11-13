@@ -1,15 +1,15 @@
 
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
-import type { SupportTicket } from '@/lib/types';
+import type { SupportTicket, Customer } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,15 +28,24 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
+import { TicketPrintTemplate } from './components/ticket-print-template';
+import jsPDF from 'jspdf';
+import { useToast } from '@/hooks/use-toast';
+
 
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates } = usePos();
+  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
   const router = useRouter();
+  
+  const [ticketToPrint, setTicketToPrint] = useState<SupportTicket | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
 
   const sortedTickets = useMemo(() => {
@@ -139,8 +148,43 @@ export default function SupportTicketsPage() {
     }, 'invoice');
   };
 
+  const handlePrint = async (ticket: SupportTicket) => {
+    setTicketToPrint(ticket);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow state to render
+
+    if (!printRef.current) {
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de préparer l'impression." });
+      return;
+    }
+    setIsPrinting(true);
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    await pdf.html(printRef.current, {
+      callback: function (pdf) {
+        pdf.save(`prise-en-charge-${ticket.ticketNumber}.pdf`);
+        setIsPrinting(false);
+        setTicketToPrint(null);
+      },
+      x: 0,
+      y: 0,
+      width: 210,
+      windowWidth: printRef.current.scrollWidth,
+      autoPaging: 'text',
+    });
+  };
+
   return (
     <>
+      <div className="absolute -left-[9999px] -top-[9999px]">
+        {ticketToPrint && customers && companyInfo && (
+          <TicketPrintTemplate
+            ref={printRef}
+            ticket={ticketToPrint}
+            customer={customers.find(c => c.id === ticketToPrint.customerId) || null}
+            companyInfo={companyInfo}
+          />
+        )}
+      </div>
       <PageHeader
         title="Prises en Charge"
         subtitle="Consultez et gérez toutes les fiches de prise en charge."
@@ -211,6 +255,9 @@ export default function SupportTicketsPage() {
                                                 <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => handlePrint(ticket)} disabled={isPrinting}>
+                                                    <Printer className="mr-2 h-4 w-4" /> Imprimer
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleGenerateInvoice(ticket)} disabled={!!ticket.saleId}>
                                                     <FileCog className="mr-2 h-4 w-4" /> Facturer
                                                 </DropdownMenuItem>
