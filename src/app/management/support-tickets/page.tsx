@@ -1,10 +1,11 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
@@ -15,13 +16,27 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useRouter } from 'next/navigation';
 
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { supportTickets, isLoading } = usePos();
+  const { supportTickets, isLoading, deleteSupportTicket } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
+  const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
+  const router = useRouter();
+
 
   const sortedTickets = useMemo(() => {
     if (!supportTickets) return [];
@@ -79,6 +94,13 @@ export default function SupportTicketsPage() {
 
   const toggleDetails = (id: string) => {
     setOpenDetails(prev => ({...prev, [id]: !prev[id]}));
+  };
+  
+  const handleDeleteConfirm = () => {
+    if (ticketToDelete) {
+      deleteSupportTicket(ticketToDelete.id);
+      setTicketToDelete(null);
+    }
   };
 
   return (
@@ -153,8 +175,13 @@ export default function SupportTicketsPage() {
                                                 <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem disabled>Modifier</DropdownMenuItem>
-                                                <DropdownMenuItem disabled>Supprimer</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => router.push(`/management/support-tickets/${ticket.id}`)}>
+                                                    <Edit className="mr-2 h-4 w-4" /> Modifier
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem onClick={() => setTicketToDelete(ticket)} className="text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -194,6 +221,21 @@ export default function SupportTicketsPage() {
           </CardContent>
         </Card>
       </div>
+      
+      <AlertDialog open={!!ticketToDelete} onOpenChange={() => setTicketToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La prise en charge n°{ticketToDelete?.ticketNumber} sera supprimée définitivement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
