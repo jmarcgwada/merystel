@@ -1,8 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useForm, useFieldArray, Control, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
@@ -34,6 +34,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from '@/lib/utils';
+import { Suspense } from 'react';
 
 const repairActionSchema = z.object({
     id: z.string(),
@@ -62,7 +63,7 @@ const formSchema = z.object({
 
 type SupportTicketFormValues = z.infer<typeof formSchema>;
 
-function RepairActionsForm({ control }: { control: any }) {
+function RepairActionsForm({ control, setValue }: { control: Control<SupportTicketFormValues>, setValue: Function }) {
     const { fields, append, remove } = useFieldArray({
         control,
         name: "repairActions"
@@ -75,14 +76,19 @@ function RepairActionsForm({ control }: { control: any }) {
 
     const handleAddAction = () => {
         if (!newActionTitle || !newActionDetails) return;
-        append({
+        
+        const newAction = {
             id: uuidv4(),
             date: new Date(),
             title: newActionTitle,
             details: newActionDetails,
             userId: user?.id || 'system',
             userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-        });
+        };
+
+        const currentActions = control._getWatch("repairActions") || [];
+        setValue("repairActions", [...currentActions, newAction]);
+
         setNewActionTitle('');
         setNewActionDetails('');
     };
@@ -340,7 +346,7 @@ function EditSupportTicketPageContent() {
                   </Card>
                 </TabsContent>
                 <TabsContent value="tracking">
-                    <RepairActionsForm control={form.control} />
+                    <RepairActionsForm control={form.control} setValue={form.setValue} />
                 </TabsContent>
             </div>
           </Tabs>
