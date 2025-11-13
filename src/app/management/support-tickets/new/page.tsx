@@ -32,6 +32,8 @@ const formSchema = z.object({
   issueDescription: z.string().min(10, { message: 'Veuillez décrire la panne (min. 10 caractères).' }),
   notes: z.string().optional(),
   amount: z.coerce.number().min(0, { message: 'Le montant doit être positif.' }).optional(),
+  clientNotes: z.string().optional(),
+  equipmentNotes: z.string().optional(),
 });
 
 type SupportTicketFormValues = z.infer<typeof formSchema>;
@@ -61,6 +63,8 @@ function NewSupportTicketPageContent() {
       issueDescription: '',
       notes: '',
       amount: 0,
+      clientNotes: '',
+      equipmentNotes: '',
     },
   });
 
@@ -107,16 +111,16 @@ function NewSupportTicketPageContent() {
         subtitle="Créez une nouvelle fiche pour un retour SAV ou une préparation."
       >
         <div className="flex items-center gap-2">
+           <Button onClick={form.handleSubmit(onSubmit)} size="lg">
+              <Save className="mr-2 h-4 w-4" />
+              Enregistrer la prise en charge
+            </Button>
           <Button asChild variant="outline" className="btn-back">
             <Link href="/management/support-tickets">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Retour à la liste
             </Link>
           </Button>
-           <Button onClick={form.handleSubmit(onSubmit)} size="lg">
-              <Save className="mr-2 h-4 w-4" />
-              Enregistrer la prise en charge
-            </Button>
         </div>
       </PageHeader>
 
@@ -135,7 +139,7 @@ function NewSupportTicketPageContent() {
                       <CardTitle>Informations du Client</CardTitle>
                        <CardDescription>Sélectionnez le client qui dépose le matériel.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                       <FormField
                         control={form.control}
                         name="customerId"
@@ -174,6 +178,7 @@ function NewSupportTicketPageContent() {
                           </CardContent>
                         </Card>
                       )}
+                      <FormField control={form.control} name="clientNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le client</FormLabel><FormControl><Textarea placeholder="ex: Client pressé, demande de devis avant réparation..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -211,6 +216,7 @@ function NewSupportTicketPageContent() {
                         <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="equipmentNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le matériel</FormLabel><FormControl><Textarea placeholder="ex: Rayure sur le capot, un port USB défectueux..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -222,7 +228,7 @@ function NewSupportTicketPageContent() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                        <FormField control={form.control} name="issueDescription" render={({ field }) => (<FormItem><FormLabel>Description de la panne / Demande *</FormLabel><FormControl><Textarea placeholder="L'écran ne s'allume plus après une mise à jour..." {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
-                       <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Observations (interne)</FormLabel><FormControl><Textarea placeholder="Le client semble pressé. A noter, une rayure sur le capot." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                       <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes internes (technicien)</FormLabel><FormControl><Textarea placeholder="Diagnostique préliminaire : problème de carte mère probable." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
                        <FormField
                           control={form.control}
                           name="amount"

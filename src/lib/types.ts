@@ -335,12 +335,14 @@ export interface SupportTicket {
   createdAt: Date | Timestamp;
   customerId: string;
   customerName: string;
-  itemId?: string; // <-- New field
+  itemId?: string;
   equipmentType: string;
   equipmentBrand: string;
   equipmentModel: string;
   issueDescription: string;
-  notes?: string;
+  notes?: string; // Internal/technician notes
+  clientNotes?: string; // Observations about client/request
+  equipmentNotes?: string; // Observations about equipment state
   status: 'Ouvert' | 'En cours' | 'En attente de pièces' | 'Terminé' | 'Facturé' | 'Annulé';
   amount?: number;
   saleId?: string;

@@ -320,7 +320,9 @@
         "equipmentBrand": { "type": "string" },
         "equipmentModel": { "type": "string" },
         "issueDescription": { "type": "string" },
-        "notes": { "type": "string" },
+        "notes": { "type": "string", "description": "Internal notes for the technician." },
+        "clientNotes": { "type": "string", "description": "Notes regarding the client or their request." },
+        "equipmentNotes": { "type": "string", "description": "Notes about the equipment's condition." },
         "status": { "type": "string", "enum": ["Ouvert", "En cours", "En attente de pièces", "Terminé", "Facturé", "Annulé"] },
         "amount": { "type": "number", "description": "The amount to be invoiced for the service." },
         "saleId": { "type": "string", "description": "ID of the generated invoice." }
