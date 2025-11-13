@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
@@ -13,7 +13,7 @@ import type { SupportTicket } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -31,7 +31,7 @@ import { useRouter } from 'next/navigation';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { supportTickets, isLoading, deleteSupportTicket } = usePos();
+  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -46,8 +46,8 @@ export default function SupportTicketsPage() {
         let aValue, bValue;
         
         if (sortConfig.key === 'createdAt') {
-          aValue = new Date(a[sortConfig.key]).getTime();
-          bValue = new Date(b[sortConfig.key]).getTime();
+          aValue = new Date(a[sortConfig.key] as any).getTime();
+          bValue = new Date(b[sortConfig.key] as any).getTime();
         } else {
           aValue = a[sortConfig.key as keyof SupportTicket] || '';
           bValue = b[sortConfig.key as keyof SupportTicket] || '';
@@ -101,6 +101,41 @@ export default function SupportTicketsPage() {
       deleteSupportTicket(ticketToDelete.id);
       setTicketToDelete(null);
     }
+  };
+
+  const handleGenerateInvoice = (ticket: SupportTicket) => {
+    if (ticket.saleId) return; // Already invoiced
+    
+    let article = items.find(item => item.name === 'Prise en charge');
+    if (!article) {
+        // This is a placeholder; ideally the item should be created via a proper form/flow
+        // For now, we'll assume it exists or fail gracefully
+        alert("L'article 'Prise en charge' n'existe pas. Veuillez le créer.");
+        return;
+    }
+
+    const saleItem: OrderItem = {
+      id: uuidv4(),
+      itemId: article.id,
+      name: article.name,
+      price: ticket.amount || 0,
+      quantity: 1,
+      total: ticket.amount || 0,
+      vatId: article.vatId,
+      discount: 0,
+      barcode: article.barcode,
+      note: `${ticket.equipmentType} ${ticket.equipmentBrand} ${ticket.equipmentModel}\nPanne: ${ticket.issueDescription}`
+    };
+
+    recordCommercialDocument({
+        items: [saleItem],
+        customerId: ticket.customerId,
+        subtotal: (ticket.amount || 0) / (1 + (vatRates.find(v => v.id === article.vatId)?.rate || 0)/100),
+        tax: (ticket.amount || 0) - ((ticket.amount || 0) / (1 + (vatRates.find(v => v.id === article.vatId)?.rate || 0)/100)),
+        total: ticket.amount || 0,
+        status: 'pending',
+        payments: [],
+    }, 'invoice');
   };
 
   return (
@@ -175,6 +210,9 @@ export default function SupportTicketsPage() {
                                                 <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => handleGenerateInvoice(ticket)} disabled={!!ticket.saleId}>
+                                                    <FileCog className="mr-2 h-4 w-4" /> Facturer
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => router.push(`/management/support-tickets/${ticket.id}`)}>
                                                     <Edit className="mr-2 h-4 w-4" /> Modifier
                                                 </DropdownMenuItem>
