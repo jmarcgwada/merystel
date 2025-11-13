@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
 import type { Customer, Item, SupportTicket, RepairAction } from '@/lib/types';
-import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil, Plus, Trash2, History } from 'lucide-react';
+import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil, Plus, Trash2, History, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { ItemSelectionDialog } from '../new/components/item-selection-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,6 +27,13 @@ import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Separator } from '@/components/ui/separator';
 import { v4 as uuidv4 } from 'uuid';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { cn } from '@/lib/utils';
 
 const repairActionSchema = z.object({
     id: z.string(),
@@ -60,9 +67,11 @@ function RepairActionsForm({ control }: { control: any }) {
         control,
         name: "repairActions"
     });
-    const { user, repairActionPresets } = usePos();
+    const { user, repairActionPresets, addRepairActionPreset } = usePos();
+    const { toast } = useToast();
     const [newActionTitle, setNewActionTitle] = useState('');
     const [newActionDetails, setNewActionDetails] = useState('');
+    const [isActionSectionOpen, setIsActionSectionOpen] = useState(true);
 
     const handleAddAction = () => {
         if (!newActionTitle || !newActionDetails) return;
@@ -77,6 +86,18 @@ function RepairActionsForm({ control }: { control: any }) {
         setNewActionTitle('');
         setNewActionDetails('');
     };
+    
+    const handleAddPreset = async () => {
+        if (!newActionTitle.trim() || repairActionPresets.some(p => p.name.toLowerCase() === newActionTitle.trim().toLowerCase())) {
+            toast({
+                title: newActionTitle.trim() ? "Action déjà existante" : "Titre vide",
+                variant: "destructive"
+            });
+            return;
+        }
+        await addRepairActionPreset({ name: newActionTitle.trim() });
+        toast({ title: "Action rapide ajoutée" });
+    };
 
     const sortedFields = useMemo(() => {
         return [...fields].sort((a, b) => new Date((b as any).date).getTime() - new Date((a as any).date).getTime());
@@ -84,37 +105,51 @@ function RepairActionsForm({ control }: { control: any }) {
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader><CardTitle>Nouvelle Action</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="action-preset-select">Action prédéfinie (optionnel)</Label>
-                        <Select onValueChange={setNewActionTitle}>
-                            <SelectTrigger id="action-preset-select">
-                                <SelectValue placeholder="Choisir une action rapide..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {repairActionPresets.map(preset => (
-                                    <SelectItem key={preset.id} value={preset.name}>{preset.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="new-action-title">Titre de l'action</Label>
-                        <Input id="new-action-title" value={newActionTitle} onChange={e => setNewActionTitle(e.target.value)} placeholder="Ex: Diagnostic initial, Remplacement pièce..."/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="new-action-details">Détails de l'intervention</Label>
-                        <Textarea id="new-action-details" value={newActionDetails} onChange={e => setNewActionDetails(e.target.value)} placeholder="Décrivez l'opération effectuée..."/>
-                    </div>
-                </CardContent>
-                <CardFooter>
-                    <Button type="button" onClick={handleAddAction} disabled={!newActionTitle || !newActionDetails}>
-                        <Plus className="mr-2 h-4 w-4" /> Ajouter au journal
-                    </Button>
-                </CardFooter>
-            </Card>
+            <Collapsible open={isActionSectionOpen} onOpenChange={setIsActionSectionOpen}>
+                <Card>
+                    <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer flex flex-row items-center justify-between">
+                            <CardTitle>Nouvelle Action</CardTitle>
+                            <ChevronDown className={cn("h-4 w-4 transition-transform", isActionSectionOpen && "rotate-180")} />
+                        </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <CardContent className="space-y-4 pt-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="action-preset-select">Action prédéfinie (optionnel)</Label>
+                                <Select onValueChange={setNewActionTitle}>
+                                    <SelectTrigger id="action-preset-select">
+                                        <SelectValue placeholder="Choisir une action rapide..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {repairActionPresets.map(preset => (
+                                            <SelectItem key={preset.id} value={preset.name}>{preset.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="new-action-title">Titre de l'action</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input id="new-action-title" value={newActionTitle} onChange={e => setNewActionTitle(e.target.value)} placeholder="Ex: Diagnostic initial, Remplacement pièce..."/>
+                                    <Button type="button" size="icon" variant="outline" onClick={handleAddPreset} disabled={!newActionTitle.trim()}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="new-action-details">Détails de l'intervention</Label>
+                                <Textarea id="new-action-details" value={newActionDetails} onChange={e => setNewActionDetails(e.target.value)} placeholder="Décrivez l'opération effectuée..."/>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button type="button" onClick={handleAddAction} disabled={!newActionTitle || !newActionDetails}>
+                                <Plus className="mr-2 h-4 w-4" /> Ajouter au journal
+                            </Button>
+                        </CardFooter>
+                    </CollapsibleContent>
+                </Card>
+            </Collapsible>
 
             <Separator />
 
