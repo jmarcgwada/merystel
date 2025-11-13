@@ -35,6 +35,7 @@ import type {
   RemiseCheque,
   Payment,
   SupportTicket,
+  RepairActionPreset,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
@@ -77,7 +78,8 @@ export type DeletableDataKeys =
   | 'remises'
   | 'paiementsPartiels'
   | 'dunningLogs'
-  | 'supportTickets';
+  | 'supportTickets'
+  | 'repairActionPresets';
 
 export interface ImportReport {
   successCount: number;
@@ -222,6 +224,10 @@ export interface PosContextType {
   addSupportTicket: (ticket: Omit<SupportTicket, 'id'|'ticketNumber'|'createdAt'|'status'>) => Promise<SupportTicket | null>;
   updateSupportTicket: (ticket: SupportTicket) => Promise<void>;
   deleteSupportTicket: (ticketId: string) => Promise<void>;
+  repairActionPresets: RepairActionPreset[];
+  addRepairActionPreset: (preset: Omit<RepairActionPreset, 'id'|'createdAt'|'updatedAt'>) => Promise<RepairActionPreset | null>;
+  updateRepairActionPreset: (preset: RepairActionPreset) => Promise<void>;
+  deleteRepairActionPreset: (presetId: string) => Promise<void>;
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
@@ -431,6 +437,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
   const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [supportTickets, setSupportTickets, rehydrateSupportTickets] = usePersistentState<SupportTicket[]>('data.supportTickets', []);
+  const [repairActionPresets, setRepairActionPresets, rehydrateRepairActionPresets] = usePersistentState<RepairActionPreset[]>('data.repairActionPresets', []);
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -672,6 +679,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Prise en charge supprimée' });
   }, [setSupportTickets, toast]);
 
+  const addRepairActionPreset = useCallback(async (preset: Omit<RepairActionPreset, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newPreset = { ...preset, id: uuidv4(), createdAt: new Date() };
+    setRepairActionPresets(prev => [...prev, newPreset]);
+    return newPreset;
+  }, [setRepairActionPresets]);
+
+  const updateRepairActionPreset = useCallback(async (preset: RepairActionPreset) => {
+    setRepairActionPresets(prev => prev.map(p => p.id === preset.id ? { ...preset, updatedAt: new Date() } : p));
+  }, [setRepairActionPresets]);
+
+  const deleteRepairActionPreset = useCallback(async (presetId: string) => {
+    setRepairActionPresets(prev => prev.filter(p => p.id !== presetId));
+  }, [setRepairActionPresets]);
+
   const clearOrder = useCallback(() => {
     setOrder([]);
     setDynamicBgImage(null);
@@ -744,8 +765,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
     ];
     setPaymentMethods(defaultPaymentMethods);
     
-    toast({ title: 'Données initialisées', description: 'TVA et méthodes de paiement par défaut créées.' });
-  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, toast]);
+    const defaultRepairActions: RepairActionPreset[] = [
+      { id: uuidv4(), name: 'ATTENTE REPONSE DEVIS', createdAt: new Date() },
+      { id: uuidv4(), name: 'DEPART SAV FOURNISSEUR', createdAt: new Date() },
+      { id: uuidv4(), name: 'RETOUR SAV FOURNISSUER', createdAt: new Date() },
+      { id: uuidv4(), name: 'RECUPERATION CLIENT', createdAt: new Date() },
+      { id: uuidv4(), name: 'STANDBY', createdAt: new Date() },
+      { id: uuidv4(), name: 'GARDER POUR DESTRUCTION OU AUTRE', createdAt: new Date() },
+    ];
+    setRepairActionPresets(defaultRepairActions);
+
+    toast({ title: 'Données initialisées', description: 'TVA, méthodes de paiement et actions de réparation par défaut créées.' });
+  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, setRepairActionPresets, toast]);
     
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
@@ -829,6 +860,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setRemises([]);
     setPaiementsPartiels([]);
     setSupportTickets([]);
+    setRepairActionPresets([]);
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -842,7 +874,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
     setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs,
-    setCheques, setRemises, setPaiementsPartiels, setSupportTickets,
+    setCheques, setRemises, setPaiementsPartiels, setSupportTickets, setRepairActionPresets,
     toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders
   ]);
   
@@ -863,11 +895,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
     if (dataToReset.dunningLogs) setDunningLogs([]);
     if (dataToReset.supportTickets) setSupportTickets([]);
+    if (dataToReset.repairActionPresets) setRepairActionPresets([]);
     toast({ title: 'Données sélectionnées supprimées !' });
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, 
     setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, 
-    setRemises, setPaiementsPartiels, setDunningLogs, setSupportTickets, toast
+    setRemises, setPaiementsPartiels, setDunningLogs, setSupportTickets, setRepairActionPresets, toast
   ]);
   
   useEffect(() => {
@@ -945,11 +978,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
     const allData = {
         items, categories, customers, suppliers, tables: tablesData, sales, heldOrders,
         paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises,
-        supportTickets,
+        supportTickets, repairActionPresets,
         companyInfo, users, mappingTemplates
     };
     return JSON.stringify(allData, null, 2);
-  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, supportTickets, companyInfo, users, mappingTemplates]);
+  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, supportTickets, repairActionPresets, companyInfo, users, mappingTemplates]);
 
   const importFullData = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -960,7 +993,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers,
                 rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates,
                 rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs, rehydrateCheques,
-                rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, 
+                rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets,
                 rehydrateCompanyInfo, rehydrateUsers,
                 rehydrateMappingTemplates
             ];
@@ -980,6 +1013,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             if (data.paiementsPartiels) setPaiementsPartiels(data.paiementsPartiels);
             if (data.remises) setRemises(data.remises);
             if (data.supportTickets) setSupportTickets(data.supportTickets);
+            if (data.repairActionPresets) setRepairActionPresets(data.repairActionPresets);
             if (data.companyInfo) setCompanyInfo(data.companyInfo);
             if (data.users) setUsers(data.users);
             if (data.mappingTemplates) setMappingTemplates(data.mappingTemplates);
@@ -994,11 +1028,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
     reader.readAsText(file);
   }, [
       setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods,
-      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setSupportTickets,
+      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setSupportTickets, setRepairActionPresets,
       setCompanyInfo, setUsers, setMappingTemplates, toast,
       rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTables, rehydrateSales,
       rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs,
-      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateCompanyInfo, rehydrateUsers,
+      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets, rehydrateCompanyInfo, rehydrateUsers,
       rehydrateMappingTemplates
   ]);
   
@@ -1044,7 +1078,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if ('image' in item && item.image) setDynamicBgImage(item.image);
     toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
   }, [toast]);
-  
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -1067,7 +1100,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
     }
-      
+
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
           const existingItem = order.find(i => i.itemId === itemId);
@@ -2023,6 +2056,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       paiementsPartiels, addPaiementPartiel, 
       remises, addRemise,
       supportTickets, addSupportTicket, updateSupportTicket, deleteSupportTicket,
+      repairActionPresets, addRepairActionPreset, updateRepairActionPreset, deleteRepairActionPreset,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
