@@ -5,7 +5,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
@@ -27,11 +27,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useRouter } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
 
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items } = usePos();
+  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -114,7 +115,7 @@ export default function SupportTicketsPage() {
         return;
     }
 
-    const saleItem: OrderItem = {
+    const saleItem = {
       id: uuidv4(),
       itemId: article.id,
       name: article.name,
@@ -228,7 +229,7 @@ export default function SupportTicketsPage() {
                                     <TableRow>
                                         <TableCell colSpan={7} className="p-0">
                                             <div className="bg-muted/50 p-6 space-y-4">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                                     <div className="space-y-2">
                                                         <h4 className="font-semibold text-sm">Panne & Devis</h4>
                                                         <p className="text-sm text-muted-foreground">{ticket.issueDescription}</p>
@@ -245,6 +246,23 @@ export default function SupportTicketsPage() {
                                                      <div className="space-y-2">
                                                         <h4 className="font-semibold text-sm">Notes internes</h4>
                                                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.notes || 'Aucune.'}</p>
+                                                    </div>
+                                                    <div className="space-y-2 xl:col-span-4">
+                                                        <Separator />
+                                                        <h4 className="font-semibold text-sm flex items-center gap-2 pt-2"><History/> Historique des actions</h4>
+                                                        {ticket.repairActions && ticket.repairActions.length > 0 ? (
+                                                            <div className="space-y-2">
+                                                                {ticket.repairActions.sort((a, b) => new Date(b.date as any).getTime() - new Date(a.date as any).getTime()).map((action) => (
+                                                                    <div key={action.id} className="text-sm p-2 rounded-md bg-background/50">
+                                                                        <p className="font-semibold">{action.title}</p>
+                                                                        <p className="text-xs text-muted-foreground"><ClientFormattedDate date={action.date} formatString="d MMM, HH:mm" /> par {action.userName}</p>
+                                                                        <p className="mt-1 whitespace-pre-wrap">{action.details}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-sm text-muted-foreground">Aucune action enregistrée.</p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
