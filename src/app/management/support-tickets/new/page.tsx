@@ -106,12 +106,18 @@ function NewSupportTicketPageContent() {
         title="Nouvelle Prise en Charge"
         subtitle="Créez une nouvelle fiche pour un retour SAV ou une préparation."
       >
-        <Button asChild variant="outline" className="btn-back">
-          <Link href="/management/support-tickets">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour à la liste
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="btn-back">
+            <Link href="/management/support-tickets">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour à la liste
+            </Link>
+          </Button>
+           <Button onClick={form.handleSubmit(onSubmit)} size="lg">
+              <Save className="mr-2 h-4 w-4" />
+              Enregistrer la prise en charge
+            </Button>
+        </div>
       </PageHeader>
 
       <Form {...form}>
@@ -238,13 +244,6 @@ function NewSupportTicketPageContent() {
                 </TabsContent>
             </div>
           </Tabs>
-
-          <div className="flex justify-end sticky bottom-0 py-4 bg-background">
-            <Button type="submit" size="lg">
-              <Save className="mr-2 h-4 w-4" />
-              Enregistrer la prise en charge
-            </Button>
-          </div>
         </form>
       </Form>
       <CustomerSelectionDialog
