@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -219,6 +220,8 @@ export interface PosContextType {
   addRemise: (remise: Omit<RemiseCheque, 'id'|'createdAt'>) => Promise<RemiseCheque | null>;
   supportTickets: SupportTicket[];
   addSupportTicket: (ticket: Omit<SupportTicket, 'id'|'ticketNumber'|'createdAt'|'status'>) => Promise<SupportTicket | null>;
+  updateSupportTicket: (ticket: SupportTicket) => Promise<void>;
+  deleteSupportTicket: (ticketId: string) => Promise<void>;
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
@@ -411,7 +414,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-export const PosProvider = ({ children }: { children: ReactNode }) => {
+export function PosProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -658,6 +661,16 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
     toast({ title: 'Prise en charge créée', description: `La fiche #${ticketNumber} a été enregistrée.` });
     return newTicket;
   }, [supportTickets, setSupportTickets, toast]);
+
+  const updateSupportTicket = useCallback(async (ticketData: SupportTicket) => {
+    setSupportTickets(prev => prev.map(t => t.id === ticketData.id ? { ...ticketData, updatedAt: new Date() } : t));
+    toast({ title: 'Prise en charge modifiée' });
+  }, [setSupportTickets, toast]);
+
+  const deleteSupportTicket = useCallback(async (ticketId: string) => {
+    setSupportTickets(prev => prev.filter(t => t.id !== ticketId));
+    toast({ title: 'Prise en charge supprimée' });
+  }, [setSupportTickets, toast]);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
@@ -2009,7 +2022,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       cheques, addCheque, updateCheque, deleteCheque, 
       paiementsPartiels, addPaiementPartiel, 
       remises, addRemise,
-      supportTickets, addSupportTicket,
+      supportTickets, addSupportTicket, updateSupportTicket, deleteSupportTicket,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
