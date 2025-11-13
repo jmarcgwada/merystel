@@ -60,7 +60,7 @@ function RepairActionsForm({ control }: { control: any }) {
         control,
         name: "repairActions"
     });
-    const { user } = usePos();
+    const { user, repairActionPresets } = usePos();
     const [newActionTitle, setNewActionTitle] = useState('');
     const [newActionDetails, setNewActionDetails] = useState('');
 
@@ -88,8 +88,17 @@ function RepairActionsForm({ control }: { control: any }) {
                 <CardHeader><CardTitle>Nouvelle Action</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="new-action-title">Titre de l'action</Label>
-                        <Input id="new-action-title" value={newActionTitle} onChange={e => setNewActionTitle(e.target.value)} placeholder="Ex: Diagnostic initial, Remplacement pièce..."/>
+                        <Label htmlFor="new-action-title">Action prédéfinie</Label>
+                        <Select onValueChange={setNewActionTitle} value={newActionTitle}>
+                            <SelectTrigger id="new-action-title">
+                                <SelectValue placeholder="Choisir une action rapide..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {repairActionPresets.map(preset => (
+                                    <SelectItem key={preset.id} value={preset.name}>{preset.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="new-action-details">Détails de l'intervention</Label>

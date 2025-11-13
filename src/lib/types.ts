@@ -358,3 +358,10 @@ export interface SupportTicket {
   saleId?: string;
   updatedAt?: Date | Timestamp;
 }
+
+export interface RepairActionPreset {
+  id: string;
+  name: string;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
+}

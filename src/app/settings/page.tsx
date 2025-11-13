@@ -4,7 +4,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard, FileSignature, History, Server, Lock, Upload, HardDrive } from 'lucide-react';
+import { ArrowRight, Brush, Building, Database, ArrowLeft, Palette, UserCog, Settings, LayoutDashboard, FileSignature, History, Server, Lock, Upload, HardDrive, ClipboardList } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 
