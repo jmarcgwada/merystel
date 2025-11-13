@@ -54,6 +54,7 @@ export default function ManagementLayout({
       sales,
       cheques,
       remises,
+      supportTickets,
   } = usePos();
 
   const mainNavLinks = [
@@ -65,7 +66,7 @@ export default function ManagementLayout({
   ];
 
   const serviceLinks = [
-    { href: '/management/support-tickets', label: 'Prises en charge', icon: Wrench, count: 0 },
+    { href: '/management/support-tickets', label: 'Prises en charge', icon: Wrench, count: supportTickets?.length || 0 },
   ];
   
   const reportLinks = [
