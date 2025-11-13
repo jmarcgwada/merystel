@@ -14,11 +14,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
 import type { Customer, Item } from '@/lib/types';
-import { ArrowLeft, Save, User, Euro, PackageSearch } from 'lucide-react';
+import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { ItemSelectionDialog } from './components/item-selection-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
+import Image from 'next/image';
+import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
+import { EditItemDialog } from '@/app/management/items/components/edit-item-dialog';
 
 const formSchema = z.object({
   customerId: z.string().min(1, 'Un client est requis.'),
@@ -37,10 +39,15 @@ type SupportTicketFormValues = z.infer<typeof formSchema>;
 function NewSupportTicketPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { customers, addSupportTicket } = usePos();
+  const { customers, items, addSupportTicket } = usePos();
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [isItemSearchOpen, setItemSearchOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+
+  const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [isEditItemOpen, setEditItemOpen] = useState(false);
+
 
   const form = useForm<SupportTicketFormValues>({
     resolver: zodResolver(formSchema),
@@ -77,8 +84,10 @@ function NewSupportTicketPageContent() {
   };
   
   const onItemSelect = (item: Item) => {
+    setSelectedItem(item);
     form.setValue('itemId', item.id);
     form.setValue('equipmentType', item.name);
+    // You might want to pre-fill brand/model if they exist on the Item type
     form.setValue('equipmentBrand', '');
     form.setValue('equipmentModel', '');
     setItemSearchOpen(false);
@@ -143,6 +152,21 @@ function NewSupportTicketPageContent() {
                       </FormItem>
                     )}
                   />
+                  {selectedCustomer && (
+                    <Card className="mt-4 bg-muted/50">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                          <CardTitle className="text-base">Détails du client</CardTitle>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCustomerOpen(true)}>
+                              <Pencil className="h-4 w-4"/>
+                          </Button>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm">
+                          <p className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.email || 'Non renseigné'}</p>
+                          <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.phone || 'Non renseigné'}</p>
+                          <p className="flex items-start gap-2"><MapPin className="h-4 w-4 text-muted-foreground mt-0.5"/> {selectedCustomer.address ? `${selectedCustomer.address}, ${selectedCustomer.postalCode} ${selectedCustomer.city}` : 'Adresse non renseignée'}</p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -150,20 +174,36 @@ function NewSupportTicketPageContent() {
               <Card>
                 <CardHeader>
                    <CardTitle>Informations sur le Matériel</CardTitle>
-                   <CardDescription>Détaillez l'équipement pris en charge.</CardDescription>
+                   <CardDescription>Détaillez l'équipement pris en charge. Vous pouvez le lier à un article existant.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="flex justify-end">
                         <Button type="button" variant="secondary" onClick={() => setItemSearchOpen(true)}>
                             <PackageSearch className="mr-2 h-4 w-4" />
-                            Lier à un article existant
+                            Lier à un article de la base
                         </Button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    </div>
+                     {selectedItem && (
+                      <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-base">Article lié</CardTitle>
+                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditItemOpen(true)}>
+                                <Pencil className="h-4 w-4"/>
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="flex items-center gap-4">
+                           {selectedItem.image && <Image src={selectedItem.image} alt={selectedItem.name} width={64} height={64} className="rounded-md object-cover" />}
+                           <div className="space-y-1 text-sm">
+                               <p className="font-bold">{selectedItem.name}</p>
+                               <p className="text-muted-foreground">Réf: {selectedItem.barcode}</p>
+                               <p className="text-muted-foreground">Prix: {selectedItem.price.toFixed(2)}€</p>
+                           </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -215,6 +255,21 @@ function NewSupportTicketPageContent() {
         onClose={() => setItemSearchOpen(false)}
         onItemSelected={onItemSelect}
       />
+      {selectedCustomer && (
+          <EditCustomerDialog 
+            isOpen={isEditCustomerOpen} 
+            onClose={() => setEditCustomerOpen(false)} 
+            customer={selectedCustomer} 
+          />
+      )}
+      {selectedItem && (
+          <EditItemDialog 
+            isOpen={isEditItemOpen}
+            onClose={() => setEditItemOpen(false)}
+            item={selectedItem}
+            onItemSaved={() => {}} // A refresh might be needed if details change
+          />
+      )}
     </>
   );
 }
