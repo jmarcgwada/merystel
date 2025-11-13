@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
@@ -26,6 +25,8 @@ import { EditItemDialog } from '@/app/management/items/components/edit-item-dial
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Separator } from '@/components/ui/separator';
+import { v4 as uuidv4 } from 'uuid';
+import { Label } from '@/components/ui/label';
 
 const repairActionSchema = z.object({
     id: z.string(),
