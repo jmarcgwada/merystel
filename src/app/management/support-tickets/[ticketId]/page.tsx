@@ -87,10 +87,10 @@ function RepairActionsForm({ control }: { control: any }) {
             <Card>
                 <CardHeader><CardTitle>Nouvelle Action</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="new-action-title">Action prédéfinie</Label>
-                        <Select onValueChange={setNewActionTitle} value={newActionTitle}>
-                            <SelectTrigger id="new-action-title">
+                     <div className="space-y-2">
+                        <Label htmlFor="action-preset-select">Action prédéfinie (optionnel)</Label>
+                        <Select onValueChange={setNewActionTitle}>
+                            <SelectTrigger id="action-preset-select">
                                 <SelectValue placeholder="Choisir une action rapide..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -99,6 +99,10 @@ function RepairActionsForm({ control }: { control: any }) {
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="new-action-title">Titre de l'action</Label>
+                        <Input id="new-action-title" value={newActionTitle} onChange={e => setNewActionTitle(e.target.value)} placeholder="Ex: Diagnostic initial, Remplacement pièce..."/>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="new-action-details">Détails de l'intervention</Label>
