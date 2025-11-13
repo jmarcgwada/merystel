@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
@@ -12,12 +12,16 @@ import type { SupportTicket } from '@/lib/types';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
   const { supportTickets, isLoading } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
+  const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
   const sortedTickets = useMemo(() => {
     if (!supportTickets) return [];
@@ -73,6 +77,9 @@ export default function SupportTicketsPage() {
     }
   }
 
+  const toggleDetails = (id: string) => {
+    setOpenDetails(prev => ({...prev, [id]: !prev[id]}));
+  };
 
   return (
     <>
@@ -104,6 +111,7 @@ export default function SupportTicketsPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
+                        <TableHead className="w-[50px]"></TableHead>
                         <TableHead><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Numéro {getSortIcon('ticketNumber')}</Button></TableHead>
                         <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>
                         <TableHead><Button variant="ghost" onClick={() => requestSort('equipmentType')}>Matériel {getSortIcon('equipmentType')}</Button></TableHead>
@@ -116,29 +124,69 @@ export default function SupportTicketsPage() {
                     {isLoading ? (
                         Array.from({length: 5}).map((_, i) => (
                            <TableRow key={i}>
-                                <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
+                                <TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell>
                            </TableRow>
                         ))
                     ) : sortedTickets.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                                 Aucune prise en charge pour le moment.
                             </TableCell>
                         </TableRow>
                     ) : (
                         sortedTickets.map(ticket => (
-                            <TableRow key={ticket.id}>
-                                <TableCell className="font-mono">{ticket.ticketNumber}</TableCell>
-                                <TableCell>{ticket.customerName}</TableCell>
-                                <TableCell>{ticket.equipmentBrand} {ticket.equipmentModel}</TableCell>
-                                <TableCell>
-                                    <ClientFormattedDate date={ticket.createdAt} formatString="d MMM yyyy, HH:mm" />
-                                </TableCell>
-                                <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="sm">Détails</Button>
-                                </TableCell>
-                            </TableRow>
+                           <React.Fragment key={ticket.id}>
+                                <TableRow className="cursor-pointer" onClick={() => toggleDetails(ticket.id)}>
+                                    <TableCell>
+                                        <ChevronDown className={cn("h-4 w-4 transition-transform", openDetails[ticket.id] && 'rotate-180')}/>
+                                    </TableCell>
+                                    <TableCell className="font-mono">{ticket.ticketNumber}</TableCell>
+                                    <TableCell>{ticket.customerName}</TableCell>
+                                    <TableCell>{ticket.equipmentBrand} {ticket.equipmentModel}</TableCell>
+                                    <TableCell>
+                                        <ClientFormattedDate date={ticket.createdAt} formatString="d MMM yyyy, HH:mm" />
+                                    </TableCell>
+                                    <TableCell>{getStatusBadge(ticket.status)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem disabled>Modifier</DropdownMenuItem>
+                                                <DropdownMenuItem disabled>Supprimer</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                                {openDetails[ticket.id] && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="p-0">
+                                            <div className="bg-muted/50 p-6 space-y-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                    <div className="space-y-2">
+                                                        <h4 className="font-semibold text-sm">Panne & Devis</h4>
+                                                        <p className="text-sm text-muted-foreground">{ticket.issueDescription}</p>
+                                                        {ticket.amount && <p className="font-bold text-lg">{ticket.amount.toFixed(2)}€</p>}
+                                                    </div>
+                                                     <div className="space-y-2">
+                                                        <h4 className="font-semibold text-sm">Observations client</h4>
+                                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.clientNotes || 'Aucune.'}</p>
+                                                    </div>
+                                                     <div className="space-y-2">
+                                                        <h4 className="font-semibold text-sm">Observations sur le matériel</h4>
+                                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.equipmentNotes || 'Aucune.'}</p>
+                                                    </div>
+                                                     <div className="space-y-2">
+                                                        <h4 className="font-semibold text-sm">Notes internes</h4>
+                                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{ticket.notes || 'Aucune.'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                           </React.Fragment>
                         ))
                     )}
                 </TableBody>
