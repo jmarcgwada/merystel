@@ -341,5 +341,7 @@ export interface SupportTicket {
   issueDescription: string;
   notes?: string;
   status: 'Ouvert' | 'En cours' | 'En attente de pièces' | 'Terminé' | 'Facturé' | 'Annulé';
+  amount?: number;
+  saleId?: string;
   updatedAt?: Date | Timestamp;
 }

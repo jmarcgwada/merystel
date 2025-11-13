@@ -320,7 +320,9 @@
         "equipmentModel": { "type": "string" },
         "issueDescription": { "type": "string" },
         "notes": { "type": "string" },
-        "status": { "type": "string", "enum": ["Ouvert", "En cours", "En attente de pièces", "Terminé", "Facturé", "Annulé"] }
+        "status": { "type": "string", "enum": ["Ouvert", "En cours", "En attente de pièces", "Terminé", "Facturé", "Annulé"] },
+        "amount": { "type": "number", "description": "The amount to be invoiced for the service." },
+        "saleId": { "type": "string", "description": "ID of the generated invoice." }
       },
       "required": ["id", "ticketNumber", "createdAt", "customerId", "equipmentType", "issueDescription", "status"]
     }

@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
 import type { Customer } from '@/lib/types';
-import { ArrowLeft, Save, User } from 'lucide-react';
+import { ArrowLeft, Save, User, Euro } from 'lucide-react';
 import Link from 'next/link';
 
 const formSchema = z.object({
@@ -25,6 +25,7 @@ const formSchema = z.object({
   equipmentModel: z.string().min(1, { message: 'Le modèle est requis.' }),
   issueDescription: z.string().min(10, { message: 'Veuillez décrire la panne (min. 10 caractères).' }),
   notes: z.string().optional(),
+  amount: z.coerce.number().min(0, { message: 'Le montant doit être positif.' }).optional(),
 });
 
 type SupportTicketFormValues = z.infer<typeof formSchema>;
@@ -46,6 +47,7 @@ function NewSupportTicketPageContent() {
       equipmentModel: '',
       issueDescription: '',
       notes: '',
+      amount: 0,
     },
   });
 
@@ -128,7 +130,22 @@ function NewSupportTicketPageContent() {
 
               <FormField control={form.control} name="issueDescription" render={({ field }) => (<FormItem><FormLabel>Description de la panne / Demande *</FormLabel><FormControl><Textarea placeholder="L'écran ne s'allume plus après une mise à jour..." {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Observations (interne)</FormLabel><FormControl><Textarea placeholder="Le client semble pressé. A noter, une rayure sur le capot." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-
+               <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Montant de la prestation (€)</FormLabel>
+                       <div className="relative">
+                           <Euro className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                           <FormControl>
+                            <Input type="number" placeholder="0.00" {...field} className="pl-8"/>
+                           </FormControl>
+                       </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
             </CardContent>
           </Card>
           <div className="flex justify-end">
