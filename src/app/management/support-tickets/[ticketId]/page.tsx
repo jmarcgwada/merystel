@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 
 const repairActionSchema = z.object({
     id: z.string(),
-    date: z.date(),
+    date: z.union([z.date(), z.string()]), // Allow both Date objects and strings
     title: z.string().min(1, "Le titre de l'action est requis."),
     details: z.string().min(1, "Les détails sont requis."),
     userId: z.string(),
@@ -257,7 +257,8 @@ function EditSupportTicketPageContent() {
     await updateSupportTicket({
         ...ticketToEdit,
         ...data,
-        status: data.status as SupportTicket['status']
+        status: data.status as SupportTicket['status'],
+        repairActions: (data.repairActions || []).map(a => ({...a, date: a.date instanceof Date ? a.date.toISOString() as any : a.date })),
     });
     
     router.push('/management/support-tickets');
@@ -348,7 +349,7 @@ function EditSupportTicketPageContent() {
       <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
       <ItemSelectionDialog isOpen={isItemSearchOpen} onClose={() => setItemSearchOpen(false)} onItemSelected={onItemSelect} />
       {selectedCustomer && (<EditCustomerDialog isOpen={isEditCustomerOpen} onClose={() => setEditCustomerOpen(false)} customer={selectedCustomer} />)}
-      {selectedItem && (<EditItemDialog isOpen={isEditItemOpen} onClose={() => setEditItemOpen(false)} item={selectedItem} onItemSaved={() => {}}/>)}
+      {selectedItem && (<EditItemDialog isOpen={isEditItemOpen} onClose={() => setEditItemOpen(false)} item={selectedItem} onItemUpdated={() => {}}/>)}
     </>
   );
 }
