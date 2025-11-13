@@ -329,6 +329,15 @@ export interface MappingTemplate {
   fixedValues: Record<string, string>;
 }
 
+export interface RepairAction {
+  id: string;
+  date: Date | Timestamp;
+  title: string;
+  details: string;
+  userId: string;
+  userName: string;
+}
+
 export interface SupportTicket {
   id: string;
   ticketNumber: string;
@@ -343,6 +352,7 @@ export interface SupportTicket {
   notes?: string; // Internal/technician notes
   clientNotes?: string; // Observations about client/request
   equipmentNotes?: string; // Observations about equipment state
+  repairActions?: RepairAction[];
   status: 'Ouvert' | 'En cours' | 'En attente de pièces' | 'Terminé' | 'Facturé' | 'Annulé';
   amount?: number;
   saleId?: string;

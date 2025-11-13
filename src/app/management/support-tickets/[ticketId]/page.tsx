@@ -1,21 +1,22 @@
 
+
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
-import type { Customer, Item, SupportTicket } from '@/lib/types';
-import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil } from 'lucide-react';
+import type { Customer, Item, SupportTicket, RepairAction } from '@/lib/types';
+import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil, Plus, Trash2, History } from 'lucide-react';
 import Link from 'next/link';
 import { ItemSelectionDialog } from '../new/components/item-selection-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +25,16 @@ import { EditCustomerDialog } from '@/app/management/customers/components/edit-c
 import { EditItemDialog } from '@/app/management/items/components/edit-item-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
+import { Separator } from '@/components/ui/separator';
 
+const repairActionSchema = z.object({
+    id: z.string(),
+    date: z.date(),
+    title: z.string().min(1, "Le titre de l'action est requis."),
+    details: z.string().min(1, "Les détails sont requis."),
+    userId: z.string(),
+    userName: z.string(),
+})
 
 const formSchema = z.object({
   customerId: z.string().min(1, 'Un client est requis.'),
@@ -39,9 +49,89 @@ const formSchema = z.object({
   clientNotes: z.string().optional(),
   equipmentNotes: z.string().optional(),
   status: z.string().min(1, 'Le statut est requis.'),
+  repairActions: z.array(repairActionSchema).optional(),
 });
 
 type SupportTicketFormValues = z.infer<typeof formSchema>;
+
+function RepairActionsForm({ control }: { control: any }) {
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: "repairActions"
+    });
+    const { user } = usePos();
+    const [newActionTitle, setNewActionTitle] = useState('');
+    const [newActionDetails, setNewActionDetails] = useState('');
+
+    const handleAddAction = () => {
+        if (!newActionTitle || !newActionDetails) return;
+        append({
+            id: uuidv4(),
+            date: new Date(),
+            title: newActionTitle,
+            details: newActionDetails,
+            userId: user?.id || 'system',
+            userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+        });
+        setNewActionTitle('');
+        setNewActionDetails('');
+    };
+
+    const sortedFields = useMemo(() => {
+        return [...fields].sort((a, b) => new Date((b as any).date).getTime() - new Date((a as any).date).getTime());
+    }, [fields]);
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader><CardTitle>Nouvelle Action</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="new-action-title">Titre de l'action</Label>
+                        <Input id="new-action-title" value={newActionTitle} onChange={e => setNewActionTitle(e.target.value)} placeholder="Ex: Diagnostic initial, Remplacement pièce..."/>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="new-action-details">Détails de l'intervention</Label>
+                        <Textarea id="new-action-details" value={newActionDetails} onChange={e => setNewActionDetails(e.target.value)} placeholder="Décrivez l'opération effectuée..."/>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button type="button" onClick={handleAddAction} disabled={!newActionTitle || !newActionDetails}>
+                        <Plus className="mr-2 h-4 w-4" /> Ajouter au journal
+                    </Button>
+                </CardFooter>
+            </Card>
+
+            <Separator />
+
+            <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2"><History/> Historique des réparations</h3>
+                 {sortedFields.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucune action enregistrée.</p>
+                ) : (
+                    <div className="space-y-4">
+                        {sortedFields.map((field, index) => (
+                            <Card key={field.id} className="relative">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-base">{(field as any).title}</CardTitle>
+                                    <CardDescription>
+                                        <ClientFormattedDate date={(field as any).date} formatString="d MMMM yyyy, HH:mm" /> par {(field as any).userName}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm whitespace-pre-wrap">{(field as any).details}</p>
+                                </CardContent>
+                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-8 w-8" onClick={() => remove(index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function EditSupportTicketPageContent() {
   const router = useRouter();
@@ -63,7 +153,7 @@ function EditSupportTicketPageContent() {
 
   const form = useForm<SupportTicketFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { status: 'Ouvert' },
+    defaultValues: { status: 'Ouvert', repairActions: [] },
   });
 
   useEffect(() => {
@@ -81,6 +171,7 @@ function EditSupportTicketPageContent() {
             clientNotes: ticketToEdit.clientNotes,
             equipmentNotes: ticketToEdit.equipmentNotes,
             status: ticketToEdit.status,
+            repairActions: (ticketToEdit.repairActions || []).map(a => ({...a, date: new Date(a.date as any)})),
         });
 
         const customer = customers.find(c => c.id === ticketToEdit.customerId);
@@ -157,10 +248,11 @@ function EditSupportTicketPageContent() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex flex-col flex-1 h-full">
            <Tabs defaultValue="customer" className="w-full max-w-4xl mx-auto flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="customer">Client</TabsTrigger>
               <TabsTrigger value="equipment">Matériel</TabsTrigger>
               <TabsTrigger value="issue">Panne & Devis</TabsTrigger>
+              <TabsTrigger value="tracking">Suivi Réparation</TabsTrigger>
             </TabsList>
             <div className="mt-4 flex-1">
                 <TabsContent value="customer">
@@ -196,6 +288,9 @@ function EditSupportTicketPageContent() {
                        <FormField control={form.control} name="amount" render={({ field }) => (<FormItem><FormLabel>Montant de la prestation (€)</FormLabel><div className="relative"><Euro className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><FormControl><Input type="number" placeholder="0.00" {...field} className="pl-8"/></FormControl></div><FormMessage /></FormItem>)} />
                     </CardContent>
                   </Card>
+                </TabsContent>
+                <TabsContent value="tracking">
+                    <RepairActionsForm control={form.control} />
                 </TabsContent>
             </div>
           </Tabs>
