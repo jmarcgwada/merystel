@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -97,10 +96,10 @@ export default function ManagementLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-full">
+      <div className="flex h-screen overflow-hidden">
         <Sidebar>
-          <SidebarContent className="p-2">
-            <SidebarMenu>
+          <SidebarContent className="p-2 flex-1 flex flex-col">
+            <SidebarMenu className="flex-1">
               {mainNavLinks.map(renderLink)}
               <Separator className="my-2" />
                <SidebarGroup>
@@ -146,8 +145,10 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {children}
+        <main className="flex-1 flex flex-col overflow-y-auto">
+          <div className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>
