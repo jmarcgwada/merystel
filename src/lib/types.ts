@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -81,7 +82,6 @@ export interface OrderItem {
   description?: string;
   description2?: string;
   barcode: string;
-  formSubmissionId?: string;
 }
 
 export interface Table {
@@ -335,6 +335,7 @@ export interface SupportTicket {
   createdAt: Date | Timestamp;
   customerId: string;
   customerName: string;
+  itemId?: string; // <-- New field
   equipmentType: string;
   equipmentBrand: string;
   equipmentModel: string;

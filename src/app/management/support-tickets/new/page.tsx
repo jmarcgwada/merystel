@@ -13,13 +13,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
-import type { Customer } from '@/lib/types';
-import { ArrowLeft, Save, User, Euro } from 'lucide-react';
+import type { Customer, Item } from '@/lib/types';
+import { ArrowLeft, Save, User, Euro, PackageSearch } from 'lucide-react';
 import Link from 'next/link';
+import { ItemSelectionDialog } from './components/item-selection-dialog';
+
 
 const formSchema = z.object({
   customerId: z.string().min(1, 'Un client est requis.'),
   customerName: z.string(),
+  itemId: z.string().optional(),
   equipmentType: z.string().min(2, { message: 'Le type est requis.' }),
   equipmentBrand: z.string().min(1, { message: 'La marque est requise.' }),
   equipmentModel: z.string().min(1, { message: 'Le modèle est requis.' }),
@@ -35,6 +38,7 @@ function NewSupportTicketPageContent() {
   const searchParams = useSearchParams();
   const { customers, addSupportTicket } = usePos();
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [isItemSearchOpen, setItemSearchOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const form = useForm<SupportTicketFormValues>({
@@ -42,6 +46,7 @@ function NewSupportTicketPageContent() {
     defaultValues: {
       customerId: '',
       customerName: '',
+      itemId: '',
       equipmentType: '',
       equipmentBrand: '',
       equipmentModel: '',
@@ -68,6 +73,16 @@ function NewSupportTicketPageContent() {
     form.setValue('customerId', customer.id);
     form.setValue('customerName', customer.name);
     setCustomerSearchOpen(false);
+  };
+  
+  const onItemSelect = (item: Item) => {
+    form.setValue('itemId', item.id);
+    form.setValue('equipmentType', item.name);
+    // You can decide how to map brand/model if that data exists on your item
+    // For now, we clear them or you can parse from name
+    form.setValue('equipmentBrand', '');
+    form.setValue('equipmentModel', '');
+    setItemSearchOpen(false);
   };
 
   const onSubmit = async (data: SupportTicketFormValues) => {
@@ -127,6 +142,12 @@ function NewSupportTicketPageContent() {
                 <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
+              <div className="flex justify-end">
+                <Button type="button" variant="secondary" onClick={() => setItemSearchOpen(true)}>
+                    <PackageSearch className="mr-2 h-4 w-4" />
+                    Rechercher un article existant
+                </Button>
+              </div>
 
               <FormField control={form.control} name="issueDescription" render={({ field }) => (<FormItem><FormLabel>Description de la panne / Demande *</FormLabel><FormControl><Textarea placeholder="L'écran ne s'allume plus après une mise à jour..." {...field} rows={4} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Observations (interne)</FormLabel><FormControl><Textarea placeholder="Le client semble pressé. A noter, une rayure sur le capot." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
@@ -160,6 +181,11 @@ function NewSupportTicketPageContent() {
         isOpen={isCustomerSearchOpen}
         onClose={() => setCustomerSearchOpen(false)}
         onCustomerSelected={onCustomerSelected}
+      />
+      <ItemSelectionDialog 
+        isOpen={isItemSearchOpen}
+        onClose={() => setItemSearchOpen(false)}
+        onItemSelected={onItemSelect}
       />
     </>
   );

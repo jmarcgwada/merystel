@@ -315,6 +315,7 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "customerId": { "type": "string" },
         "customerName": { "type": "string" },
+        "itemId": { "type": "string" },
         "equipmentType": { "type": "string" },
         "equipmentBrand": { "type": "string" },
         "equipmentModel": { "type": "string" },
