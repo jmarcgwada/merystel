@@ -747,7 +747,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
-    if (hasData && items.find(i => i.id === 'NOTE_ITEM')) {
+    const noteItemExists = items.some(i => i.id === 'NOTE_ITEM');
+
+    if (hasData && noteItemExists) {
         return;
     }
 
@@ -787,12 +789,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
       isFavorite: false,
       createdAt: new Date(),
     };
-    setItems(prev => {
-        if (!prev.find(i => i.id === noteItemId)) {
-            return [...prev, noteItem];
-        }
-        return prev;
-    });
+    
+    if (!noteItemExists) {
+      setItems(prev => [...prev, noteItem]);
+    }
 
     toast({ title: 'Données initialisées', description: 'TVA, méthodes de paiement et actions de réparation par défaut créées.' });
   }, [categories.length, vatRates.length, items, setVatRates, setPaymentMethods, setRepairActionPresets, setItems, toast]);
@@ -931,9 +931,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
           importDemoCustomers();
           importDemoSuppliers();
           localStorage.setItem('data.seeded', 'true');
+        } else {
+          // This ensures the note item is always present even in existing installations
+          const noteItemExists = items.some(i => i.id === 'NOTE_ITEM');
+          if(!noteItemExists) {
+            const noteItem: Item = {
+              id: 'NOTE_ITEM', name: 'Ligne de note', price: 0,
+              vatId: vatRates.find(v => v.rate === 0)?.id || 'vat_0',
+              barcode: 'NOTE', isDisabled: false, isFavorite: false, createdAt: new Date()
+            };
+            setItems(prev => [...prev, noteItem]);
+          }
         }
     }
-  }, [isHydrated, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers]);
+  }, [isHydrated, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, items, setItems, vatRates]);
 
 
   useEffect(() => {
@@ -965,10 +976,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
         vatRates,
         companyInfo,
         users,
-        mappingTemplates
+        mappingTemplates,
+        repairActionPresets
     };
     return JSON.stringify(config, null, 2);
-  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, mappingTemplates]);
+  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, mappingTemplates, repairActionPresets]);
 
   const importConfiguration = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -985,13 +997,14 @@ export function PosProvider({ children }: { children: ReactNode }) {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
             if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
+            if (config.repairActionPresets) setRepairActionPresets(config.repairActionPresets);
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, setRepairActionPresets, toast]);
   
     const exportFullData = useCallback(() => {
     const allData = {
@@ -1196,7 +1209,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, pathname]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -2084,7 +2097,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
         });
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
-
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
