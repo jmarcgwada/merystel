@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -133,7 +134,7 @@ export const CommercialOrderForm = forwardRef<
   { submit: (notes?: string) => void },
   CommercialOrderFormProps
 >(({ order, setOrder, addToOrder, updateQuantity, removeFromOrder, updateItemNote, updateItemPrice, showAcompte = false, onTotalsChange, updateItemQuantityInOrder, documentType }, ref) => {
-  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl, updateOrderItemField, recentlyAddedItemId } = usePos();
+  const { items: allItems, customers, isLoading, vatRates, descriptionDisplay, recordSale, currentSaleContext, setCurrentSaleContext, showNavConfirm, recordCommercialDocument, currentSaleId, applyDiscount, lastReportsUrl, updateOrderItemField, recentlyAddedItemId, setRecentlyAddedItemId } = usePos();
   const { toast } = useToast();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
@@ -155,17 +156,18 @@ export const CommercialOrderForm = forwardRef<
   const [priceDisplayType, setPriceDisplayType] = useState<'ht' | 'ttc'>('ttc');
   const [isCatalogOpen, setCatalogOpen] = useState(false);
   const previousTotals = useRef<{ subtotal: number, tax: number, total: number } | null>(null);
-  const lineNameInputRef = useRef<HTMLInputElement>(null);
+  const lineNameInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (recentlyAddedItemId && order.find(item => item.id === recentlyAddedItemId)?.itemId === 'NOTE_ITEM') {
         setTimeout(() => {
-            const input = document.getElementById(`name-${recentlyAddedItemId}`);
-            input?.focus();
-            (input as HTMLInputElement)?.select();
+            const textarea = document.getElementById(`name-${recentlyAddedItemId}`) as HTMLTextAreaElement;
+            textarea?.focus();
+            textarea?.select();
+            setRecentlyAddedItemId(null);
         }, 100);
     }
-  }, [recentlyAddedItemId, order]);
+  }, [recentlyAddedItemId, order, setRecentlyAddedItemId]);
 
   
     useEffect(() => {
@@ -704,12 +706,14 @@ export const CommercialOrderForm = forwardRef<
                                   {visibleColumns.designation && (
                                     <div className="flex flex-col">
                                       {field.itemId === 'NOTE_ITEM' ? (
-                                        <Input
+                                        <Textarea
                                           id={`name-${field.id}`}
+                                          ref={lineNameInputRef}
                                           value={field.name}
                                           onChange={(e) => updateOrderItemField(field.id, 'name', e.target.value)}
                                           className="font-medium bg-transparent border-none ring-0 focus-visible:ring-1 focus-visible:ring-ring p-0 h-auto"
                                           placeholder="Saisissez votre note ici..."
+                                          rows={1}
                                         />
                                       ) : (
                                         <div className="flex items-center gap-1">
