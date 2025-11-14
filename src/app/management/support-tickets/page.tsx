@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket, allSales } = usePos();
+  const { allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -145,11 +145,14 @@ export default function SupportTicketsPage() {
     const amountHT = amountTTC / (1 + vatInfo.rate / 100);
     const taxAmount = amountTTC - amountHT;
     
-     const notes = [
-      `Concerne la prise en charge #${ticket.ticketNumber}`,
-      ticket.clientNotes,
-      ticket.equipmentNotes
-    ].filter(Boolean).join('\n');
+    const notes = `Acompte concernant la prise en charge #${ticket.ticketNumber}`;
+
+     const itemDescription = [
+        `Type: ${ticket.equipmentType}`,
+        `Marque: ${ticket.equipmentBrand}`,
+        `Modèle: ${ticket.equipmentModel}`,
+        `Panne: ${ticket.issueDescription}`
+    ].join('\n');
 
     const saleItem = {
       id: uuidv4(),
@@ -161,7 +164,7 @@ export default function SupportTicketsPage() {
       vatId: article.vatId,
       discount: 0,
       barcode: article.barcode!,
-      description: `${ticket.equipmentType}\n${ticket.equipmentBrand}\n${ticket.equipmentModel}\n\nPanne: ${ticket.issueDescription}`
+      description: itemDescription,
     };
 
     const newSale = await recordCommercialDocument({
@@ -176,7 +179,7 @@ export default function SupportTicketsPage() {
     }, 'invoice');
     
     if (newSale) {
-        await updateSupportTicket({ ...ticket, saleId: newSale.id, status: 'Facturé' });
+        await updateSupportTicket({ ...ticket, saleId: newSale.id });
     }
   };
 
