@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
@@ -35,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { sales: allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
+  const { allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -144,7 +145,7 @@ export default function SupportTicketsPage() {
     const amountHT = amountTTC / (1 + vatInfo.rate / 100);
     const taxAmount = amountTTC - amountHT;
     
-    const notes = `Concerne la prise en charge #${ticket.ticketNumber}\n${ticket.clientNotes || ''}\n${ticket.equipmentNotes || ''}`.trim();
+    const notes = `Acompte concernant la prise en charge #${ticket.ticketNumber}\n${ticket.clientNotes || ''}\n${ticket.equipmentNotes || ''}`.trim();
 
     const itemDescription = [
         `Type: ${ticket.equipmentType}`,
@@ -178,7 +179,7 @@ export default function SupportTicketsPage() {
     }, 'invoice');
     
     if (newSale) {
-        await updateSupportTicket({ ...ticket, saleId: newSale.id });
+        await updateSupportTicket({ ...ticket, saleId: newSale.id, status: 'Facturé' });
         toast({ title: 'Facture générée', description: 'Une nouvelle facture a été créée pour cette prise en charge.' });
     }
   };
