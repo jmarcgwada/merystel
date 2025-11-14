@@ -109,6 +109,7 @@ export interface PosContextType {
   updateItemNote: (itemId: OrderItem['id'], note: string) => void;
   updateItemPrice: (itemId: string, newPriceTTC: number) => void;
   updateOrderItem: (item: Item) => void;
+  updateOrderItemField: <K extends keyof OrderItem>(orderItemId: string, field: K, value: OrderItem[K]) => void,
   applyDiscount: (
     itemId: OrderItem['id'],
     value: number,
@@ -775,8 +776,26 @@ export function PosProvider({ children }: { children: ReactNode }) {
     ];
     setRepairActionPresets(defaultRepairActions);
 
+    const noteItemId = 'NOTE_ITEM';
+    const noteItem: Item = {
+      id: noteItemId,
+      name: 'Ligne de note',
+      price: 0,
+      vatId: 'vat_0',
+      barcode: 'NOTE',
+      isDisabled: false,
+      isFavorite: false,
+      createdAt: new Date(),
+    };
+    setItems(prev => {
+        if (!prev.find(i => i.id === noteItemId)) {
+            return [...prev, noteItem];
+        }
+        return prev;
+    });
+
     toast({ title: 'Données initialisées', description: 'TVA, méthodes de paiement et actions de réparation par défaut créées.' });
-  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, setRepairActionPresets, toast]);
+  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, setRepairActionPresets, setItems, toast]);
     
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
@@ -1100,6 +1119,24 @@ export function PosProvider({ children }: { children: ReactNode }) {
         toast({ variant: 'destructive', title: "Prix d'achat manquant ou nul", description: "L'article \"" + itemToAdd.name + "\" n'a pas de prix d'achat valide." });
         return;
     }
+      
+      if (itemToAdd.id === 'NOTE_ITEM') {
+        const uniqueId = uuidv4();
+        const newItem: OrderItem = {
+            itemId: itemToAdd.id,
+            id: uniqueId,
+            name: '',
+            price: 0,
+            vatId: itemToAdd.vatId,
+            quantity: 1,
+            total: 0,
+            discount: 0,
+            barcode: itemToAdd.barcode || '',
+        };
+        setOrder(prev => [newItem, ...prev]);
+        setRecentlyAddedItemId(newItem.id);
+        return;
+      }
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
@@ -1235,6 +1272,16 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     : item
             )
         );
+    }, []);
+
+    const updateOrderItemField = useCallback(<K extends keyof OrderItem>(orderItemId: string, field: K, value: OrderItem[K]) => {
+      setOrder(currentOrder =>
+        currentOrder.map(item =>
+          item.id === orderItemId
+            ? { ...item, [field]: value }
+            : item
+        )
+      );
     }, []);
 
   const updateOrderItem = useCallback((updatedItem: Item) => {
@@ -2040,7 +2087,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, applyDiscount,
+      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
       variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest,
       lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
