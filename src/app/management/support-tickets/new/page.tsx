@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { ItemSelectionDialog } from './components/item-selection-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
-import { EditCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
+import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 import { EditItemDialog } from '@/app/management/items/components/edit-item-dialog';
 
 const formSchema = z.object({
