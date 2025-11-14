@@ -747,7 +747,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const seedInitialData = useCallback(() => {
     const hasData = categories.length > 0 || vatRates.length > 0;
-    if (hasData) {
+    if (hasData && items.find(i => i.id === 'NOTE_ITEM')) {
         return;
     }
 
@@ -795,7 +795,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     });
 
     toast({ title: 'Données initialisées', description: 'TVA, méthodes de paiement et actions de réparation par défaut créées.' });
-  }, [categories.length, vatRates.length, setVatRates, setPaymentMethods, setRepairActionPresets, setItems, toast]);
+  }, [categories.length, vatRates.length, items, setVatRates, setPaymentMethods, setRepairActionPresets, setItems, toast]);
     
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
