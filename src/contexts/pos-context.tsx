@@ -923,25 +923,30 @@ export function PosProvider({ children }: { children: ReactNode }) {
   ]);
   
   useEffect(() => {
-    if(isHydrated) {
+    if (isHydrated) {
         const isSeeded = localStorage.getItem('data.seeded');
         if (!isSeeded) {
-          seedInitialData();
-          importDemoData();
-          importDemoCustomers();
-          importDemoSuppliers();
-          localStorage.setItem('data.seeded', 'true');
+            seedInitialData();
+            importDemoData();
+            importDemoCustomers();
+            importDemoSuppliers();
+            localStorage.setItem('data.seeded', 'true');
         } else {
-          // This ensures the note item is always present even in existing installations
-          const noteItemExists = items.some(i => i.id === 'NOTE_ITEM');
-          if(!noteItemExists) {
-            const noteItem: Item = {
-              id: 'NOTE_ITEM', name: 'Ligne de note', price: 0,
-              vatId: vatRates.find(v => v.rate === 0)?.id || 'vat_0',
-              barcode: 'NOTE', isDisabled: false, isFavorite: false, createdAt: new Date()
-            };
-            setItems(prev => [...prev, noteItem]);
-          }
+            // This ensures the note item is always present even in existing installations
+            const noteItemExists = items.some(i => i.id === 'NOTE_ITEM');
+            if (!noteItemExists) {
+                const noteItem: Item = {
+                    id: 'NOTE_ITEM',
+                    name: 'Ligne de note',
+                    price: 0,
+                    vatId: vatRates.find(v => v.rate === 0)?.id || 'vat_0',
+                    barcode: 'NOTE',
+                    isDisabled: false,
+                    isFavorite: false,
+                    createdAt: new Date()
+                };
+                setItems(prev => [...prev, noteItem]);
+            }
         }
     }
   }, [isHydrated, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, items, setItems, vatRates]);
@@ -2097,6 +2102,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         });
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
+
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
