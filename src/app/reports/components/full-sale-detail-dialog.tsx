@@ -297,12 +297,6 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                 )}
               </span>
             </DialogDescription>
-             <div className="pt-2 text-sm text-muted-foreground">
-                <div className="flex flex-wrap gap-x-6 gap-y-1">
-                    {sellerName && (<div><span className="font-semibold">Vendeur:</span> {sellerName}</div>)}
-                    {customer && (<div><span className="font-semibold">Client:</span> {customer.name}</div>)}
-                </div>
-            </div>
           </DialogHeader>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-y-auto pr-4">
             <div className="lg:col-span-2 space-y-8">
@@ -310,26 +304,23 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                 <CardHeader><CardTitle>Articles</CardTitle></CardHeader>
                 <CardContent>
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[64px]">Image</TableHead>
-                        <TableHead>Article</TableHead>
-                        <TableHead className="text-center">Qté</TableHead>
-                        <TableHead className="text-right">P.U. (TTC)</TableHead>
-                        <TableHead className="text-right">Remise</TableHead>
-                        <TableHead className="text-right">Total (TTC)</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                    <TableHeader><TableRow>
+                      <TableHead className="w-[64px]">Image</TableHead>
+                      <TableHead>Article</TableHead>
+                      <TableHead className="text-center">Qté</TableHead>
+                      <TableHead className="text-right">P.U. (TTC)</TableHead>
+                      <TableHead className="text-right">Remise</TableHead>
+                      <TableHead className="text-right">Total (TTC)</TableHead>
+                    </TableRow></TableHeader>
                     <TableBody>
                       {sale.items.map(item => {
                         const fullItem = getItemInfo(item);
                         return (
                             <TableRow key={item.id}>
-                                <TableCell>
-                                    <Image src={fullItem.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" />
-                                </TableCell>
+                                <TableCell><Image src={fullItem.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" /></TableCell>
                                 <TableCell className="font-medium">
                                     <div>{item.name}</div>
+                                    <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{item.description}</p>
                                     {item.note && <div className="text-xs text-amber-600 mt-1 flex items-start gap-1.5"><Pencil className="h-3 w-3 mt-0.5 shrink-0"/><span>{item.note}</span></div>}
                                 </TableCell>
                                 <TableCell className="text-center">{item.quantity}</TableCell>
@@ -346,19 +337,19 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
             </div>
             
             <div className="lg:col-span-1 space-y-8">
-              <Card>
-                <CardHeader><CardTitle>Résumé</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span>{subtotal.toFixed(2)}€</span></div>
-                  <div className="flex justify-between text-muted-foreground"><span>Total TVA</span><span>{tax.toFixed(2)}€</span></div>
-                  <Separator />
-                  <div className="flex justify-between font-bold text-lg"><span>Total (TTC)</span><span>{sale.total.toFixed(2)}€</span></div>
-                  {balanceDue > 0.01 && <div className="flex justify-between font-bold text-lg text-destructive pt-2 border-t border-destructive/20"><span>Solde Dû</span><span>{balanceDue.toFixed(2)}€</span></div>}
-                </CardContent>
-                <CardFooter className="flex flex-col items-start gap-4">
-                    <PaymentsList payments={sale.payments || []} title="Paiements" saleId={sale.id} />
-                </CardFooter>
-              </Card>
+                <Card>
+                  <CardHeader><CardTitle>Résumé</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span>{subtotal.toFixed(2)}€</span></div>
+                    <div className="flex justify-between text-muted-foreground"><span>Total TVA</span><span>{tax.toFixed(2)}€</span></div>
+                    <Separator />
+                    <div className="flex justify-between font-bold text-lg"><span>Total (TTC)</span><span>{sale.total.toFixed(2)}€</span></div>
+                    {balanceDue > 0.01 && <div className="flex justify-between font-bold text-lg text-destructive pt-2 border-t border-destructive/20"><span>Solde Dû</span><span>{balanceDue.toFixed(2)}€</span></div>}
+                  </CardContent>
+                  <CardFooter className="flex flex-col items-start gap-4">
+                     <PaymentsList payments={sale.payments || []} title="Paiements" saleId={sale.id} />
+                  </CardFooter>
+                </Card>
             </div>
           </div>
           <DialogFooter>

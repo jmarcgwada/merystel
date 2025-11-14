@@ -510,7 +510,7 @@ function SaleDetailContent() {
                             </TableCell>
                             <TableCell className="font-medium">
                                 <div>{item.name}</div>
-                                <div className="text-xs text-muted-foreground whitespace-pre-wrap">{item.description}</div>
+                                {item.description && <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{item.description}</p>}
                                 {item.selectedVariants && item.selectedVariants.length > 0 && (
                                     <div className="text-xs text-muted-foreground mt-1 capitalize">
                                         {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}

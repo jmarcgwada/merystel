@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
+  const { sales: allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -145,7 +145,7 @@ export default function SupportTicketsPage() {
     const amountHT = amountTTC / (1 + vatInfo.rate / 100);
     const taxAmount = amountTTC - amountHT;
     
-    const notes = `Acompte concernant la prise en charge #${ticket.ticketNumber}\n${ticket.clientNotes || ''}\n${ticket.equipmentNotes || ''}`.trim();
+    const notes = `Acompte concernant la prise en charge #${ticket.ticketNumber}`;
 
     const itemDescription = [
         `Type: ${ticket.equipmentType}`,
