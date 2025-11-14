@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
@@ -155,7 +154,7 @@ export default function SupportTicketsPage() {
       vatId: article.vatId,
       discount: 0,
       barcode: article.barcode,
-      note: `${ticket.equipmentType} ${ticket.equipmentBrand} ${ticket.equipmentModel}\nPanne: ${ticket.issueDescription}`
+      note: `Acompte concernant la prise en charge #${ticket.ticketNumber}`
     };
 
     const newSale = await recordCommercialDocument({
@@ -166,10 +165,12 @@ export default function SupportTicketsPage() {
         total: amountTTC,
         status: 'pending',
         payments: [],
+        notes: `Acompte pour la prise en charge #${ticket.ticketNumber}`
     }, 'invoice');
     
     if (newSale) {
-        await updateSupportTicket({ ...ticket, saleId: newSale.id, status: 'Facturé' });
+        // Only update the saleId, not the status
+        await updateSupportTicket({ ...ticket, saleId: newSale.id, notes: `${ticket.notes || ''}\nFacture d'acompte créée : ${newSale.ticketNumber}`.trim() });
     }
   };
 
@@ -287,7 +288,7 @@ export default function SupportTicketsPage() {
                                                   <DropdownMenuItem asChild>
                                                     <Link href={`/reports/${ticket.saleId}`}>
                                                         <Eye className="mr-2 h-4 w-4" />
-                                                        Voir la facture
+                                                        <span className="flex-1">Facture: {allSales.find(s=>s.id===ticket.saleId)?.ticketNumber}</span>
                                                     </Link>
                                                   </DropdownMenuItem>
                                                 ) : (
@@ -336,7 +337,7 @@ export default function SupportTicketsPage() {
                                                                 {ticket.repairActions.sort((a, b) => new Date(b.date as any).getTime() - new Date(a.date as any).getTime()).map((action) => (
                                                                     <div key={action.id} className="text-sm p-2 rounded-md bg-background/50">
                                                                         <p className="font-semibold">{action.title}</p>
-                                                                        <p className="text-xs text-muted-foreground"><ClientFormattedDate date={action.date} formatString="d MMM, HH:mm" /> par {action.userName}</p>
+                                                                        <p className="text-xs text-muted-foreground"><ClientFormattedDate date={action.date} formatString="d MMM yy, HH:mm" /> par {action.userName}</p>
                                                                         <p className="mt-1 whitespace-pre-wrap">{action.details}</p>
                                                                     </div>
                                                                 ))}

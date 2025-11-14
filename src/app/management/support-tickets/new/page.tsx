@@ -91,9 +91,9 @@ function NewSupportTicketPageContent() {
     setSelectedItem(item);
     form.setValue('itemId', item.id);
     form.setValue('equipmentType', item.name);
-    // You might want to pre-fill brand/model if they exist on the Item type
     form.setValue('equipmentBrand', '');
     form.setValue('equipmentModel', '');
+    form.setValue('amount', item.price); // Pre-fill amount with item price
     setItemSearchOpen(false);
   };
 

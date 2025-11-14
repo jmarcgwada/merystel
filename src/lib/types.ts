@@ -58,6 +58,8 @@ export interface Item {
   lowStockThreshold?: number;
   hasVariants?: boolean;
   variantOptions?: VariantOption[];
+  hasForm?: boolean;
+  formDefinition?: any; // Simple JSON form definition
   isDisabled?: boolean;
   createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
@@ -82,6 +84,7 @@ export interface OrderItem {
   description?: string;
   description2?: string;
   barcode: string;
+  formSubmissionId?: string;
 }
 
 export interface Table {
@@ -364,4 +367,11 @@ export interface RepairActionPreset {
   name: string;
   createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
+}
+
+export interface FormSubmission {
+  id: string;
+  orderItemId: string;
+  formData: Record<string, any>;
+  createdAt: Date | Timestamp;
 }
