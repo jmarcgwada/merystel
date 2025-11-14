@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { ItemSelectionDialog } from './components/item-selection-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
-import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
+import { EditCustomerDialog } from '@/app/management/customers/components/add-customer-dialog';
 import { EditItemDialog } from '@/app/management/items/components/edit-item-dialog';
 
 const formSchema = z.object({
@@ -78,7 +78,14 @@ function NewSupportTicketPageContent() {
         form.setValue('customerName', customer.name);
       }
     }
-  }, [searchParams, customers, form]);
+    
+    // Set default amount from "Prise en charge" item
+    const serviceItem = items?.find(item => item.name.toLowerCase() === 'prise en charge');
+    if (serviceItem) {
+        form.setValue('amount', serviceItem.price);
+    }
+
+  }, [searchParams, customers, items, form]);
 
   const onCustomerSelected = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -93,7 +100,6 @@ function NewSupportTicketPageContent() {
     form.setValue('equipmentType', item.name);
     form.setValue('equipmentBrand', '');
     form.setValue('equipmentModel', '');
-    form.setValue('amount', item.price); // Pre-fill amount with item price
     setItemSearchOpen(false);
   };
 
@@ -274,7 +280,7 @@ function NewSupportTicketPageContent() {
             isOpen={isEditItemOpen}
             onClose={() => setEditItemOpen(false)}
             item={selectedItem}
-            onItemSaved={() => {}} // A refresh might be needed if details change
+            onItemUpdated={() => {}}
           />
       )}
     </>

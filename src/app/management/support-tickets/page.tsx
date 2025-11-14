@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History, Printer, Eye } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History, Printer, Eye, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
@@ -35,7 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
+  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket, sales: allSales } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -143,6 +143,12 @@ export default function SupportTicketsPage() {
     const amountTTC = ticket.amount || 0;
     const amountHT = amountTTC / (1 + vatInfo.rate / 100);
     const taxAmount = amountTTC - amountHT;
+    
+    const notes = [
+      `Acompte concernant la prise en charge #${ticket.ticketNumber}`,
+      ticket.clientNotes,
+      ticket.equipmentNotes
+    ].filter(Boolean).join('\n');
 
     const saleItem = {
       id: uuidv4(),
@@ -153,8 +159,8 @@ export default function SupportTicketsPage() {
       total: amountTTC,
       vatId: article.vatId,
       discount: 0,
-      barcode: article.barcode,
-      note: `Acompte concernant la prise en charge #${ticket.ticketNumber}`
+      barcode: article.barcode!,
+      description: `${ticket.equipmentType}\n${ticket.equipmentBrand}\n${ticket.equipmentModel}`
     };
 
     const newSale = await recordCommercialDocument({
@@ -165,11 +171,10 @@ export default function SupportTicketsPage() {
         total: amountTTC,
         status: 'pending',
         payments: [],
-        notes: `Acompte pour la prise en charge #${ticket.ticketNumber}`
+        notes: notes
     }, 'invoice');
     
     if (newSale) {
-        // Only update the saleId, not the status
         await updateSupportTicket({ ...ticket, saleId: newSale.id, notes: `${ticket.notes || ''}\nFacture d'acompte créée : ${newSale.ticketNumber}`.trim() });
     }
   };
@@ -284,10 +289,10 @@ export default function SupportTicketsPage() {
                                                 <DropdownMenuItem onClick={() => handlePrint(ticket)} disabled={isPrinting}>
                                                     <Printer className="mr-2 h-4 w-4" /> Imprimer
                                                 </DropdownMenuItem>
-                                                {ticket.saleId ? (
+                                                 {ticket.saleId ? (
                                                   <DropdownMenuItem asChild>
-                                                    <Link href={`/reports/${ticket.saleId}`}>
-                                                        <Eye className="mr-2 h-4 w-4" />
+                                                    <Link href={`/reports/${ticket.saleId}?from=support-tickets`}>
+                                                        <FileText className="mr-2 h-4 w-4" />
                                                         <span className="flex-1">Facture: {allSales.find(s=>s.id===ticket.saleId)?.ticketNumber}</span>
                                                     </Link>
                                                   </DropdownMenuItem>
