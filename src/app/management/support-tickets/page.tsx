@@ -5,7 +5,7 @@ import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History, Printer } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History, Printer, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
@@ -283,9 +283,18 @@ export default function SupportTicketsPage() {
                                                 <DropdownMenuItem onClick={() => handlePrint(ticket)} disabled={isPrinting}>
                                                     <Printer className="mr-2 h-4 w-4" /> Imprimer
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleGenerateInvoice(ticket)} disabled={!!ticket.saleId}>
-                                                    <FileCog className="mr-2 h-4 w-4" /> Facturer
-                                                </DropdownMenuItem>
+                                                {ticket.saleId ? (
+                                                  <DropdownMenuItem asChild>
+                                                    <Link href={`/reports/${ticket.saleId}`}>
+                                                        <Eye className="mr-2 h-4 w-4" />
+                                                        Voir la facture
+                                                    </Link>
+                                                  </DropdownMenuItem>
+                                                ) : (
+                                                  <DropdownMenuItem onClick={() => handleGenerateInvoice(ticket)}>
+                                                      <FileCog className="mr-2 h-4 w-4" /> Facturer
+                                                  </DropdownMenuItem>
+                                                )}
                                                 <DropdownMenuItem onClick={() => router.push(`/management/support-tickets/${ticket.id}`)}>
                                                     <Edit className="mr-2 h-4 w-4" /> Modifier
                                                 </DropdownMenuItem>

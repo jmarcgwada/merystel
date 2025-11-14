@@ -279,6 +279,13 @@ function EditSupportTicketPageContent() {
         subtitle="Mettez à jour les informations de la fiche."
       >
         <div className="flex items-center gap-2">
+            {isTicketInvoiced && ticketToEdit?.saleId && (
+                <Button asChild>
+                    <Link href={`/reports/${ticketToEdit.saleId}`}>
+                        Voir la facture
+                    </Link>
+                </Button>
+            )}
            <Button onClick={form.handleSubmit(onSubmit)} size="lg">
               <Save className="mr-2 h-4 w-4" />
               Sauvegarder les modifications
@@ -314,14 +321,16 @@ function EditSupportTicketPageContent() {
             </TabsList>
             <div className="mt-4 flex-1">
                 <TabsContent value="customer">
-                  <Card>
-                    <CardHeader><CardTitle>Informations du Client</CardTitle><CardDescription>Sélectionnez le client qui dépose le matériel.</CardDescription></CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField control={form.control} name="customerId" render={() => (<FormItem><FormLabel>Client *</FormLabel><FormControl><div className="flex items-center gap-2"><Button variant="outline" type="button" className="w-full justify-start" onClick={() => setCustomerSearchOpen(true)} disabled={isTicketInvoiced}><User className="mr-2 h-4 w-4"/>{selectedCustomer ? selectedCustomer.name : 'Sélectionner un client'}</Button></div></FormControl><FormMessage /></FormItem>)} />
-                      {selectedCustomer && (<Card className="mt-4 bg-muted/50"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-base">Détails du client</CardTitle><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCustomerOpen(true)} disabled={isTicketInvoiced}><Pencil className="h-4 w-4"/></Button></CardHeader><CardContent className="space-y-2 text-sm"><p className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.email || 'Non renseigné'}</p><p className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.phone || 'Non renseigné'}</p><p className="flex items-start gap-2"><MapPin className="h-4 w-4 text-muted-foreground mt-0.5"/> {selectedCustomer.address ? `${selectedCustomer.address}, ${selectedCustomer.postalCode} ${selectedCustomer.city}` : 'Adresse non renseignée'}</p></CardContent></Card>)}
-                      <FormField control={form.control} name="clientNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le client</FormLabel><FormControl><Textarea placeholder="ex: Client pressé, demande de devis avant réparation..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-                    </CardContent>
-                  </Card>
+                  <fieldset disabled={isTicketInvoiced} className="group">
+                    <Card className="group-disabled:opacity-70">
+                      <CardHeader><CardTitle>Informations du Client</CardTitle><CardDescription>Sélectionnez le client qui dépose le matériel.</CardDescription></CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField control={form.control} name="customerId" render={() => (<FormItem><FormLabel>Client *</FormLabel><FormControl><div className="flex items-center gap-2"><Button variant="outline" type="button" className="w-full justify-start" onClick={() => setCustomerSearchOpen(true)} disabled={isTicketInvoiced}><User className="mr-2 h-4 w-4"/>{selectedCustomer ? selectedCustomer.name : 'Sélectionner un client'}</Button></div></FormControl><FormMessage /></FormItem>)} />
+                        {selectedCustomer && (<Card className="mt-4 bg-muted/50"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-base">Détails du client</CardTitle><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCustomerOpen(true)} disabled={isTicketInvoiced}><Pencil className="h-4 w-4"/></Button></CardHeader><CardContent className="space-y-2 text-sm"><p className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.email || 'Non renseigné'}</p><p className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.phone || 'Non renseigné'}</p><p className="flex items-start gap-2"><MapPin className="h-4 w-4 text-muted-foreground mt-0.5"/> {selectedCustomer.address ? `${selectedCustomer.address}, ${selectedCustomer.postalCode} ${selectedCustomer.city}` : 'Adresse non renseignée'}</p></CardContent></Card>)}
+                        <FormField control={form.control} name="clientNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le client</FormLabel><FormControl><Textarea placeholder="ex: Client pressé, demande de devis avant réparation..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                      </CardContent>
+                    </Card>
+                  </fieldset>
                 </TabsContent>
                 <TabsContent value="equipment">
                   <fieldset disabled={isTicketInvoiced} className="group">
