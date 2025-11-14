@@ -77,7 +77,7 @@ function RepairActionsForm({ control, setValue }: { control: Control<SupportTick
     const handleAddAction = () => {
         if (!newActionTitle || !newActionDetails) return;
         
-        const newAction = {
+        const newAction: RepairAction = {
             id: uuidv4(),
             date: new Date(),
             title: newActionTitle,
@@ -269,6 +269,8 @@ function EditSupportTicketPageContent() {
     
     router.push('/management/support-tickets');
   };
+  
+  const isTicketInvoiced = !!ticketToEdit?.saleId;
 
   return (
     <>
@@ -305,8 +307,8 @@ function EditSupportTicketPageContent() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex flex-col flex-1 h-full">
            <Tabs defaultValue="customer" className="w-full max-w-4xl mx-auto flex-1 flex flex-col">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="customer">Client</TabsTrigger>
-              <TabsTrigger value="equipment">Matériel</TabsTrigger>
+              <TabsTrigger value="customer" disabled={isTicketInvoiced}>Client</TabsTrigger>
+              <TabsTrigger value="equipment" disabled={isTicketInvoiced}>Matériel</TabsTrigger>
               <TabsTrigger value="issue">Panne & Devis</TabsTrigger>
               <TabsTrigger value="tracking">Suivi Réparation</TabsTrigger>
             </TabsList>
@@ -315,24 +317,26 @@ function EditSupportTicketPageContent() {
                   <Card>
                     <CardHeader><CardTitle>Informations du Client</CardTitle><CardDescription>Sélectionnez le client qui dépose le matériel.</CardDescription></CardHeader>
                     <CardContent className="space-y-4">
-                      <FormField control={form.control} name="customerId" render={() => (<FormItem><FormLabel>Client *</FormLabel><FormControl><div className="flex items-center gap-2"><Button variant="outline" type="button" className="w-full justify-start" onClick={() => setCustomerSearchOpen(true)}><User className="mr-2 h-4 w-4"/>{selectedCustomer ? selectedCustomer.name : 'Sélectionner un client'}</Button></div></FormControl><FormMessage /></FormItem>)} />
-                      {selectedCustomer && (<Card className="mt-4 bg-muted/50"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-base">Détails du client</CardTitle><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCustomerOpen(true)}><Pencil className="h-4 w-4"/></Button></CardHeader><CardContent className="space-y-2 text-sm"><p className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.email || 'Non renseigné'}</p><p className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.phone || 'Non renseigné'}</p><p className="flex items-start gap-2"><MapPin className="h-4 w-4 text-muted-foreground mt-0.5"/> {selectedCustomer.address ? `${selectedCustomer.address}, ${selectedCustomer.postalCode} ${selectedCustomer.city}` : 'Adresse non renseignée'}</p></CardContent></Card>)}
+                      <FormField control={form.control} name="customerId" render={() => (<FormItem><FormLabel>Client *</FormLabel><FormControl><div className="flex items-center gap-2"><Button variant="outline" type="button" className="w-full justify-start" onClick={() => setCustomerSearchOpen(true)} disabled={isTicketInvoiced}><User className="mr-2 h-4 w-4"/>{selectedCustomer ? selectedCustomer.name : 'Sélectionner un client'}</Button></div></FormControl><FormMessage /></FormItem>)} />
+                      {selectedCustomer && (<Card className="mt-4 bg-muted/50"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-base">Détails du client</CardTitle><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCustomerOpen(true)} disabled={isTicketInvoiced}><Pencil className="h-4 w-4"/></Button></CardHeader><CardContent className="space-y-2 text-sm"><p className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.email || 'Non renseigné'}</p><p className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground"/> {selectedCustomer.phone || 'Non renseigné'}</p><p className="flex items-start gap-2"><MapPin className="h-4 w-4 text-muted-foreground mt-0.5"/> {selectedCustomer.address ? `${selectedCustomer.address}, ${selectedCustomer.postalCode} ${selectedCustomer.city}` : 'Adresse non renseignée'}</p></CardContent></Card>)}
                       <FormField control={form.control} name="clientNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le client</FormLabel><FormControl><Textarea placeholder="ex: Client pressé, demande de devis avant réparation..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
                     </CardContent>
                   </Card>
                 </TabsContent>
                 <TabsContent value="equipment">
-                  <Card>
-                    <CardHeader><CardTitle>Informations sur le Matériel</CardTitle><CardDescription>Détaillez l'équipement pris en charge. Vous pouvez le lier à un article existant.</CardDescription></CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="flex justify-end"><Button type="button" variant="secondary" onClick={() => setItemSearchOpen(true)}><PackageSearch className="mr-2 h-4 w-4" /> Lier à un article de la base</Button></div>
-                         {selectedItem && (<Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-base">Article lié</CardTitle><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditItemOpen(true)}><Pencil className="h-4 w-4"/></Button></CardHeader><CardContent className="flex items-center gap-4">{selectedItem.image && <Image src={selectedItem.image} alt={selectedItem.name} width={64} height={64} className="rounded-md object-cover" />}<div className="space-y-1 text-sm"><p className="font-bold">{selectedItem.name}</p><p className="text-muted-foreground">Réf: {selectedItem.barcode}</p><p className="text-muted-foreground">Prix: {selectedItem.price.toFixed(2)}€</p></div></CardContent></Card>)}
-                        <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="equipmentNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le matériel</FormLabel><FormControl><Textarea placeholder="ex: Rayure sur le capot, un port USB défectueux..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
-                    </CardContent>
-                  </Card>
+                  <fieldset disabled={isTicketInvoiced} className="group">
+                    <Card className="group-disabled:opacity-70">
+                      <CardHeader><CardTitle>Informations sur le Matériel</CardTitle><CardDescription>Détaillez l'équipement pris en charge. Vous pouvez le lier à un article existant.</CardDescription></CardHeader>
+                      <CardContent className="space-y-6">
+                          <div className="flex justify-end"><Button type="button" variant="secondary" onClick={() => setItemSearchOpen(true)} disabled={isTicketInvoiced}><PackageSearch className="mr-2 h-4 w-4" /> Lier à un article de la base</Button></div>
+                           {selectedItem && (<Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-base">Article lié</CardTitle><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditItemOpen(true)} disabled={isTicketInvoiced}><Pencil className="h-4 w-4"/></Button></CardHeader><CardContent className="flex items-center gap-4">{selectedItem.image && <Image src={selectedItem.image} alt={selectedItem.name} width={64} height={64} className="rounded-md object-cover" />}<div className="space-y-1 text-sm"><p className="font-bold">{selectedItem.name}</p><p className="text-muted-foreground">Réf: {selectedItem.barcode}</p><p className="text-muted-foreground">Prix: {selectedItem.price.toFixed(2)}€</p></div></CardContent></Card>)}
+                          <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormField control={form.control} name="equipmentNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le matériel</FormLabel><FormControl><Textarea placeholder="ex: Rayure sur le capot, un port USB défectueux..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                      </CardContent>
+                    </Card>
+                  </fieldset>
                 </TabsContent>
                  <TabsContent value="issue">
                   <Card>

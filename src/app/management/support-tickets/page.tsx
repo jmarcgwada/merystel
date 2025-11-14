@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo } = usePos();
+  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -113,7 +113,7 @@ export default function SupportTicketsPage() {
     }
   };
 
-  const handleGenerateInvoice = (ticket: SupportTicket) => {
+  const handleGenerateInvoice = async (ticket: SupportTicket) => {
     if (ticket.saleId) {
         toast({ variant: 'destructive', title: 'Déjà facturé', description: 'Cette prise en charge a déjà une facture associée.' });
         return;
@@ -158,7 +158,7 @@ export default function SupportTicketsPage() {
       note: `${ticket.equipmentType} ${ticket.equipmentBrand} ${ticket.equipmentModel}\nPanne: ${ticket.issueDescription}`
     };
 
-    recordCommercialDocument({
+    const newSale = await recordCommercialDocument({
         items: [saleItem],
         customerId: ticket.customerId,
         subtotal: amountHT,
@@ -167,6 +167,10 @@ export default function SupportTicketsPage() {
         status: 'pending',
         payments: [],
     }, 'invoice');
+    
+    if (newSale) {
+        await updateSupportTicket({ ...ticket, saleId: newSale.id, status: 'Facturé' });
+    }
   };
 
   const handlePrint = async (ticket: SupportTicket) => {
