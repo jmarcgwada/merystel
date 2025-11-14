@@ -145,9 +145,9 @@ export default function SupportTicketsPage() {
     const amountHT = amountTTC / (1 + vatInfo.rate / 100);
     const taxAmount = amountTTC - amountHT;
     
-    const notes = `Acompte concernant la prise en charge #${ticket.ticketNumber}`;
+    const notes = `Concerne la prise en charge #${ticket.ticketNumber}`;
 
-     const itemDescription = [
+    const itemDescription = [
         `Type: ${ticket.equipmentType}`,
         `Marque: ${ticket.equipmentBrand}`,
         `Modèle: ${ticket.equipmentModel}`,
@@ -179,7 +179,7 @@ export default function SupportTicketsPage() {
     }, 'invoice');
     
     if (newSale) {
-        await updateSupportTicket({ ...ticket, saleId: newSale.id });
+        await updateSupportTicket({ ...ticket, saleId: newSale.id, status: 'Facturé' });
     }
   };
 
@@ -297,7 +297,7 @@ export default function SupportTicketsPage() {
                                                   <DropdownMenuItem asChild>
                                                     <Link href={`/reports/${ticket.saleId}?from=support-tickets`}>
                                                         <FileText className="mr-2 h-4 w-4" />
-                                                        <span className="flex-1">Facture: {allSales.find(s=>s.id===ticket.saleId)?.ticketNumber}</span>
+                                                        <span>Facture: {allSales.find(s=>s.id===ticket.saleId)?.ticketNumber}</span>
                                                     </Link>
                                                   </DropdownMenuItem>
                                                 ) : (
