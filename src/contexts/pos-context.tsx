@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -942,11 +941,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(isHydrated) {
         const isSeeded = localStorage.getItem('data.seeded');
         if (!isSeeded) {
-            seedInitialData();
-            importDemoData();
-            importDemoCustomers();
-            importDemoSuppliers();
-            localStorage.setItem('data.seeded', 'true');
+          seedInitialData();
+          importDemoData();
+          importDemoCustomers();
+          importDemoSuppliers();
+          localStorage.setItem('data.seeded', 'true');
         } else {
             // This ensures the note item is always present even in existing installations
             const noteItemExists = items.some(i => i.id === 'NOTE_ITEM');
@@ -1232,6 +1231,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
         setRecentlyAddedItemId(newItem.id);
         return;
       }
+      
+      if (itemToAdd.hasForm) {
+        setFormItemRequest({ item: itemToAdd, isEditing: false });
+        return;
+      }
 
       if (itemToAdd.requiresSerialNumber && enableSerialNumber) {
           const newQuantity = (order.find(i => i.itemId === itemId)?.quantity || 0) + 1;
@@ -1246,7 +1250,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       }
 
       const existingItemIndex = order.findIndex(
-        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length
+        (item) => item.itemId === itemId && isEqual(item.selectedVariants, selectedVariants) && !item.serialNumbers?.length && !item.formSubmissionId
       );
 
       setOrder((currentOrder) => {
@@ -1291,7 +1295,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if(itemToAdd.image) setDynamicBgImage(itemToAdd.image);
     toast({ title: itemToAdd.name + ' ajouté à la commande' });
     },
-    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, pathname]
+    [items, order, toast, enableSerialNumber, currentSaleContext, setVariantItem, setSerialNumberItem, setFormItemRequest, pathname]
   );
   
   const updateItemQuantityInOrder = useCallback((itemId: string, quantity: number) => {
@@ -2072,13 +2076,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 }
                 
                 try {
-                    // Logic to process a single sale document (group of rows)
-                    const saleDate = new Date(); // Simplified for now
                     let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
                     if (!customer && firstRow.customerName) {
                         const newCustomer = await addCustomer({
                             id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
-                            name: firstRow.customerName
+                            name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
+                            address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
                         });
                         if (newCustomer) { 
                             customer = newCustomer; 
@@ -2087,9 +2090,31 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         }
                     }
 
-                    // ... process items, payments, etc for this sale ...
+                    for (const row of rows) {
+                       let item = localItems.find(i => i.barcode === row.itemBarcode);
+                       if (!item && row.itemName && row.itemBarcode) {
+                            let category = localCategories.find(c => c.name === row.itemCategory);
+                            if (!category && row.itemCategory) {
+                                category = await addCategory({ name: row.itemCategory });
+                                if (category) localCategories.push(category);
+                            }
+                            
+                            let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
+                            if (!vat) vat = vatRates[0];
+
+                            const newItem = await addItem({
+                                name: row.itemName, barcode: row.itemBarcode,
+                                price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
+                                purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
+                            });
+                            if (newItem) {
+                                report.newItemsCount = (report.newItemsCount || 0) + 1;
+                                localItems.push(newItem);
+                            }
+                       }
+                    }
                     
-                    report.successCount += rows.length; // Count processed rows
+                    report.successCount += rows.length;
                     report.newSalesCount = (report.newSalesCount || 0) + 1;
                     existingSaleNumbers.add(ticketNumber);
                 } catch (e: any) {
@@ -2106,9 +2131,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
                         await addCustomer(row);
                     } else if (dataType === 'articles') {
-                        if (!row.barcode || !row.name || !row.price || !row.vatId) throw new Error("Champs article requis.");
+                        if (!row.barcode || !row.name || !row.price || !row.vatCode) throw new Error("Champs article requis : barcode, name, price, vatCode");
                         if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
-                        await addItem(row);
+                        const vat = vatRates.find(v => v.code === parseInt(row.vatCode));
+                        if(!vat) throw new Error(`Code TVA ${row.vatCode} non trouvé.`);
+                        await addItem({...row, vatId: vat.id});
                     } else if (dataType === 'fournisseurs') {
                          if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
                         if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
