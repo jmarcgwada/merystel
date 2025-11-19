@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useKeyboard } from '@/components/keyboard-context';
+import { useKeyboard } from '@/contexts/keyboard-context';
 import { SerialNumberModal } from './components/serial-number-modal';
 import { VariantSelectionModal } from './components/variant-selection-modal';
 import { FormInputModal } from './components/form-input-modal';

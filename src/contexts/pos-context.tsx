@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -35,6 +36,7 @@ import type {
   Payment,
   SupportTicket,
   RepairActionPreset,
+  FormSubmission,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { format, isSameDay, subDays, parse, isValid, addMonths, addWeeks, addDays } from 'date-fns';
@@ -78,7 +80,8 @@ export type DeletableDataKeys =
   | 'paiementsPartiels'
   | 'dunningLogs'
   | 'supportTickets'
-  | 'repairActionPresets';
+  | 'repairActionPresets'
+  | 'formSubmissions';
 
 export interface ImportReport {
   successCount: number;
@@ -100,7 +103,9 @@ export interface PosContextType {
   readOnlyOrder: OrderItem[] | null;
   setReadOnlyOrder: React.Dispatch<React.SetStateAction<OrderItem[] | null>>;
   addToOrder: (itemId: string, selectedVariants?: SelectedVariant[]) => void;
+  addFormItemToOrder: (item: Item | OrderItem, formData: Record<string, any>) => void;
   addSerializedItemToOrder: (item: Item | OrderItem, quantity: number, serialNumbers: string[]) => void;
+  updateOrderItemFormData: (orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => void;
   removeFromOrder: (itemId: OrderItem['id']) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateItemQuantityInOrder: (itemId: string, quantity: number) => void;
@@ -130,6 +135,10 @@ export interface PosContextType {
   setVariantItem: React.Dispatch<React.SetStateAction<Item | null>>;
   customVariantRequest: { item: Item, optionName: string, currentSelections: SelectedVariant[] } | null;
   setCustomVariantRequest: React.Dispatch<React.SetStateAction<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>>;
+  formItemRequest: { item: Item | OrderItem, isEditing: boolean } | null;
+  setFormItemRequest: React.Dispatch<React.SetStateAction<{ item: Item | OrderItem, isEditing: boolean } | null>>;
+  formSubmissions: FormSubmission[];
+  tempFormSubmissions: Record<string, FormSubmission>;
   lastDirectSale: Sale | null;
   lastRestaurantSale: Sale | null;
   loadTicketForViewing: (ticket: Sale) => void;
@@ -426,11 +435,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { toast: shadcnToast } = useShadcnToast();
   const pageTypeToResetRef = useRef<string | null>(null);
-
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => { setIsHydrated(true); }, []);
-
-
   // Settings States
   const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
   const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
@@ -438,6 +444,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [supportTickets, setSupportTickets, rehydrateSupportTickets] = usePersistentState<SupportTicket[]>('data.supportTickets', []);
   const [repairActionPresets, setRepairActionPresets, rehydrateRepairActionPresets] = usePersistentState<RepairActionPreset[]>('data.repairActionPresets', []);
+  const [formSubmissions, setFormSubmissions, rehydrateFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
+  const [tempFormSubmissions, setTempFormSubmissions, rehydrateTempFormSubmissions] = usePersistentState<Record<string, FormSubmission>>('data.tempFormSubmissions', {});
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
@@ -518,6 +526,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [serialNumberItem, setSerialNumberItem] = useState<{item: Item | OrderItem, quantity: number} | null>(null);
   const [variantItem, setVariantItem] = useState<Item | null>(null);
   const [customVariantRequest, setCustomVariantRequest] = useState<{ item: Item, optionName: string, currentSelections: SelectedVariant[] } | null>(null);
+  const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
   const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
@@ -700,7 +709,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setCurrentSaleId(null);
     setCurrentSaleContext(null);
     setSelectedTable(null);
-  }, [readOnlyOrder]);
+    setTempFormSubmissions({}); // Clear temporary form data
+  }, [readOnlyOrder, setTempFormSubmissions]);
   
   const closeNavConfirm = useCallback(() => {
     setNextUrl(null);
@@ -1114,6 +1124,57 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if ('image' in item && item.image) setDynamicBgImage(item.image);
     toast({ title: item.name + ' ajouté/mis à jour dans la commande' });
   }, [toast]);
+  
+  const addFormItemToOrder = useCallback((item: Item | OrderItem, formData: Record<string, any>) => {
+    const submissionId = `temp_${uuidv4()}`;
+    const newSubmission: FormSubmission = {
+      id: submissionId,
+      orderItemId: '', // This will be set when the order item is created
+      formData,
+      createdAt: new Date()
+    };
+    
+    setTempFormSubmissions(prev => ({ ...prev, [submissionId]: newSubmission }));
+
+    const newOrderItem: OrderItem = {
+      itemId: 'itemId' in item ? item.itemId : item.id,
+      id: uuidv4(),
+      name: item.name,
+      price: item.price,
+      vatId: item.vatId,
+      image: item.image,
+      quantity: 1,
+      total: item.price,
+      discount: 0,
+      description: item.description,
+      description2: item.description2,
+      barcode: 'barcode' in item ? (item.barcode || '') : '',
+      formSubmissionId: submissionId,
+    };
+    
+    setOrder(prev => [newOrderItem, ...prev]);
+    setRecentlyAddedItemId(newOrderItem.id);
+
+    if ('image' in item && item.image) setDynamicBgImage(item.image);
+    toast({ title: item.name + ' ajouté à la commande avec son formulaire.' });
+  }, [toast, setTempFormSubmissions, setRecentlyAddedItemId]);
+  
+  const updateOrderItemFormData = useCallback((orderItemId: string, formData: Record<string, any>, isTemporary: boolean) => {
+    if (isTemporary) {
+      setTempFormSubmissions(prev => {
+          if (prev[orderItemId]) {
+              return { ...prev, [orderItemId]: { ...prev[orderItemId], formData } };
+          }
+          return prev;
+      });
+    } else {
+        setFormSubmissions(prev => prev.map(sub => 
+            sub.id === orderItemId ? { ...sub, formData } : sub
+        ));
+    }
+    toast({ title: 'Données de formulaire mises à jour.' });
+  }, [setFormSubmissions, setTempFormSubmissions, toast]);
+
 
   const addToOrder = useCallback(
     (itemId: string, selectedVariants?: SelectedVariant[]) => {
@@ -1945,7 +2006,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         if (dataType === 'ventes_completes') {
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
             const groupedByTicket = new Map<string, any[]>();
-            
+                
             jsonData.forEach((row, index) => {
                 const ticketNum = row.ticketNumber;
                 if (!ticketNum) {
@@ -2025,9 +2086,9 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
   const value: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
-      addToOrder, addSerializedItemToOrder, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
+      addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest,
+      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, formSubmissions, tempFormSubmissions,
       lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
       sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
       items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
