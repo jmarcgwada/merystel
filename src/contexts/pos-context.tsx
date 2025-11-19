@@ -435,8 +435,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { toast: shadcnToast } = useShadcnToast();
   const pageTypeToResetRef = useRef<string | null>(null);
+
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => { setIsHydrated(true); }, []);
+
+
   // Settings States
   const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
   const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
@@ -889,6 +892,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setPaiementsPartiels([]);
     setSupportTickets([]);
     setRepairActionPresets([]);
+    setFormSubmissions([]);
+    setTempFormSubmissions({});
     setCompanyInfo(null);
     localStorage.removeItem('data.seeded');
     toast({ title: 'Application réinitialisée', description: 'Toutes les données ont été effacées.' });
@@ -902,7 +907,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
     setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs,
-    setCheques, setRemises, setPaiementsPartiels, setSupportTickets, setRepairActionPresets,
+    setCheques, setRemises, setPaiementsPartiels, setSupportTickets, setRepairActionPresets, setFormSubmissions, setTempFormSubmissions,
     toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders
   ]);
   
@@ -924,11 +929,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if (dataToReset.dunningLogs) setDunningLogs([]);
     if (dataToReset.supportTickets) setSupportTickets([]);
     if (dataToReset.repairActionPresets) setRepairActionPresets([]);
+    if (dataToReset.formSubmissions) { setFormSubmissions([]); setTempFormSubmissions({}); }
     toast({ title: 'Données sélectionnées supprimées !' });
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, 
     setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, 
-    setRemises, setPaiementsPartiels, setDunningLogs, setSupportTickets, setRepairActionPresets, toast
+    setRemises, setPaiementsPartiels, setDunningLogs, setSupportTickets, setRepairActionPresets, 
+    setFormSubmissions, setTempFormSubmissions, toast
   ]);
   
   useEffect(() => {
@@ -1040,6 +1047,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates,
                 rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs, rehydrateCheques,
                 rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets,
+                rehydrateFormSubmissions, 
                 rehydrateCompanyInfo, rehydrateUsers,
                 rehydrateMappingTemplates
             ];
@@ -1060,6 +1068,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             if (data.remises) setRemises(data.remises);
             if (data.supportTickets) setSupportTickets(data.supportTickets);
             if (data.repairActionPresets) setRepairActionPresets(data.repairActionPresets);
+            if (data.formSubmissions) setFormSubmissions(data.formSubmissions);
             if (data.companyInfo) setCompanyInfo(data.companyInfo);
             if (data.users) setUsers(data.users);
             if (data.mappingTemplates) setMappingTemplates(data.mappingTemplates);
@@ -1075,18 +1084,26 @@ export function PosProvider({ children }: { children: ReactNode }) {
   }, [
       setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods,
       setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setSupportTickets, setRepairActionPresets,
-      setCompanyInfo, setUsers, setMappingTemplates, toast,
+      setFormSubmissions, setCompanyInfo, setUsers, setMappingTemplates, toast,
       rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTables, rehydrateSales,
       rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs,
-      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets, rehydrateCompanyInfo, rehydrateUsers,
+      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets, rehydrateFormSubmissions, rehydrateCompanyInfo, rehydrateUsers,
       rehydrateMappingTemplates
   ]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
+    const itemToRemove = order.find(item => item.id === itemId);
+    if (itemToRemove && itemToRemove.formSubmissionId && itemToRemove.formSubmissionId.startsWith('temp_')) {
+      setTempFormSubmissions(prev => {
+        const newTemp = { ...prev };
+        delete newTemp[itemToRemove.formSubmissionId!];
+        return newTemp;
+      });
+    }
     setOrder((currentOrder) =>
       currentOrder.filter((item) => item.id !== itemId)
     );
-  }, []);
+  }, [order, setTempFormSubmissions]);
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
@@ -1597,12 +1614,33 @@ export function PosProvider({ children }: { children: ReactNode }) {
         
         let finalDoc: Sale;
 
+        // Move temp form submissions to permanent storage
+        const newSubmissions: FormSubmission[] = [];
+        const finalItems = docData.items.map(item => {
+          if (item.formSubmissionId && item.formSubmissionId.startsWith('temp_')) {
+            const tempSubmission = tempFormSubmissions[item.formSubmissionId];
+            if (tempSubmission) {
+              const newSubmissionId = uuidv4();
+              newSubmissions.push({ ...tempSubmission, id: newSubmissionId, orderItemId: item.id });
+              return { ...item, formSubmissionId: newSubmissionId };
+            }
+          }
+          return item;
+        });
+
+        if (newSubmissions.length > 0) {
+            setFormSubmissions(prev => [...prev, ...newSubmissions]);
+            setTempFormSubmissions({});
+        }
+
+        const finalDocData = { ...docData, items: finalItems };
+
         if (docIdToUpdate) {
             const existingDoc = sales.find(s => s.id === docIdToUpdate);
             if (!existingDoc) return;
             finalDoc = {
                 ...existingDoc,
-                ...docData,
+                ...finalDocData,
                 documentType: type,
                 modifiedAt: today,
             };
@@ -1615,8 +1653,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 documentNumber: finalDoc.ticketNumber,
                 details: `Mise à jour de la pièce.`,
                  richDetails: {
-                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: docData.total,
+                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: finalDocData.total,
                 }
             });
             setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
@@ -1630,7 +1668,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 documentType: type,
                 userId: user?.id,
                 userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
-                ...docData,
+                ...finalDocData,
             };
             addAuditLog({
                 userId: user?.id || 'system',
@@ -1641,8 +1679,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 documentNumber: finalDoc.ticketNumber,
                 details: `Création d'une nouvelle pièce.`,
                  richDetails: {
-                  items: docData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: docData.total,
+                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: finalDocData.total,
                 }
             });
             setSales(prev => [finalDoc, ...prev]);
@@ -1659,7 +1697,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         : type === 'delivery_note' ? '/reports?docType=delivery_note'
                         : '/reports';
         router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog]);
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, tempFormSubmissions, setFormSubmissions, setTempFormSubmissions]);
 
     const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
         if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
@@ -2042,7 +2080,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
                             id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
                             name: firstRow.customerName
                         });
-                        if (newCustomer) { customer = newCustomer; report.newCustomersCount = (report.newCustomersCount || 0) + 1; localCustomers.push(newCustomer); }
+                        if (newCustomer) { 
+                            customer = newCustomer; 
+                            report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                            localCustomers.push(newCustomer);
+                        }
                     }
 
                     // ... process items, payments, etc for this sale ...
