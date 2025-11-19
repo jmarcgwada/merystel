@@ -38,12 +38,7 @@ import {
     DialogHeader as ReportDialogHeader, 
     DialogTitle as ReportDialogTitle, 
     DialogDescription as ReportDialogDescription, 
-    DialogContent as ReportDialogContent,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
+    DialogContent as ReportDialogContent
 } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -283,7 +278,7 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: ImportReport 
   );
 }
 
-const ColumnSelectionDialog = ({ allColumns, enabledColumns, setEnabledColumns, isOpen, onClose }: { allColumns: string[], enabledColumns: boolean[], setEnabledColumns: (newCols: boolean[]) => void, isOpen: boolean, onClose: () => void }) => {
+function ColumnSelectionDialog({ allColumns, enabledColumns, setEnabledColumns, isOpen, onClose }: { allColumns: string[], enabledColumns: boolean[], setEnabledColumns: (newCols: boolean[]) => void, isOpen: boolean, onClose: () => void }) {
     const handleToggleAll = (checked: boolean) => {
         setEnabledColumns(Array(allColumns.length).fill(checked));
     };
@@ -479,7 +474,7 @@ export default function ImportDataPage() {
     }
 
     const generated: any[] = [];
-    const rowsToProcess = dataRows.slice(0, importLimit || undefined);
+    const rowsToProcess = dataRows; // Process all rows, limit will be applied at import stage
 
     rowsToProcess.forEach(row => {
         const obj: any = {};
@@ -527,8 +522,7 @@ export default function ImportDataPage() {
     setIsImporting(true);
     toast({ title: 'Importation en cours...', description: 'Veuillez patienter.' });
 
-    const dataToImport = jsonData.slice(0, importLimit || undefined);
-    const report = await importDataFromJson(dataType, dataToImport);
+    const report = await importDataFromJson(dataType, jsonData);
 
     setIsImporting(false);
     setImportReport(report);
@@ -973,7 +967,7 @@ export default function ImportDataPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'importation ?</AlertDialogTitle>
             <AlertDialogDescription>
-                Vous êtes sur le point d'importer {jsonData?.slice(0, importLimit || undefined).length || 0} {dataType}.
+                Vous êtes sur le point d'importer {importLimit > 0 ? `les ${Math.min(importLimit, jsonData?.length || 0)} premières` : (jsonData?.length || 0)} pièces/lignes.
             </AlertDialogDescription>
           </AlertDialogHeader>
             <Alert variant="destructive" className="mt-4">
