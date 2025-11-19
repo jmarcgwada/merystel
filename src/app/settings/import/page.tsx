@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle, FileSignature, ArrowUpDown, Rows, Settings } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, ChevronRight, Check, AlertCircle, Type, Save, Trash2, ChevronDown, X, CheckCircle, XCircle, HelpCircle, FileSignature, ArrowUpDown, Rows, Settings, Columns } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -270,6 +270,50 @@ function ImportReportDialog({ report, isOpen, onClose }: { report: ImportReport 
   );
 }
 
+const ColumnSelectionDialog = ({ allColumns, enabledColumns, setEnabledColumns, isOpen, onClose }: { allColumns: string[], enabledColumns: boolean[], setEnabledColumns: (newCols: boolean[]) => void, isOpen: boolean, onClose: () => void }) => {
+    const handleToggleAll = (checked: boolean) => {
+        setEnabledColumns(Array(allColumns.length).fill(checked));
+    };
+
+    const handleToggleColumn = (index: number, checked: boolean) => {
+        const newEnabled = [...enabledColumns];
+        newEnabled[index] = checked;
+        setEnabledColumns(newEnabled);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Gérer les Colonnes Visibles</DialogTitle>
+                    <DialogDescription>
+                        Cochez les colonnes de votre fichier que vous souhaitez utiliser pour le mappage.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="select-all-columns" checked={enabledColumns.every(Boolean)} onCheckedChange={(checked) => handleToggleAll(!!checked)} />
+                        <Label htmlFor="select-all-columns">Tout sélectionner / désélectionner</Label>
+                    </div>
+                    <ScrollArea className="h-64 border rounded-md p-2">
+                        <div className="space-y-2">
+                            {allColumns.map((col, index) => (
+                                <div key={index} className="flex items-center space-x-2">
+                                    <Checkbox id={`col-${index}`} checked={enabledColumns[index] ?? true} onCheckedChange={(checked) => handleToggleColumn(index, !!checked)} />
+                                    <Label htmlFor={`col-${index}`}>{col || `Colonne ${index + 1}`}</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </div>
+                <DialogFooter>
+                    <Button onClick={onClose}>Appliquer et Fermer</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 export default function ImportDataPage() {
   const { toast } = useToast();
@@ -298,6 +342,10 @@ export default function ImportDataPage() {
   const [isFormatSectionOpen, setIsFormatSectionOpen] = useState(true);
 
   const [sortConfig, setSortConfig] = useState<{ key: number; direction: 'asc' | 'desc' } | null>(null);
+
+  const [enabledColumns, setEnabledColumns] = usePersistentState<boolean[]>(`import.enabledColumns.${dataType}`, []);
+  const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
+  
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -335,6 +383,12 @@ export default function ImportDataPage() {
 
   const headerRow = useMemo(() => (hasHeader && parsedData.length > 0) ? parsedData[0] : (parsedData.length > 0 ? parsedData[0].map((_, i) => `Colonne ${i + 1}`) : []), [parsedData, hasHeader]);
   const dataRows = useMemo(() => hasHeader ? parsedData.slice(1) : parsedData, [parsedData, hasHeader]);
+
+  useEffect(() => {
+    if(headerRow.length > 0 && enabledColumns.length !== headerRow.length) {
+        setEnabledColumns(Array(headerRow.length).fill(true));
+    }
+  }, [headerRow, enabledColumns, setEnabledColumns]);
 
   const sortedDataRows = useMemo(() => {
     if (!sortConfig) return dataRows;
@@ -630,9 +684,15 @@ export default function ImportDataPage() {
                                         Vérifiez que vos données sont correctement séparées.
                                     </CardDescription>
                                 </div>
-                                <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
-                                    Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" onClick={() => setIsColumnSelectorOpen(true)} disabled={!fileContent}>
+                                        <Columns className="mr-2 h-4 w-4" />
+                                        Gérer les colonnes
+                                    </Button>
+                                    <Button onClick={() => setActiveTab('mapping')} disabled={!fileContent}>
+                                        Étape suivante <ChevronRight className="ml-2 h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -643,6 +703,7 @@ export default function ImportDataPage() {
                                     <TableRow>
                                        <TableHead className="w-12">#</TableHead>
                                       {headerRow.map((header, index) => (
+                                        enabledColumns[index] &&
                                         <TableHead key={index} className="whitespace-nowrap">
                                            <Button variant="ghost" onClick={() => requestSort(index)} className="px-2">
                                               {header}
@@ -658,6 +719,7 @@ export default function ImportDataPage() {
                                     <TableRow key={rowIndex}>
                                       <TableCell className="text-xs text-muted-foreground">{rowIndex + 1}</TableCell>
                                       {row.map((cell, cellIndex) => (
+                                        enabledColumns[cellIndex] &&
                                         <TableCell key={cellIndex} className="text-xs whitespace-nowrap">{cell}</TableCell>
                                       ))}
                                     </TableRow>
@@ -819,7 +881,7 @@ export default function ImportDataPage() {
                                           <SelectItem value="ignore">Ignorer</SelectItem>
                                           {headerRow.map((header, index) => {
                                               const isDisabled = mappedColumnBehavior === 'disable' && mappedColumnIndices.has(index) && mappings[field as string] !== index;
-                                              const isHidden = mappedColumnBehavior === 'hide' && mappedColumnIndices.has(index) && mappings[field as string] !== index;
+                                              const isHidden = (mappedColumnBehavior === 'hide' && mappedColumnIndices.has(index) && mappings[field as string] !== index) || !enabledColumns[index];
                                               if (isHidden) return null;
                                               return (
                                                 <SelectItem key={index} value={String(index)} disabled={isDisabled}>
@@ -922,6 +984,13 @@ export default function ImportDataPage() {
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
         report={importReport}
+      />
+       <ColumnSelectionDialog
+        isOpen={isColumnSelectorOpen}
+        onClose={() => setIsColumnSelectorOpen(false)}
+        allColumns={headerRow}
+        enabledColumns={enabledColumns}
+        setEnabledColumns={setEnabledColumns}
       />
     </>
   );
