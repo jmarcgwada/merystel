@@ -122,19 +122,21 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     }, 100);
   }
   
- const handleFinalizeSale = useCallback(async (isFullyPaid: boolean) => {
+ const handleFinalizeSale = useCallback(async (finalPayments: Payment[]) => {
     if (isPaid) return;
     
     const docType = currentSaleContext?.documentType;
-    
+    const totalPaid = finalPayments.reduce((acc, p) => acc + p.amount, 0);
+    const isFullyPaid = totalPaid >= displayTotalAmount - 0.009;
+
     const saleInfo: Omit<Sale, 'id' | 'ticketNumber' | 'date'> = {
       items: currentSaleContext?.items || order,
       subtotal: currentSaleContext?.subtotal || orderTotal,
       tax: currentSaleContext?.tax || orderTax,
       total: currentSaleContext?.total || totalAmount,
-      payments: payments.map(p => ({ ...p, date: paymentDate as any })),
+      payments: finalPayments.map(p => ({ ...p, date: paymentDate as any })),
       status: isFullyPaid ? 'paid' : 'pending',
-      ...(balanceDue < -0.009 && { change: Math.abs(balanceDue) }),
+      ...(totalPaid > displayTotalAmount && { change: totalPaid - displayTotalAmount }),
       ...(selectedCustomer?.id && { customerId: selectedCustomer.id }),
       ...(currentSaleContext?.supplierId && { supplierId: currentSaleContext.supplierId }),
       ...(currentSaleContext?.tableId && {tableId: currentSaleContext.tableId}),
@@ -189,7 +191,11 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
           router.push('/reports?docType=' + (docType === 'credit_note' ? 'credit_note' : 'invoice'));
         }
     }
-  }, [isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, payments, currentSaleId, paymentDate, isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque, balanceDue]);
+  }, [
+      isPaid, order, orderTotal, orderTax, totalAmount, recordSale, toast, router, clearOrder, onClose, 
+      selectedCustomer, cameFromRestaurant, setCameFromRestaurant, currentSaleContext, user, paymentDate, 
+      isCreditNote, displayTotalAmount, resetCommercialPage, cheques, addCheque, currentSaleId
+  ]);
 
 
   useEffect(() => {
@@ -244,7 +250,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   };
   
   
-  const handleAddPayment = (method: PaymentMethod) => {
+  const handleAddPayment = useCallback((method: PaymentMethod) => {
     let amountToAdd : number;
     amountToAdd = parseFloat(String(currentAmount));
     
@@ -269,8 +275,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(newPayments);
     setShowCalculator(false); // Hide calculator on payment
     
-    const newAmountPaid = amountPaid + amountToAdd;
-    const newBalance = totalAmount - newAmountPaid;
+    const newBalance = balanceDue - amountToAdd;
     
     if (Math.abs(newBalance) > 0.009) {
         setCurrentAmount(newBalance.toFixed(2));
@@ -283,7 +288,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
             }, 1000);
         }
     }
-  }
+  }, [currentAmount, balanceDue, payments, paymentDate, toast, handleFinalizeSale]);
   
   const handleRemovePayment = (index: number) => {
     if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
@@ -353,8 +358,7 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
     setPayments(newPayments);
     setView('payment');
     
-    const newTotalPaid = amountPaid + chequeTotalToPay;
-    const newBalance = totalAmount - newTotalPaid;
+    const newBalance = balanceDue - chequeTotalToPay;
     
     if (Math.abs(newBalance) < 0.01) {
       if (autoFinalizeTimer.current) clearTimeout(autoFinalizeTimer.current);
@@ -428,11 +432,18 @@ export function CheckoutModal({ isOpen, onClose, totalAmount }: CheckoutModalPro
   const finalizeButtonDisabled = (balanceDue > 0.009 && !isInvoiceMode && !isCreditNote) || showCalculator;
     
     const handleAdvancedPaymentSelect = (method: PaymentMethod) => {
+      let amountToAdd: number;
       if (method.type === 'indirect' && method.value) {
-        let amountToAdd = method.value > balanceDue ? balanceDue : method.value;
+        amountToAdd = method.value > balanceDue ? balanceDue : method.value;
         setCurrentAmount(amountToAdd.toFixed(2));
+      } else {
+        amountToAdd = parseFloat(String(currentAmount));
+        if(isNaN(amountToAdd) || amountToAdd <= 0) {
+          toast({variant: 'destructive', title: "Montant invalide"});
+          return;
+        }
       }
-      handleAddPayment(method);
+      handleAddPayment({ ...method, amount: amountToAdd } as Payment);
       setView('payment');
     };
     
