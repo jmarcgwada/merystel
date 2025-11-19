@@ -238,8 +238,6 @@ export interface PosContextType {
   selectivelyResetData: (dataToReset: Record<DeletableDataKeys, boolean>) => Promise<void>;
   exportConfiguration: () => string;
   importConfiguration: (file: File) => Promise<void>;
-  exportFullData: () => string;
-  importFullData: (file: File) => Promise<void>;
   importDataFromJson: (dataType: string, jsonData: any[]) => Promise<ImportReport>;
   importDemoData: () => Promise<void>;
   importDemoCustomers: () => Promise<void>;
@@ -2004,9 +2002,10 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
                         
                         let item = localItems.find(i => i.barcode === row.itemBarcode);
                         if (!item && row.itemName) {
-                            let category = localCategories.find(c => c.name?.toLowerCase() === row.itemCategory?.toLowerCase());
+                            const categoryName = row.itemCategory || 'Importé';
+                            let category = localCategories.find(c => c.name?.toLowerCase() === categoryName.toLowerCase());
                             if (!category) {
-                                category = await addCategory({ name: row.itemCategory || 'Importé' });
+                                category = await addCategory({ name: categoryName });
                                 if (category) localCategories.push(category);
                             }
                             let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
@@ -2173,5 +2172,3 @@ export function usePos() {
   }
   return context;
 }
-
-  
