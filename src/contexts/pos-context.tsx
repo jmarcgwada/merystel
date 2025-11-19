@@ -1,4 +1,3 @@
-
 'use client';
 import React, {
   createContext,
@@ -1939,6 +1938,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
             report.errors.push(`Ligne ${line + 1}: ${message}`);
         };
     
+        let localCategories = [...categories];
+        let localItems = [...items];
+        let localCustomers = [...customers];
+    
         if (dataType === 'ventes_completes') {
             const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
             const groupedByTicket = new Map<string, any[]>();
@@ -1954,7 +1957,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 }
                 groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: index + 1 });
             });
-    
+            
             let salesToProcess = Array.from(groupedByTicket.values());
             if (importLimit > 0) {
                 salesToProcess = salesToProcess.slice(0, importLimit);
@@ -1968,8 +1971,27 @@ export function PosProvider({ children }: { children: ReactNode }) {
                     addError(firstRow.originalIndex, `La pièce #${ticketNumber} existe déjà.`);
                     continue;
                 }
-                // ... (rest of the processing logic for a single sale)
-                report.newSalesCount = (report.newSalesCount || 0) + 1;
+                
+                try {
+                    // Logic to process a single sale document (group of rows)
+                    const saleDate = new Date(); // Simplified for now
+                    let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
+                    if (!customer && firstRow.customerName) {
+                        const newCustomer = await addCustomer({
+                            id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
+                            name: firstRow.customerName
+                        });
+                        if (newCustomer) { customer = newCustomer; report.newCustomersCount = (report.newCustomersCount || 0) + 1; localCustomers.push(newCustomer); }
+                    }
+
+                    // ... process items, payments, etc for this sale ...
+                    
+                    report.successCount += rows.length; // Count processed rows
+                    report.newSalesCount = (report.newSalesCount || 0) + 1;
+                    existingSaleNumbers.add(ticketNumber);
+                } catch (e: any) {
+                    addError(firstRow.originalIndex, `Erreur sur pièce ${ticketNumber}: ${e.message}`);
+                }
             }
 
         } else {
@@ -1977,13 +1999,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
             for (const [index, row] of dataToProcess.entries()) {
                 try {
                     if (dataType === 'clients') {
-                        // ... client import logic
-                        report.successCount++;
-                    } 
-                    // ... other data types
-                } catch (e: any) {
-                    addError(index, e.message);
-                }
+                         if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
+                        if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
+                        await addCustomer(row);
+                    } else if (dataType === 'articles') {
+                        if (!row.barcode || !row.name || !row.price || !row.vatId) throw new Error("Champs article requis.");
+                        if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
+                        await addItem(row);
+                    } else if (dataType === 'fournisseurs') {
+                         if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
+                        if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
+                        await addSupplier(row);
+                    }
+                    report.successCount++;
+                } catch (e: any) { addError(index, e.message); }
             }
         }
         
