@@ -421,7 +421,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-export function PosProvider({ children }: { children: ReactNode }) {
+export const PosProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -2004,7 +2004,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                         
                         let item = localItems.find(i => i.barcode === row.itemBarcode);
                         if (!item && row.itemName) {
-                            let category = localCategories.find(c => c.name === row.itemCategory);
+                            let category = localCategories.find(c => c.name?.toLowerCase() === row.itemCategory?.toLowerCase());
                             if (!category) {
                                 category = await addCategory({ name: row.itemCategory || 'Importé' });
                                 if (category) localCategories.push(category);
@@ -2173,3 +2173,5 @@ export function usePos() {
   }
   return context;
 }
+
+  
