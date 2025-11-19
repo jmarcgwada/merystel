@@ -40,6 +40,8 @@ import {
     DialogDescription as ReportDialogDescription, 
     DialogContent as ReportDialogContent
 } from '@/components/ui/dialog';
+import { DialogContent as ColumnDialogContent, DialogHeader as ColumnDialogHeader, DialogTitle as ColumnDialogTitle, DialogDescription as ColumnDialogDescription, DialogFooter as ColumnDialogFooter } from '@/components/ui/dialog';
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -291,13 +293,13 @@ function ColumnSelectionDialog({ allColumns, enabledColumns, setEnabledColumns, 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Gérer les Colonnes Visibles</DialogTitle>
-                    <DialogDescription>
+            <ColumnDialogContent className="sm:max-w-md">
+                <ColumnDialogHeader>
+                    <ColumnDialogTitle>Gérer les Colonnes Visibles</ColumnDialogTitle>
+                    <ColumnDialogDescription>
                         Cochez les colonnes de votre fichier que vous souhaitez utiliser pour le mappage.
-                    </DialogDescription>
-                </DialogHeader>
+                    </ColumnDialogDescription>
+                </ColumnDialogHeader>
                 <div className="py-4 space-y-4">
                     <div className="flex items-center space-x-2">
                         <Checkbox id="select-all-columns" checked={enabledColumns.every(Boolean)} onCheckedChange={(checked) => handleToggleAll(!!checked)} />
@@ -314,10 +316,10 @@ function ColumnSelectionDialog({ allColumns, enabledColumns, setEnabledColumns, 
                         </div>
                     </ScrollArea>
                 </div>
-                <DialogFooter>
+                <ColumnDialogFooter>
                     <Button onClick={onClose}>Appliquer et Fermer</Button>
-                </DialogFooter>
-            </DialogContent>
+                </ColumnDialogFooter>
+            </ColumnDialogContent>
         </Dialog>
     );
 };
