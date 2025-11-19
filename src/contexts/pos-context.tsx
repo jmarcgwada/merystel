@@ -1,3 +1,4 @@
+
 'use client';
 import React, {
   createContext,
@@ -2032,142 +2033,134 @@ export function PosProvider({ children }: { children: ReactNode }) {
     }, [sales, recordCommercialDocument]);
     
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
-        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
-        const toastId = shadcnToast({
-            title: 'Importation...',
-            description: `Préparation de ${jsonData.length} lignes.`
+      const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
+      const toastId = shadcnToast({ title: 'Importation...', description: `Préparation de ${jsonData.length} lignes.` });
+      const addError = (line: number, message: string) => {
+        report.errorCount++;
+        report.errors.push(`Ligne ${line + 1}: ${message}`);
+      };
+
+      let localCategories = [...categories];
+      let localItems = [...items];
+      let localCustomers = [...customers];
+      
+      if (dataType === 'ventes_completes') {
+        const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
+        const groupedByTicket = new Map<string, any[]>();
+        jsonData.forEach((row, index) => {
+          const ticketNum = row.ticketNumber;
+          if (!ticketNum) { addError(index, 'Numéro de pièce manquant.'); return; }
+          if (!groupedByTicket.has(ticketNum)) groupedByTicket.set(ticketNum, []);
+          groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: index + 1 });
         });
-    
-        const addError = (line: number, message: string) => {
-            report.errorCount++;
-            report.errors.push(`Ligne ${line + 1}: ${message}`);
-        };
-    
-        let localCategories = [...categories];
-        let localItems = [...items];
-        let localCustomers = [...customers];
-    
-        if (dataType === 'ventes_completes') {
-            const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
-            const groupedByTicket = new Map<string, any[]>();
+        
+        const salesToProcess = importLimit > 0 ? Array.from(groupedByTicket.values()).slice(0, importLimit) : Array.from(groupedByTicket.values());
+
+        for (const rows of salesToProcess) {
+          const firstRow = rows[0];
+          const ticketNumber = firstRow.ticketNumber;
+
+          if (existingSaleNumbers.has(ticketNumber)) {
+            addError(firstRow.originalIndex, `La pièce #${ticketNumber} existe déjà.`);
+            continue;
+          }
+          
+          try {
+            const saleItems: OrderItem[] = [];
+            let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
+            if (!customer && firstRow.customerName) {
+              const newCustomer = await addCustomer({ id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`, name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone, address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity });
+              if (newCustomer) { customer = newCustomer; report.newCustomersCount = (report.newCustomersCount || 0) + 1; localCustomers.push(newCustomer); }
+            }
+            
+            for (const row of rows) {
+              if (!row.itemBarcode) {
+                if (saleItems.length > 0 && row.itemName) {
+                  saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim();
+                }
+                continue;
+              }
+              
+              let item = localItems.find(i => i.barcode === row.itemBarcode);
+              if (!item && row.itemName) {
+                const categoryName = row.itemCategory || 'Importé';
+                let category = localCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+                if (!category) {
+                  const newCategory = await addCategory({ name: categoryName });
+                  if (newCategory) { category = newCategory; localCategories.push(newCategory); }
+                }
                 
-            jsonData.forEach((row, index) => {
-                const ticketNum = row.ticketNumber;
-                if (!ticketNum) {
-                    addError(index, 'Numéro de pièce manquant.');
-                    return;
+                let vat = vatRates.find(v => v.code === parseInt(row.vatCode)) || vatRates[0];
+                
+                const newItem = await addItem({ name: row.itemName, barcode: row.itemBarcode, price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100), purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '' });
+                if(newItem) { item = newItem; report.newItemsCount = (report.newItemsCount || 0) + 1; localItems.push(newItem); }
+              }
+
+              if (item) {
+                const vatInfo = vatRates.find(v => v.id === item.vatId);
+                const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
+                const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
+                const total = priceTTC * row.quantity - discountAmount;
+                saleItems.push({ id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId, quantity: row.quantity, total, discount: discountAmount, discountPercent: row.discountPercentage, barcode: item.barcode!, });
+              }
+            }
+            
+            const dateString = firstRow.saleDate;
+            const timeString = firstRow.saleTime || '00:00';
+            const fullDateTimeString = `${dateString} ${timeString}`;
+            const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+
+            if (!isValid(parsed)) throw new Error('Format de date invalide.');
+
+            const total = saleItems.reduce((sum, i) => sum + i.total, 0);
+            const totalTax = saleItems.reduce((sum, i) => {
+                const vat = vatRates.find(v => v.id === i.vatId);
+                return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
+            }, 0);
+            
+            const payments: Payment[] = [];
+            ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(key => {
+                if (firstRow[key] > 0) {
+                    const method = paymentMethods.find(pm => pm.name === {paymentCash: 'Espèces', paymentCard: 'Carte Bancaire', paymentCheck: 'Chèque', paymentOther: 'AUTRE'}[key]);
+                    if (method) payments.push({ method, amount: firstRow[key], date: parsed });
                 }
-                if (!groupedByTicket.has(ticketNum)) {
-                    groupedByTicket.set(ticketNum, []);
-                }
-                groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: index + 1 });
             });
             
-            const salesToProcess = importLimit > 0 ? Array.from(groupedByTicket.values()).slice(0, importLimit) : Array.from(groupedByTicket.values());
+            const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+            const isPaid = totalPaid >= total - 0.01;
 
-            for (const rows of salesToProcess) {
-                const firstRow = rows[0];
-                const ticketNumber = firstRow.ticketNumber;
-
-                if (existingSaleNumbers.has(ticketNumber)) {
-                    addError(firstRow.originalIndex, `La pièce #${ticketNumber} existe déjà.`);
-                    continue;
-                }
-                
-                try {
-                    // This logic will now be run for each sales document group
-                } catch (e: any) {
-                    addError(firstRow.originalIndex, `Erreur sur pièce ${ticketNumber}: ${e.message}`);
-                }
-            }
-             for (const rows of salesToProcess) {
-                const firstRow = rows[0];
-                const ticketNumber = firstRow.ticketNumber;
-
-                // This check is now redundant because of the new logic structure, but kept for safety.
-                if (existingSaleNumbers.has(ticketNumber)) {
-                    continue;
-                }
-
-                // ... [rest of the logic for processing a single sale document]
-                
-                let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
-                if (!customer && firstRow.customerName) {
-                    const newCustomer = await addCustomer({
-                        id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
-                        name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
-                        address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
-                    });
-                    if (newCustomer) {
-                        customer = newCustomer;
-                        report.newCustomersCount = (report.newCustomersCount || 0) + 1;
-                        localCustomers.push(newCustomer);
-                    }
-                }
-                
-                for (const row of rows) {
-                    if (!row.itemBarcode) continue;
-                    let item = localItems.find(i => i.barcode === row.itemBarcode);
-                    if (!item && row.itemName) {
-                        let categoryName = row.itemCategory || 'Importé';
-                        let category = localCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
-                        if (!category) {
-                            const newCategory = await addCategory({ name: categoryName });
-                            if (newCategory) {
-                                category = newCategory;
-                                localCategories.push(newCategory);
-                            }
-                        }
-                        
-                        let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
-                        if (!vat) vat = vatRates[0];
-                         
-                        const newItem = await addItem({
-                            name: row.itemName, barcode: row.itemBarcode,
-                            price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
-                            purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
-                        });
-                        if (newItem) {
-                            item = newItem;
-                            report.newItemsCount = (report.newItemsCount || 0) + 1;
-                            localItems.push(newItem);
-                        }
-                    }
-                }
-
-                report.newSalesCount = (report.newSalesCount || 0) + 1;
-                existingSaleNumbers.add(ticketNumber);
-            }
-
-        } else {
-            const dataToProcess = importLimit > 0 ? jsonData.slice(0, importLimit) : jsonData;
-            for (const [index, row] of dataToProcess.entries()) {
-                try {
-                    if (dataType === 'clients') {
-                         if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
-                        if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
-                        await addCustomer(row);
-                    } else if (dataType === 'articles') {
-                        if (!row.barcode || !row.name || !row.price || !row.vatCode) throw new Error("Champs article requis : barcode, name, price, vatCode");
-                        if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
-                        const vat = vatRates.find(v => v.code === parseInt(row.vatCode));
-                        if(!vat) throw new Error(`Code TVA ${row.vatCode} non trouvé.`);
-                        await addItem({...row, vatId: vat.id});
-                    } else if (dataType === 'fournisseurs') {
-                         if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
-                        if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
-                        await addSupplier(row);
-                    }
-                    report.successCount++;
-                } catch (e: any) { addError(index, e.message); }
-            }
+            const newSale: Omit<Sale, 'id'> = { ticketNumber, date: parsed, items: saleItems, subtotal: total - totalTax, tax: totalTax, total, payments, status: isPaid ? 'paid' : 'pending', customerId: customer?.id, documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any, userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import', };
+            
+            await recordSale(newSale);
+            report.newSalesCount = (report.newSalesCount || 0) + 1;
+            existingSaleNumbers.add(ticketNumber);
+          } catch (e: any) { addError(rows[0].originalIndex, `Erreur sur pièce ${rows[0].ticketNumber}: ${e.message}`); }
         }
-        
-        shadcnToast({
-            title: "Importation terminée !",
-            description: `${report.successCount} succès, ${report.errorCount} échecs.`
-        });
-        return report;
+      } else {
+        const dataToProcess = importLimit > 0 ? jsonData.slice(0, importLimit) : jsonData;
+        for (const [index, row] of dataToProcess.entries()) {
+          try {
+            if (dataType === 'clients') {
+              if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
+              if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
+              await addCustomer(row);
+            } else if (dataType === 'articles') {
+              if (!row.barcode || !row.name || !row.price || !row.vatCode) throw new Error("Champs article requis : barcode, name, price, vatCode");
+              if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
+              const vat = vatRates.find(v => v.code === parseInt(row.vatCode));
+              if(!vat) throw new Error(`Code TVA ${row.vatCode} non trouvé.`);
+              await addItem({...row, vatId: vat.id});
+            } else if (dataType === 'fournisseurs') {
+              if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
+              if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
+              await addSupplier(row);
+            }
+            report.successCount++;
+          } catch (e: any) { addError(index, e.message); }
+        }
+      }
+      shadcnToast({ title: "Importation terminée !", description: `${report.successCount} succès, ${report.errorCount} échecs.` });
+      return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast, importLimit]);
 
   const value: PosContextType = {
