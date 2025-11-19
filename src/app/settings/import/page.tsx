@@ -31,7 +31,20 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogClose, DialogFooter as ReportDialogFooter, DialogHeader as ReportDialogHeader, DialogTitle as ReportDialogTitle, DialogDescription as ReportDialogDescription, DialogContent as ReportDialogContent } from '@/components/ui/dialog';
+import { 
+    Dialog, 
+    DialogClose, 
+    DialogFooter as ReportDialogFooter, 
+    DialogHeader as ReportDialogHeader, 
+    DialogTitle as ReportDialogTitle, 
+    DialogDescription as ReportDialogDescription, 
+    DialogContent as ReportDialogContent,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
