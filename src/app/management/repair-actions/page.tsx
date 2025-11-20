@@ -142,7 +142,7 @@ export default function ServiceSettingsPage() {
                       {isLoading && Array.from({length: 3}).map((_, i) => (
                           <TableRow key={i}><TableCell colSpan={2}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                       ))}
-                      {!isLoading && repairActionPresets.map(preset => (
+                      {!isLoading && repairActionPresets && repairActionPresets.map(preset => (
                           <TableRow key={preset.id}>
                               <TableCell className="font-medium">{preset.name}</TableCell>
                               <TableCell className="text-right">
@@ -151,7 +151,7 @@ export default function ServiceSettingsPage() {
                               </TableCell>
                           </TableRow>
                       ))}
-                      {!isLoading && repairActionPresets.length === 0 && (
+                      {!isLoading && (!repairActionPresets || repairActionPresets.length === 0) && (
                         <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Aucune action définie.</TableCell></TableRow>
                       )}
                   </TableBody>
@@ -173,7 +173,7 @@ export default function ServiceSettingsPage() {
                 {isLoading && Array.from({length: 3}).map((_, i) => (
                   <TableRow key={i}><TableCell colSpan={3}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                 ))}
-                {!isLoading && equipmentTypes.map(type => (
+                {!isLoading && equipmentTypes && equipmentTypes.map(type => (
                   <TableRow key={type.id}>
                     <TableCell className="font-medium">{type.name}</TableCell>
                     <TableCell className="text-right font-semibold">{type.price.toFixed(2)}€</TableCell>
@@ -183,7 +183,7 @@ export default function ServiceSettingsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!isLoading && equipmentTypes.length === 0 && (
+                {!isLoading && (!equipmentTypes || equipmentTypes.length === 0) && (
                   <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground h-24">Aucun type de matériel défini.</TableCell></TableRow>
                 )}
               </TableBody>
