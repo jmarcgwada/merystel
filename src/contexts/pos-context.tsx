@@ -36,6 +36,7 @@ import type {
   Payment,
   SupportTicket,
   RepairActionPreset,
+  EquipmentType,
   FormSubmission,
 } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
@@ -81,6 +82,7 @@ export type DeletableDataKeys =
   | 'dunningLogs'
   | 'supportTickets'
   | 'repairActionPresets'
+  | 'equipmentTypes'
   | 'formSubmissions';
 
 export interface ImportReport {
@@ -237,6 +239,10 @@ export interface PosContextType {
   addRepairActionPreset: (preset: Omit<RepairActionPreset, 'id'|'createdAt'|'updatedAt'>) => Promise<RepairActionPreset | null>;
   updateRepairActionPreset: (preset: RepairActionPreset) => Promise<void>;
   deleteRepairActionPreset: (presetId: string) => Promise<void>;
+  equipmentTypes: EquipmentType[];
+  addEquipmentType: (equipmentType: Omit<EquipmentType, 'id'|'createdAt'|'updatedAt'>) => Promise<EquipmentType | null>;
+  updateEquipmentType: (equipmentType: EquipmentType) => Promise<void>;
+  deleteEquipmentType: (equipmentTypeId: string) => Promise<void>;
   isNavConfirmOpen: boolean;
   showNavConfirm: (url: string) => void;
   closeNavConfirm: () => void;
@@ -315,6 +321,8 @@ export interface PosContextType {
   setIsForcedMode: React.Dispatch<React.SetStateAction<boolean>>;
   requirePinForAdmin: boolean;
   setRequirePinForAdmin: React.Dispatch<React.SetStateAction<boolean>>;
+  autoInvoiceOnSupportTicket: boolean;
+  setAutoInvoiceOnSupportTicket: React.Dispatch<React.SetStateAction<boolean>>;
   directSaleBackgroundColor: string;
   setDirectSaleBackgroundColor: React.Dispatch<React.SetStateAction<string>>;
   restaurantModeBackgroundColor: string;
@@ -388,7 +396,6 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -447,6 +454,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
   const [supportTickets, setSupportTickets, rehydrateSupportTickets] = usePersistentState<SupportTicket[]>('data.supportTickets', []);
   const [repairActionPresets, setRepairActionPresets, rehydrateRepairActionPresets] = usePersistentState<RepairActionPreset[]>('data.repairActionPresets', []);
+  const [equipmentTypes, setEquipmentTypes, rehydrateEquipmentTypes] = usePersistentState<EquipmentType[]>('data.equipmentTypes', []);
   const [formSubmissions, setFormSubmissions, rehydrateFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
   const [tempFormSubmissions, setTempFormSubmissions, rehydrateTempFormSubmissions] = usePersistentState<Record<string, FormSubmission>>('data.tempFormSubmissions', {});
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
@@ -475,6 +483,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [defaultSalesMode, setDefaultSalesMode] = usePersistentState<'pos' | 'supermarket' | 'restaurant'>('settings.defaultSalesMode', 'pos');
   const [isForcedMode, setIsForcedMode] = usePersistentState('settings.isForcedMode', false);
   const [requirePinForAdmin, setRequirePinForAdmin] = usePersistentState('settings.requirePinForAdmin', false);
+  const [autoInvoiceOnSupportTicket, setAutoInvoiceOnSupportTicket] = usePersistentState('settings.autoInvoiceOnSupportTicket', false);
   const [directSaleBackgroundColor, setDirectSaleBackgroundColor] = usePersistentState('settings.directSaleBgColor', '#ffffff');
   const [restaurantModeBackgroundColor, setRestaurantModeBackgroundColor] = usePersistentState('settings.restaurantModeBgColor', '#eff6ff');
   const [directSaleBgOpacity, setDirectSaleBgOpacity] = usePersistentState('settings.directSaleBgOpacity', 15);
@@ -675,11 +684,49 @@ export function PosProvider({ children }: { children: ReactNode }) {
       createdAt: new Date(),
       status: 'Ouvert',
     };
+
+    if (autoInvoiceOnSupportTicket) {
+      const serviceItem = items.find(item => item.id === 'PRISE_EN_CHARGE');
+      if (!serviceItem) {
+        toast({
+          variant: 'destructive',
+          title: "Article 'PRISE_EN_CHARGE' manquant",
+          description: "Veuillez créer un article avec l'ID 'PRISE_EN_CHARGE' pour facturer automatiquement.",
+          duration: 7000
+        });
+      } else if (ticketData.amount && ticketData.amount > 0) {
+        const vatInfo = vatRates.find(v => v.id === serviceItem.vatId);
+        if (!vatInfo) {
+           toast({ variant: 'destructive', title: "TVA manquante", description: "L'article de prise en charge doit avoir une TVA."});
+        } else {
+            const amountTTC = ticketData.amount;
+            const amountHT = amountTTC / (1 + vatInfo.rate / 100);
+            const taxAmount = amountTTC - amountHT;
+            
+            const saleItem = {
+              id: uuidv4(), itemId: serviceItem.id, name: serviceItem.name,
+              price: amountTTC, quantity: 1, total: amountTTC, vatId: serviceItem.vatId,
+              discount: 0, barcode: serviceItem.barcode!,
+              description: `Type: ${ticketData.equipmentType}\nMarque: ${ticketData.equipmentBrand}\nModèle: ${ticketData.equipmentModel}\nPanne: ${ticketData.issueDescription}`
+            };
+
+            const newSale = await recordSale({
+                items: [saleItem], customerId: ticketData.customerId, subtotal: amountHT, tax: taxAmount,
+                total: amountTTC, status: 'pending', payments: [], documentType: 'invoice'
+            });
+
+            if (newSale) {
+                newTicket.saleId = newSale.id;
+                newTicket.status = 'Facturé';
+            }
+        }
+      }
+    }
     
     setSupportTickets(prev => [newTicket, ...prev]);
     toast({ title: 'Prise en charge créée', description: `La fiche #${ticketNumber} a été enregistrée.` });
     return newTicket;
-  }, [supportTickets, setSupportTickets, toast]);
+  }, [supportTickets, setSupportTickets, toast, autoInvoiceOnSupportTicket, items, vatRates, recordSale]);
 
   const updateSupportTicket = useCallback(async (ticketData: SupportTicket) => {
     setSupportTickets(prev => prev.map(t => t.id === ticketData.id ? { ...ticketData, updatedAt: new Date() } : t));
@@ -704,6 +751,20 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const deleteRepairActionPreset = useCallback(async (presetId: string) => {
     setRepairActionPresets(prev => prev.filter(p => p.id !== presetId));
   }, [setRepairActionPresets]);
+  
+  const addEquipmentType = useCallback(async (equipmentType: Omit<EquipmentType, 'id'|'createdAt'|'updatedAt'>): Promise<EquipmentType | null> => {
+    const newEquipmentType = { ...equipmentType, id: uuidv4(), createdAt: new Date() };
+    setEquipmentTypes(prev => [...prev, newEquipmentType]);
+    return newEquipmentType;
+  }, [setEquipmentTypes]);
+  
+  const updateEquipmentType = useCallback(async (equipmentType: EquipmentType) => {
+      setEquipmentTypes(prev => prev.map(e => e.id === equipmentType.id ? { ...equipmentType, updatedAt: new Date() } : e));
+  }, [setEquipmentTypes]);
+  
+  const deleteEquipmentType = useCallback(async (equipmentTypeId: string) => {
+      setEquipmentTypes(prev => prev.filter(e => e.id !== equipmentTypeId));
+  }, [setEquipmentTypes]);
 
   const clearOrder = useCallback(() => {
     setOrder([]);
@@ -789,6 +850,12 @@ export function PosProvider({ children }: { children: ReactNode }) {
       { id: uuidv4(), name: 'GARDER POUR DESTRUCTION OU AUTRE', createdAt: new Date() },
     ];
     setRepairActionPresets(defaultRepairActions);
+    
+    const defaultEquipmentTypes: EquipmentType[] = [
+        { id: 'eq_phone', name: 'Téléphone', price: 20, createdAt: new Date() },
+        { id: 'eq_pc', name: 'PC Portable', price: 40, createdAt: new Date() },
+    ];
+    setEquipmentTypes(defaultEquipmentTypes);
 
     const noteItemId = 'NOTE_ITEM';
     const noteItem: Item = {
@@ -807,7 +874,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     }
 
     toast({ title: 'Données initialisées', description: 'TVA, méthodes de paiement et actions de réparation par défaut créées.' });
-  }, [categories.length, vatRates.length, items, setVatRates, setPaymentMethods, setRepairActionPresets, setItems, toast]);
+  }, [categories.length, vatRates.length, items, setVatRates, setPaymentMethods, setRepairActionPresets, setItems, toast, setEquipmentTypes]);
     
   const importDemoData = useCallback(async () => {
     const newCategories: Category[] = [];
@@ -892,6 +959,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     setPaiementsPartiels([]);
     setSupportTickets([]);
     setRepairActionPresets([]);
+    setEquipmentTypes([]);
     setFormSubmissions([]);
     setTempFormSubmissions({});
     setCompanyInfo(null);
@@ -907,7 +975,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
     setPaymentMethods, setVatRates, setCompanyInfo, setAuditLogs, setDunningLogs,
-    setCheques, setRemises, setPaiementsPartiels, setSupportTickets, setRepairActionPresets, setFormSubmissions, setTempFormSubmissions,
+    setCheques, setRemises, setPaiementsPartiels, setSupportTickets, setRepairActionPresets, setEquipmentTypes,
+    setFormSubmissions, setTempFormSubmissions,
     toast, seedInitialData, importDemoData, importDemoCustomers, importDemoSuppliers, setHeldOrders
   ]);
   
@@ -929,12 +998,13 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if (dataToReset.dunningLogs) setDunningLogs([]);
     if (dataToReset.supportTickets) setSupportTickets([]);
     if (dataToReset.repairActionPresets) setRepairActionPresets([]);
+    if (dataToReset.equipmentTypes) setEquipmentTypes([]);
     if (dataToReset.formSubmissions) { setFormSubmissions([]); setTempFormSubmissions({}); }
     toast({ title: 'Données sélectionnées supprimées !' });
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, 
     setPaymentMethods, setVatRates, setHeldOrders, setAuditLogs, setCheques, 
-    setRemises, setPaiementsPartiels, setDunningLogs, setSupportTickets, setRepairActionPresets, 
+    setRemises, setPaiementsPartiels, setDunningLogs, setSupportTickets, setRepairActionPresets, setEquipmentTypes,
     setFormSubmissions, setTempFormSubmissions, toast
   ]);
   
@@ -999,10 +1069,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
         companyInfo,
         users,
         mappingTemplates,
-        repairActionPresets
+        repairActionPresets,
+        equipmentTypes,
     };
     return JSON.stringify(config, null, 2);
-  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, mappingTemplates, repairActionPresets]);
+  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, mappingTemplates, repairActionPresets, equipmentTypes]);
 
   const importConfiguration = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -1020,24 +1091,25 @@ export function PosProvider({ children }: { children: ReactNode }) {
             if (config.users) setUsers(config.users);
             if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
             if (config.repairActionPresets) setRepairActionPresets(config.repairActionPresets);
+            if (config.equipmentTypes) setEquipmentTypes(config.equipmentTypes);
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, setRepairActionPresets, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, setRepairActionPresets, setEquipmentTypes, toast]);
   
     const exportFullData = useCallback(() => {
     const allData = {
         items, categories, customers, suppliers, tables: tablesData, sales, heldOrders,
         paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises,
-        supportTickets, repairActionPresets,
+        supportTickets, repairActionPresets, equipmentTypes,
         formSubmissions,
         companyInfo, users, mappingTemplates
     };
     return JSON.stringify(allData, null, 2);
-  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, supportTickets, repairActionPresets, formSubmissions, companyInfo, users, mappingTemplates]);
+  }, [items, categories, customers, suppliers, tablesData, sales, heldOrders, paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises, supportTickets, repairActionPresets, equipmentTypes, formSubmissions, companyInfo, users, mappingTemplates]);
 
   const importFullData = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -1048,7 +1120,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
                 rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers,
                 rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates,
                 rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs, rehydrateCheques,
-                rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets,
+                rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets, rehydrateEquipmentTypes,
                 rehydrateFormSubmissions, 
                 rehydrateCompanyInfo, rehydrateUsers,
                 rehydrateMappingTemplates
@@ -1070,6 +1142,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
             if (data.remises) setRemises(data.remises);
             if (data.supportTickets) setSupportTickets(data.supportTickets);
             if (data.repairActionPresets) setRepairActionPresets(data.repairActionPresets);
+            if (data.equipmentTypes) setEquipmentTypes(data.equipmentTypes);
             if (data.formSubmissions) setFormSubmissions(data.formSubmissions);
             if (data.companyInfo) setCompanyInfo(data.companyInfo);
             if (data.users) setUsers(data.users);
@@ -1085,11 +1158,11 @@ export function PosProvider({ children }: { children: ReactNode }) {
     reader.readAsText(file);
   }, [
       setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods,
-      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setSupportTickets, setRepairActionPresets,
+      setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises, setSupportTickets, setRepairActionPresets, setEquipmentTypes,
       setFormSubmissions, setCompanyInfo, setUsers, setMappingTemplates, toast,
       rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers, rehydrateTables, rehydrateSales,
       rehydratePaymentMethods, rehydrateVatRates, rehydrateHeldOrders, rehydrateAuditLogs, rehydrateDunningLogs,
-      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets, rehydrateFormSubmissions, rehydrateCompanyInfo, rehydrateUsers,
+      rehydrateCheques, rehydratePaiementsPartiels, rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets, rehydrateEquipmentTypes, rehydrateFormSubmissions, rehydrateCompanyInfo, rehydrateUsers,
       rehydrateMappingTemplates
   ]);
   
@@ -2182,6 +2255,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       remises, addRemise,
       supportTickets, addSupportTicket, updateSupportTicket, deleteSupportTicket,
       repairActionPresets, addRepairActionPreset, updateRepairActionPreset, deleteRepairActionPreset,
+      equipmentTypes, addEquipmentType, updateEquipmentType, deleteEquipmentType,
       isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
       seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
@@ -2195,6 +2269,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       showDashboardStats, setShowDashboardStats,
       enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
       enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
+      autoInvoiceOnSupportTicket, setAutoInvoiceOnSupportTicket,
       directSaleBackgroundColor, setDirectSaleBackgroundColor,
       restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
       dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
