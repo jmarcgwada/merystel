@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Plus, Edit, Trash2, ArrowLeft, LayoutDashboard, RefreshCw, Wrench } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -25,6 +25,8 @@ import Link from 'next/link';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 export default function ServiceSettingsPage() {
   const { 
@@ -127,69 +129,88 @@ export default function ServiceSettingsPage() {
             </Button>
         </div>
       </PageHeader>
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <Card>
-          <CardHeader>
-            <CardTitle>Actions de Réparation Prédéfinies</CardTitle>
-            <Button onClick={() => handleOpenActionDialog()} size="sm" className="absolute top-4 right-4">
-              <Plus className="mr-2 h-4 w-4" /> Ajouter
-            </Button>
-          </CardHeader>
-          <CardContent>
-              <Table>
-                  <TableHeader><TableRow><TableHead>Nom de l'action</TableHead><TableHead className="w-[100px] text-right">Actions</TableHead></TableRow></TableHeader>
+      <div className="mt-8">
+        <Tabs defaultValue="actions">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="actions">Actions de Réparation</TabsTrigger>
+            <TabsTrigger value="equipment">Types de Matériel</TabsTrigger>
+          </TabsList>
+          <TabsContent value="actions">
+            <Card className="mt-4">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Actions Prédéfinies</CardTitle>
+                    <CardDescription>Actions communes pour le suivi des réparations.</CardDescription>
+                  </div>
+                  <Button onClick={() => handleOpenActionDialog()} size="sm">
+                    <Plus className="mr-2 h-4 w-4" /> Ajouter une action
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                  <Table>
+                      <TableHeader><TableRow><TableHead>Nom de l'action</TableHead><TableHead className="w-[100px] text-right">Actions</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                          {isLoading && Array.from({length: 3}).map((_, i) => (
+                              <TableRow key={i}><TableCell colSpan={2}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                          ))}
+                          {!isLoading && repairActionPresets && repairActionPresets.map(preset => (
+                              <TableRow key={preset.id}>
+                                  <TableCell className="font-medium">{preset.name}</TableCell>
+                                  <TableCell className="text-right">
+                                      <Button variant="ghost" size="icon" onClick={() => handleOpenActionDialog(preset)}><Edit className="h-4 w-4"/></Button>
+                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setActionToDelete(preset)}><Trash2 className="h-4 w-4"/></Button>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                          {!isLoading && (!repairActionPresets || repairActionPresets.length === 0) && (
+                            <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Aucune action définie.</TableCell></TableRow>
+                          )}
+                      </TableBody>
+                  </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="equipment">
+             <Card className="mt-4">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Types de Matériel</CardTitle>
+                    <CardDescription>Définissez les types de matériel et leur tarif de prise en charge.</CardDescription>
+                  </div>
+                  <Button onClick={() => handleOpenEquipmentDialog()} size="sm">
+                    <Plus className="mr-2 h-4 w-4" /> Ajouter un type
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead className="text-right">Tarif de Prise en Charge</TableHead><TableHead className="w-[100px] text-right">Actions</TableHead></TableRow></TableHeader>
                   <TableBody>
-                      {isLoading && Array.from({length: 3}).map((_, i) => (
-                          <TableRow key={i}><TableCell colSpan={2}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
-                      ))}
-                      {!isLoading && repairActionPresets && repairActionPresets.map(preset => (
-                          <TableRow key={preset.id}>
-                              <TableCell className="font-medium">{preset.name}</TableCell>
-                              <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={() => handleOpenActionDialog(preset)}><Edit className="h-4 w-4"/></Button>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setActionToDelete(preset)}><Trash2 className="h-4 w-4"/></Button>
-                              </TableCell>
-                          </TableRow>
-                      ))}
-                      {!isLoading && (!repairActionPresets || repairActionPresets.length === 0) && (
-                        <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground h-24">Aucune action définie.</TableCell></TableRow>
-                      )}
+                    {isLoading && Array.from({length: 3}).map((_, i) => (
+                      <TableRow key={i}><TableCell colSpan={3}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                    ))}
+                    {!isLoading && equipmentTypes && equipmentTypes.map(type => (
+                      <TableRow key={type.id}>
+                        <TableCell className="font-medium">{type.name}</TableCell>
+                        <TableCell className="text-right font-semibold">{type.price.toFixed(2)}€</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEquipmentDialog(type)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setEquipmentToDelete(type)}><Trash2 className="h-4 w-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {!isLoading && (!equipmentTypes || equipmentTypes.length === 0) && (
+                      <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground h-24">Aucun type de matériel défini.</TableCell></TableRow>
+                    )}
                   </TableBody>
-              </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Types de Matériel</CardTitle>
-            <Button onClick={() => handleOpenEquipmentDialog()} size="sm" className="absolute top-4 right-4">
-              <Plus className="mr-2 h-4 w-4" /> Ajouter
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Nom</TableHead><TableHead className="text-right">Tarif de Prise en Charge</TableHead><TableHead className="w-[100px] text-right">Actions</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {isLoading && Array.from({length: 3}).map((_, i) => (
-                  <TableRow key={i}><TableCell colSpan={3}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
-                ))}
-                {!isLoading && equipmentTypes && equipmentTypes.map(type => (
-                  <TableRow key={type.id}>
-                    <TableCell className="font-medium">{type.name}</TableCell>
-                    <TableCell className="text-right font-semibold">{type.price.toFixed(2)}€</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenEquipmentDialog(type)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setEquipmentToDelete(type)}><Trash2 className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!isLoading && (!equipmentTypes || equipmentTypes.length === 0) && (
-                  <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground h-24">Aucun type de matériel défini.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
        <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
