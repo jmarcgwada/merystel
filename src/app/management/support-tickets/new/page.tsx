@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
-import type { Customer, Item } from '@/lib/types';
+import type { Customer, Item, EquipmentType } from '@/lib/types';
 import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { ItemSelectionDialog } from './components/item-selection-dialog';
@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 import { EditItemDialog } from '@/app/management/items/components/edit-item-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const formSchema = z.object({
   customerId: z.string().min(1, 'Un client est requis.'),
@@ -42,7 +43,7 @@ type SupportTicketFormValues = z.infer<typeof formSchema>;
 function NewSupportTicketPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { customers, items, addSupportTicket } = usePos();
+  const { customers, items, addSupportTicket, equipmentTypes } = usePos();
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [isItemSearchOpen, setItemSearchOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -103,6 +104,14 @@ function NewSupportTicketPageContent() {
     form.setValue('equipmentModel', '');
     setItemSearchOpen(false);
   };
+  
+  const handleEquipmentTypeChange = (value: string) => {
+    form.setValue('equipmentType', value);
+    const selectedType = equipmentTypes.find(et => et.name === value);
+    if(selectedType) {
+        form.setValue('amount', selectedType.price);
+    }
+  }
 
   const onSubmit = async (data: SupportTicketFormValues) => {
     const newTicket = await addSupportTicket(data);
@@ -220,7 +229,30 @@ function NewSupportTicketPageContent() {
                             </CardContent>
                           </Card>
                         )}
-                        <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField
+                            control={form.control}
+                            name="equipmentType"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Type de matériel *</FormLabel>
+                                <Select onValueChange={handleEquipmentTypeChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner ou saisir un type..." />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {equipmentTypes.map((type) => (
+                                            <SelectItem key={type.id} value={type.name}>
+                                                {type.name} ({type.price.toFixed(2)}€)
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="equipmentNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le matériel</FormLabel><FormControl><Textarea placeholder="ex: Rayure sur le capot, un port USB défectueux..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />

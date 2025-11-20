@@ -193,7 +193,7 @@ function EditSupportTicketPageContent() {
   const params = useParams();
   const { ticketId } = params;
   
-  const { customers, items, supportTickets, updateSupportTicket } = usePos();
+  const { customers, items, supportTickets, updateSupportTicket, equipmentTypes } = usePos();
   const [isCustomerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [isItemSearchOpen, setItemSearchOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -256,6 +256,14 @@ function EditSupportTicketPageContent() {
     form.setValue('equipmentModel', '');
     setItemSearchOpen(false);
   };
+
+  const handleEquipmentTypeChange = (value: string) => {
+    form.setValue('equipmentType', value);
+    const selectedType = equipmentTypes.find(et => et.name === value);
+    if(selectedType) {
+        form.setValue('amount', selectedType.price);
+    }
+  }
 
   const onSubmit = async (data: SupportTicketFormValues) => {
     if (!ticketToEdit) return;
@@ -339,7 +347,30 @@ function EditSupportTicketPageContent() {
                       <CardContent className="space-y-6">
                           <div className="flex justify-end"><Button type="button" variant="secondary" onClick={() => setItemSearchOpen(true)} disabled={isTicketInvoiced}><PackageSearch className="mr-2 h-4 w-4" /> Lier à un article de la base</Button></div>
                            {selectedItem && (<Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-base">Article lié</CardTitle><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditItemOpen(true)} disabled={isTicketInvoiced}><Pencil className="h-4 w-4"/></Button></CardHeader><CardContent className="flex items-center gap-4">{selectedItem.image && <Image src={selectedItem.image} alt={selectedItem.name} width={64} height={64} className="rounded-md object-cover" />}<div className="space-y-1 text-sm"><p className="font-bold">{selectedItem.name}</p><p className="text-muted-foreground">Réf: {selectedItem.barcode}</p><p className="text-muted-foreground">Prix: {selectedItem.price.toFixed(2)}€</p></div></CardContent></Card>)}
-                          <FormField control={form.control} name="equipmentType" render={({ field }) => (<FormItem><FormLabel>Type de matériel *</FormLabel><FormControl><Input placeholder="ex: Ordinateur portable" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormField
+                            control={form.control}
+                            name="equipmentType"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Type de matériel *</FormLabel>
+                                <Select onValueChange={handleEquipmentTypeChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Sélectionner ou saisir un type..." />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {equipmentTypes.map((type) => (
+                                            <SelectItem key={type.id} value={type.name}>
+                                                {type.name} ({type.price.toFixed(2)}€)
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                           <FormField control={form.control} name="equipmentBrand" render={({ field }) => (<FormItem><FormLabel>Marque *</FormLabel><FormControl><Input placeholder="ex: Apple" {...field} /></FormControl><FormMessage /></FormItem>)} />
                           <FormField control={form.control} name="equipmentModel" render={({ field }) => (<FormItem><FormLabel>Modèle *</FormLabel><FormControl><Input placeholder="ex: MacBook Pro 14" {...field} /></FormControl><FormMessage /></FormItem>)} />
                           <FormField control={form.control} name="equipmentNotes" render={({ field }) => (<FormItem><FormLabel>Observations sur le matériel</FormLabel><FormControl><Textarea placeholder="ex: Rayure sur le capot, un port USB défectueux..." {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
@@ -368,7 +399,7 @@ function EditSupportTicketPageContent() {
       <CustomerSelectionDialog isOpen={isCustomerSearchOpen} onClose={() => setCustomerSearchOpen(false)} onCustomerSelected={onCustomerSelected} />
       <ItemSelectionDialog isOpen={isItemSearchOpen} onClose={() => setItemSearchOpen(false)} onItemSelected={onItemSelect} />
       {selectedCustomer && (<EditCustomerDialog isOpen={isEditCustomerOpen} onClose={() => setEditCustomerOpen(false)} customer={selectedCustomer} />)}
-      {selectedItem && (<EditItemDialog isOpen={isEditItemOpen} onClose={() => setEditItemOpen(false)} item={selectedItem} onItemUpdated={() => {}}/>)}
+      {selectedItem && (<EditItemDialog isOpen={isEditItemOpen} onClose={() => setEditItemOpen(false)} item={selectedItem} onItemSaved={() => {}}/>)}
     </>
   );
 }
