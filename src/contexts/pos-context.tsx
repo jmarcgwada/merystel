@@ -673,6 +673,72 @@ export function PosProvider({ children }: { children: ReactNode }) {
     return newRemise;
   }, [setRemises]);
 
+  const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
+    let finalSale: Sale;
+
+    if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
+        const existingSale = sales.find(s => s.id === saleIdToUpdate);
+        if (!existingSale) return null;
+        
+        finalSale = {
+            ...existingSale,
+            ...saleData,
+            date: existingSale.date, // Preserve original date on update
+            modifiedAt: new Date(), 
+        };
+    } else {
+        const today = new Date();
+        const dayMonth = format(today, 'ddMM');
+        let ticketNumber: string;
+        let newId = uuidv4();
+
+        if (saleData.documentType === 'invoice') {
+            const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
+            ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
+        } else {
+            const todaysSalesCount = sales.filter(s => {
+                const saleDate = new Date(s.date as Date);
+                return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
+            }).length;
+            ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
+        }
+        
+        finalSale = {
+            id: newId,
+            ticketNumber,
+            ...saleData,
+            date: saleData.date || new Date(),
+        };
+    }
+    
+    if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
+        setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: [], closedAt: new Date(), closedByUserId: user?.id} : t));
+    }
+    
+    if (currentSaleId && !currentSaleId.startsWith('table-')) {
+        setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
+    }
+
+    // Handle invoice conversion: update original doc status
+    if (currentSaleContext?.originalSaleId) {
+      setSales(currentSales =>
+        currentSales.map(s =>
+          s.id === currentSaleContext.originalSaleId
+            ? { ...s, status: 'invoiced', modifiedAt: new Date() }
+            : s
+        )
+      );
+    }
+
+    if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
+       setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
+    } else {
+       setSales(prev => [finalSale, ...prev]);
+    }
+
+    return finalSale;
+  }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
+
   const addSupportTicket = useCallback(async (ticketData: Omit<SupportTicket, 'id'|'ticketNumber'|'createdAt'|'status'>): Promise<SupportTicket | null> => {
     const count = supportTickets.length;
     const ticketNumber = `SAV-${(count + 1).toString().padStart(4, '0')}`;
@@ -727,7 +793,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     toast({ title: 'Prise en charge créée', description: `La fiche #${ticketNumber} a été enregistrée.` });
     return newTicket;
   }, [supportTickets, setSupportTickets, toast, autoInvoiceOnSupportTicket, items, vatRates, recordSale]);
-
+  
   const updateSupportTicket = useCallback(async (ticketData: SupportTicket) => {
     setSupportTickets(prev => prev.map(t => t.id === ticketData.id ? { ...ticketData, updatedAt: new Date() } : t));
     toast({ title: 'Prise en charge modifiée' });
@@ -1614,296 +1680,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
   
-    const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
-        let finalSale: Sale;
-    
-        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
-            const existingSale = sales.find(s => s.id === saleIdToUpdate);
-            if (!existingSale) return null;
-            
-            finalSale = {
-                ...existingSale,
-                ...saleData,
-                date: existingSale.date, // Preserve original date on update
-                modifiedAt: new Date(), 
-            };
-        } else {
-            const today = new Date();
-            const dayMonth = format(today, 'ddMM');
-            let ticketNumber: string;
-            let newId = uuidv4();
-    
-            if (saleData.documentType === 'invoice') {
-                const invoiceCount = sales.filter(s => s.documentType === 'invoice').length;
-                ticketNumber = 'Fact-' + (invoiceCount + 1).toString().padStart(4, '0');
-            } else {
-                const todaysSalesCount = sales.filter(s => {
-                    const saleDate = new Date(s.date as Date);
-                    return saleDate.toDateString() === today.toDateString() && s.documentType !== 'invoice';
-                }).length;
-                ticketNumber = 'Tick-' + dayMonth + '-' + (todaysSalesCount + 1).toString().padStart(4, '0');
-            }
-            
-            finalSale = {
-                id: newId,
-                ticketNumber,
-                ...saleData,
-                date: saleData.date || new Date(),
-            };
-        }
-        
-        if (currentSaleContext?.isTableSale && currentSaleContext.tableId) {
-            setTablesData(prev => prev.map(t => t.id === currentSaleContext.tableId ? {...t, status: 'available', order: [], closedAt: new Date(), closedByUserId: user?.id} : t));
-        }
-        
-        if (currentSaleId && !currentSaleId.startsWith('table-')) {
-            setHeldOrders(prev => prev?.filter(o => o.id !== currentSaleId) || null);
-        }
-
-        // Handle invoice conversion: update original doc status
-        if (currentSaleContext?.originalSaleId) {
-          setSales(currentSales =>
-            currentSales.map(s =>
-              s.id === currentSaleContext.originalSaleId
-                ? { ...s, status: 'invoiced', modifiedAt: new Date() }
-                : s
-            )
-          );
-        }
-
-        if (saleIdToUpdate && !saleIdToUpdate.startsWith('table-')) {
-           setSales(prev => prev.map(s => s.id === saleIdToUpdate ? finalSale : s));
-        } else {
-           setSales(prev => [finalSale, ...prev]);
-        }
-    
-        return finalSale;
-    }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
-    
-    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string) => {
-        const today = new Date();
-        const prefixMap = {
-          quote: 'Devis',
-          delivery_note: 'BL',
-          supplier_order: 'CF',
-          invoice: 'Fact',
-          ticket: 'Tick',
-          credit_note: 'Avoir'
-        };
-        const prefix = prefixMap[type] || 'DOC';
-        
-        let finalDoc: Sale;
-
-        // Move temp form submissions to permanent storage
-        const newSubmissions: FormSubmission[] = [];
-        const finalItems = docData.items.map(item => {
-          if (item.formSubmissionId && item.formSubmissionId.startsWith('temp_')) {
-            const tempSubmission = tempFormSubmissions[item.formSubmissionId];
-            if (tempSubmission) {
-              const newSubmissionId = uuidv4();
-              newSubmissions.push({ ...tempSubmission, id: newSubmissionId, orderItemId: item.id });
-              return { ...item, formSubmissionId: newSubmissionId };
-            }
-          }
-          return item;
-        });
-
-        if (newSubmissions.length > 0) {
-            setFormSubmissions(prev => [...prev, ...newSubmissions]);
-            setTempFormSubmissions({});
-        }
-
-        const finalDocData = { ...docData, items: finalItems };
-
-        if (docIdToUpdate) {
-            const existingDoc = sales.find(s => s.id === docIdToUpdate);
-            if (!existingDoc) return;
-            finalDoc = {
-                ...existingDoc,
-                ...finalDocData,
-                documentType: type,
-                modifiedAt: today,
-            };
-            addAuditLog({
-                userId: user?.id || 'system',
-                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-                action: 'update',
-                documentType: type,
-                documentId: finalDoc.id,
-                documentNumber: finalDoc.ticketNumber,
-                details: `Mise à jour de la pièce.`,
-                 richDetails: {
-                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: finalDocData.total,
-                }
-            });
-            setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
-        } else {
-             const count = sales.filter(s => s.documentType === type).length;
-             const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
-             finalDoc = {
-                id: uuidv4(),
-                date: today,
-                ticketNumber: number,
-                documentType: type,
-                userId: user?.id,
-                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
-                ...finalDocData,
-            };
-            addAuditLog({
-                userId: user?.id || 'system',
-                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
-                action: 'create',
-                documentType: type,
-                documentId: finalDoc.id,
-                documentNumber: finalDoc.ticketNumber,
-                details: `Création d'une nouvelle pièce.`,
-                 richDetails: {
-                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
-                  total: finalDocData.total,
-                }
-            });
-            setSales(prev => [finalDoc, ...prev]);
-        }
-        
-        const docLabel = prefixMap[type] || "Document";
-        toast({ title: `${docLabel} ${finalDoc.status === 'paid' ? 'facturé(e)' : 'enregistré(e)'}` });
-        
-        if (pageTypeToResetRef.current === type) {
-          clearOrder();
-        }
-
-        const reportPath = type === 'quote' ? '/reports?docType=quote'
-                        : type === 'delivery_note' ? '/reports?docType=delivery_note'
-                        : '/reports';
-        router.push(reportPath);
-    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, tempFormSubmissions, setFormSubmissions, setTempFormSubmissions]);
-
-    const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
-        if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Cet email est déjà utilisé.' });
-            throw new Error('Email already in use.');
-        }
-        const newUser = { ...userData, id: uuidv4(), companyId: 'main', createdAt: new Date() };
-        setUsers(prev => [...prev, newUser]);
-        toast({ title: 'Utilisateur créé' });
-        return newUser;
-    }, [toast, setUsers, users]);
-    
-    const updateUser = useCallback((userData: User) => {
-        setUsers(prev => prev.map(u => u.id === userData.id ? {...userData, updatedAt: new Date()} : u));
-        toast({ title: 'Utilisateur mis à jour' });
-    }, [setUsers, toast]);
-
-    const deleteUser = useCallback((id: string) => {
-        setUsers(prev => prev.filter(u => u.id !== id));
-        toast({ title: 'Utilisateur supprimé' });
-    }, [setUsers, toast]);
-
-    const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-    const findUserByEmail = useCallback((email: string) => users.find(u => u.email.toLowerCase() === email.toLowerCase()), [users]);
-    const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
-    const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
-    const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
-
-    const addCategory = useCallback(async (category: Omit<Category, 'id'|'createdAt'|'updatedAt'>) => {
-        const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
-        setCategories(prev => [...prev, newCategory]);
-        return newCategory;
-    }, [setCategories]);
-    
-    const updateCategory = useCallback((category: Category) => {
-        setCategories(prev => prev.map(c => c.id === category.id ? {...category, updatedAt: new Date()} : c));
-    }, [setCategories]);
-    
-    const deleteCategory = useCallback((id: string) => {
-        setCategories(prev => prev.filter(c => c.id !== id));
-        setItems(prev => prev.filter(i => i.categoryId !== id));
-    }, [setCategories, setItems]);
-    const toggleCategoryFavorite = useCallback((id: string) => {
-        setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
-    }, [setCategories]);
-    
-    const getCategoryColor = useCallback((categoryId: string) => {
-      return categories.find(c => c.id === categoryId)?.color;
-    }, [categories]);
-
-    const addItem = useCallback(async (item: Omit<Item, 'id'|'createdAt'|'updatedAt'> & {barcode: string}) => {
-        const newItem = { ...item, id: uuidv4(), createdAt: new Date() };
-        setItems(prev => [newItem, ...prev]);
-        return newItem;
-    }, [setItems]);
-    const updateItem = useCallback((item: Item) => {
-        setItems(prev => prev.map(i => i.id === item.id ? {...item, updatedAt: new Date()} : i));
-    }, [setItems]);
-    const deleteItem = useCallback((id: string) => {
-        setItems(prev => prev.filter(i => i.id !== id));
-    }, [setItems]);
-    const toggleItemFavorite = useCallback((id: string) => {
-        setItems(prev => prev.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
-    }, [setItems]);
-    const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
-        setItems(prev => prev.map(i => itemIds.includes(i.id) ? { ...i, isFavorite: setFavorite } : i));
-    }, [setItems]);
-
-    const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'|'createdAt'|'updatedAt'> & {id?: string}) => {
-        const newId = customer.id || uuidv4();
-        if (customers.some(c => c.id === newId)) {
-            throw new Error('Un client avec ce code existe déjà.');
-        }
-        const newCustomer = { ...customer, id: newId, isDefault: customers.length === 0, createdAt: new Date() };
-        setCustomers(prev => [...prev, newCustomer]);
-        return newCustomer;
-    }, [customers, setCustomers]);
-    const updateCustomer = useCallback((customer: Customer) => {
-        setCustomers(prev => prev.map(c => c.id === customer.id ? {...customer, updatedAt: new Date()} : c));
-    }, [setCustomers]);
-    const deleteCustomer = useCallback((id: string) => {
-        setCustomers(prev => prev.filter(c => c.id !== id));
-    }, [setCustomers]);
-    const setDefaultCustomer = useCallback((id: string) => {
-        setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
-    }, [setCustomers]);
-
-    const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'|'createdAt'> & {id?: string}) => {
-        const newId = supplier.id || uuidv4();
-        if (suppliers.some(s => s.id === newId)) {
-            throw new Error('Un fournisseur avec ce code existe déjà.');
-        }
-        const newSupplier = { ...supplier, id: newId, createdAt: new Date() };
-        setSuppliers(prev => [...prev, newSupplier]);
-        return newSupplier;
-    }, [suppliers, setSuppliers]);
-    const updateSupplier = useCallback((supplier: Supplier) => {
-        setSuppliers(prev => prev.map(s => s.id === supplier.id ? {...supplier, updatedAt: new Date()} : s));
-    }, [setSuppliers]);
-    const deleteSupplier = useCallback((id: string) => {
-        setSuppliers(prev => prev.filter(s => s.id !== id));
-    }, [setSuppliers]);
-
-    const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'|'createdAt'|'updatedAt'>) => {
-        setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
-    }, [setPaymentMethods]);
-    const updatePaymentMethod = useCallback((method: PaymentMethod) => {
-        setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? {...method, updatedAt: new Date()} : pm));
-    }, [setPaymentMethods]);
-    const deletePaymentMethod = useCallback((id: string) => {
-        setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
-    }, [setPaymentMethods]);
-
-    const addVatRate = useCallback(async (vatRate: Omit<VatRate, 'id' | 'code'|'createdAt'|'updatedAt'>): Promise<VatRate | null> => {
-        const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
-        const newVatRate = { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() };
-        setVatRates(prev => [...prev, newVatRate]);
-        return newVatRate;
-    }, [vatRates, setVatRates]);
-    const updateVatRate = useCallback((vatRate: VatRate) => {
-        setVatRates(prev => prev.map(v => v.id === vatRate.id ? {...vatRate, updatedAt: new Date()} : v));
-    }, [setVatRates]);
-    const deleteVatRate = useCallback((id: string) => {
-        setVatRates(prev => prev.filter(v => v.id !== id));
-    }, [setVatRates]);
-  
   const popularItems = useMemo(() => {
     if (!sales || !items) return [];
     const itemCounts: { [key: string]: { item: Item; count: number } } = {};
@@ -2170,7 +1946,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
               }
 
               if (item) {
-                const vatInfo = vatRates.find(v => v.id === item.vatId);
+                const vatInfo = vatRates.find(v => v.id === item!.vatId);
                 const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
                 const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
                 const total = priceTTC * row.quantity - discountAmount;
