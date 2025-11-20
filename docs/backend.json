@@ -348,6 +348,18 @@
         "saleId": { "type": "string", "description": "ID of the generated invoice." }
       },
       "required": ["id", "ticketNumber", "createdAt", "customerId", "equipmentType", "issueDescription", "status"]
+    },
+    "EquipmentType": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EquipmentType",
+      "type": "object",
+      "description": "Represents a type of equipment for repair with an associated price.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" }
+      },
+      "required": ["id", "name", "price"]
     }
   },
   "auth": {
@@ -421,6 +433,10 @@
     "/companies/{companyId}/supportTickets/{ticketId}": {
       "schema": { "$ref": "#/entities/SupportTicket" },
       "description": "Support tickets for customer service and repairs."
+    },
+    "/companies/{companyId}/equipmentTypes/{typeId}": {
+      "schema": { "$ref": "#/entities/EquipmentType" },
+      "description": "Predefined types of equipment for repair."
     }
   }
 }

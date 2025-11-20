@@ -69,7 +69,7 @@ export default function ManagementLayout({
 
   const serviceLinks = [
     { href: '/management/support-tickets', label: 'Prises en charge', icon: Wrench, count: supportTickets?.length || 0 },
-    { href: '/management/repair-actions', label: 'Actions de réparation', icon: ClipboardList, count: repairActionPresets?.length || 0 },
+    { href: '/management/repair-actions', label: 'Paramètres SAV', icon: ClipboardList, count: repairActionPresets?.length || 0 },
   ];
   
   const reportLinks = [

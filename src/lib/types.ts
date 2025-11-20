@@ -1,5 +1,4 @@
 
-
 import type { Timestamp } from "firebase/firestore";
 
 export type SpecialCategory = 'all' | 'popular';
@@ -365,6 +364,14 @@ export interface SupportTicket {
 export interface RepairActionPreset {
   id: string;
   name: string;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
+}
+
+export interface EquipmentType {
+  id: string;
+  name: string;
+  price: number;
   createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
 }
