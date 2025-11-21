@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
@@ -47,7 +48,7 @@ export default function SupportTicketsPage() {
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const [isEmailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [ticketForEmail, setTicketForEmail] = useState<SupportTicket | null>(null);
 
 
