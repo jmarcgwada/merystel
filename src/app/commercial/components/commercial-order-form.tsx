@@ -682,6 +682,7 @@ export const CommercialOrderForm = forwardRef<
                               const fullItem = allItems?.find(i => i.id === field.itemId);
                               const vatInfo = vatRates?.find(v => v.id === fullItem?.vatId);
                               const priceHT = vatInfo ? field.price / (1 + vatInfo.rate / 100) : field.price;
+                              const isSupportTicketItem = field.name.toLowerCase().includes('prise en charge sav');
 
                               return (
                               <div 
@@ -730,8 +731,14 @@ export const CommercialOrderForm = forwardRef<
                                         </div>
                                       )}
                                       <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
-                                        {descriptionDisplay === 'first' && field.description}
-                                        {descriptionDisplay === 'both' && (<>{field.description}{field.description && field.description2 && <br />}{field.description2}</>)}
+                                        {isSupportTicketItem ? (
+                                            <>{field.description}</>
+                                        ) : (
+                                            <>
+                                                {descriptionDisplay === 'first' && field.description}
+                                                {descriptionDisplay === 'both' && (<>{field.description}{field.description && field.description2 && <br />}{field.description2}</>)}
+                                            </>
+                                        )}
                                       </div>
                                       {field.selectedVariants && field.selectedVariants.length > 0 && <p className="text-xs text-muted-foreground capitalize mt-1">{field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}</p>}
                                       {field.note && <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1 pr-2 whitespace-pre-wrap italic">Note: {field.note}</p>}
