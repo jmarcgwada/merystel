@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
-import type { Sale, Payment, Item, OrderItem, VatBreakdown, Customer } from '@/lib/types';
+import type { Sale, Payment, Item, OrderItem, VatBreakdown, Customer, Cheque } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
@@ -38,11 +38,9 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
     useEffect(() => {
         if (date) {
             let jsDate: Date;
-            if (date instanceof Date) {
-                jsDate = date;
-            } else if (date && typeof (date as Timestamp).toDate === 'function') {
-                jsDate = (date as Timestamp).toDate();
-            } else if (date && typeof (date as any).seconds === 'number') {
+            if (date instanceof Date) jsDate = date;
+            else if (date && typeof (date as Timestamp)?.toDate === 'function') jsDate = (date as Timestamp).toDate();
+            else if (date && typeof (date as any).seconds === 'number') {
                 jsDate = new Date((date as any).seconds * 1000);
             } else {
                 jsDate = new Date(date as any);
@@ -111,80 +109,20 @@ interface FullSaleDetailDialogProps {
 }
 
 export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetailDialogProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, users: allUsers, companyInfo, updateSale } = usePos();
-  const { user } = useUser();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, users: allUsers, companyInfo } = usePos();
   const printRef = useRef<HTMLDivElement>(null);
   
   const [isEmailDialogOpen, setEmailDialogOpen] = useState(false);
-
   const [sale, setSale] = useState<Sale | null>(null);
-
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceFrequency, setRecurrenceFrequency] = useState('monthly');
-  const [nextDueDate, setNextDueDate] = useState<Date | undefined>(undefined);
-  const [isRecurrenceModified, setIsRecurrenceModified] = useState(false);
-
+  
   useEffect(() => {
     if (allSales && saleId) {
       const foundSale = allSales.find(s => s.id === saleId);
       setSale(foundSale || null);
-      if (foundSale?.isRecurring) {
-        setIsRecurring(true);
-        setRecurrenceFrequency(foundSale.recurrence?.frequency || 'monthly');
-        setNextDueDate(foundSale.recurrence?.nextDueDate ? new Date(foundSale.recurrence.nextDueDate as any) : undefined);
-      } else {
-        setIsRecurring(false);
-        setRecurrenceFrequency('monthly');
-        setNextDueDate(undefined);
-      }
-      setIsRecurrenceModified(false);
     }
   }, [allSales, saleId, isOpen]);
-
-  const handleSaveRecurrence = async () => {
-    if (!sale) return;
-
-    let newNextDueDate = nextDueDate;
-    if (isRecurring && !newNextDueDate) {
-        const now = new Date();
-        newNextDueDate = addMonths(now, 1); // Default to one month from now
-        setNextDueDate(newNextDueDate);
-    }
-
-    const updatedSale: Sale = {
-      ...sale,
-      isRecurring,
-      recurrence: isRecurring ? {
-        frequency: recurrenceFrequency as any,
-        nextDueDate: newNextDueDate,
-        isActive: true,
-      } : undefined,
-    };
-    await updateSale(updatedSale);
-    setIsRecurrenceModified(false);
-    toast({ title: 'Configuration de la récurrence sauvegardée.' });
-  };
-  
-  const getCustomerName = useCallback((customerId?: string) => {
-      if (!customerId || !customers) return 'Client au comptoir';
-      return customers.find(c => c.id === customerId)?.name || 'Client supprimé';
-  }, [customers]);
-
-   const getUserName = useCallback((userId?: string, fallbackName?: string) => {
-    if (!userId) return fallbackName || 'N/A';
-    if (!allUsers) return fallbackName || 'Chargement...';
-    const saleUser = allUsers.find(u => u.id === userId);
-    if (saleUser?.firstName && saleUser?.lastName) {
-        return `${saleUser.firstName} ${saleUser.lastName.charAt(0)}.`;
-    }
-    return fallbackName || saleUser?.email || 'Utilisateur supprimé';
-  }, [allUsers]);
-
-  const isLoading = isPosLoading || (saleId && !sale);
 
   const customer = sale?.customerId ? customers?.find(c => c.id === sale?.customerId) : null;
   const seller = sale?.userId ? allUsers?.find(u => u.id === sale.userId) : null;
@@ -195,44 +133,26 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
       return allItems.find(i => i.id === orderItem.itemId) || {};
   }, [allItems]);
 
-  const { subtotal, tax, vatBreakdown, balanceDue } = useMemo(() => {
-    if (!sale || !vatRates) return { subtotal: 0, tax: 0, vatBreakdown: {}, balanceDue: 0 };
+  const { subtotal, tax, balanceDue } = useMemo(() => {
+    if (!sale || !vatRates) return { subtotal: 0, tax: 0, balanceDue: 0 };
     
     const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
     const balance = sale.total - totalPaid;
 
-    if (sale.vatBreakdown && sale.subtotal !== undefined && sale.tax !== undefined) {
-        return { subtotal: sale.subtotal, tax: sale.tax, vatBreakdown: sale.vatBreakdown, balanceDue: balance };
+    if (sale.subtotal !== undefined && sale.tax !== undefined) {
+        return { subtotal: sale.subtotal, tax: sale.tax, balanceDue: balance };
     }
     
     let calcSubtotal = 0;
-    const breakdown: VatBreakdown = {};
-
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
         const rate = vatInfo ? vatInfo.rate : 0;
         const priceHT = item.total / (1 + rate / 100);
-        const taxAmount = item.total - priceHT;
-
         calcSubtotal += priceHT;
-
-        const rateKey = rate.toString();
-        if (breakdown[rateKey]) {
-            breakdown[rateKey].base += priceHT;
-            breakdown[rateKey].total += taxAmount;
-        } else {
-            breakdown[rateKey] = {
-                rate: rate,
-                total: taxAmount,
-                base: priceHT,
-                code: vatInfo?.code || 0,
-            };
-        }
     });
 
-    const calcTax = Object.values(breakdown).reduce((acc, curr) => acc + curr.total, 0);
-
-    return { subtotal: calcSubtotal, tax: calcTax, vatBreakdown: breakdown, balanceDue: balance };
+    const calcTax = sale.total - calcSubtotal;
+    return { subtotal: calcSubtotal, tax: calcTax, balanceDue: balance };
   }, [sale, vatRates]);
   
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
@@ -241,9 +161,25 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                   : sale?.documentType === 'credit_note' ? 'Avoir'
                   : 'Ticket';
 
+  const handlePrint = async () => {
+    if (!sale) return;
+    if (!printRef.current) {
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de préparer l'impression." });
+      return;
+    }
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    await pdf.html(printRef.current, {
+      callback: function (pdf) {
+        pdf.save(`${sale.ticketNumber}.pdf`);
+      },
+      x: 0, y: 0, width: 210, windowWidth: printRef.current.scrollWidth, autoPaging: 'text',
+    });
+  };
+
   if (!isOpen) return null;
 
-  if (isLoading) {
+  if (isPosLoading || (saleId && !sale)) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-5xl h-[90vh]">
@@ -256,7 +192,6 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
               </div>
               <div className="lg:col-span-1 space-y-8">
                   <Skeleton className="h-64 w-full" />
-                  <Skeleton className="h-32 w-full" />
               </div>
           </div>
         </DialogContent>
@@ -268,13 +203,9 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Erreur</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Erreur</DialogTitle></DialogHeader>
           <p>Pièce introuvable.</p>
-          <DialogFooter>
-            <Button onClick={onClose}>Fermer</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={onClose}>Fermer</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     );
@@ -308,8 +239,6 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                       <TableHead className="w-[64px]">Image</TableHead>
                       <TableHead>Article</TableHead>
                       <TableHead className="text-center">Qté</TableHead>
-                      <TableHead className="text-right">P.U. (TTC)</TableHead>
-                      <TableHead className="text-right">Remise</TableHead>
                       <TableHead className="text-right">Total (TTC)</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
@@ -320,12 +249,9 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                                 <TableCell><Image src={fullItem.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" /></TableCell>
                                 <TableCell className="font-medium">
                                     <div>{item.name}</div>
-                                    <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{item.description}</p>
                                     {item.note && <div className="text-xs text-amber-600 mt-1 flex items-start gap-1.5"><Pencil className="h-3 w-3 mt-0.5 shrink-0"/><span>{item.note}</span></div>}
                                 </TableCell>
                                 <TableCell className="text-center">{item.quantity}</TableCell>
-                                <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
-                                <TableCell className="text-right text-destructive">{item.discount > 0 ? `-${item.discount.toFixed(2)}€` : '-'}</TableCell>
                                 <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>
                             </TableRow>
                         )
@@ -334,6 +260,16 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                   </Table>
                 </CardContent>
               </Card>
+              {sale.notes && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Notebook />Notes de la facture</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{sale.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             
             <div className="lg:col-span-1 space-y-8">
@@ -352,8 +288,16 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                 </Card>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:justify-end border-t pt-4">
             <Button variant="outline" onClick={onClose}>Fermer</Button>
+            <Button variant="secondary" onClick={() => setEmailDialogOpen(true)}>
+                <Send className="mr-2 h-4 w-4" />
+                Envoyer par E-mail
+            </Button>
+            <Button onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Imprimer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
