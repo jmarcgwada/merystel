@@ -92,6 +92,10 @@ export default function ManagementSideNav() {
       {restaurantNavLinks.map(renderLink)}
 
       <Separator className="my-2" />
+      <h3 className="px-3 py-1 text-xs font-semibold text-muted-foreground/80 tracking-wider">Finances</h3>
+      {financeNavLinks.map(renderLink)}
+
+      <Separator className="my-2" />
       <h3 className="px-3 py-1 text-xs font-semibold text-muted-foreground/80 tracking-wider">Services</h3>
       {serviceNavLinks.map(renderLink)}
 
