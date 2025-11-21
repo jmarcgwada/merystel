@@ -439,7 +439,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-export const PosProvider = ({ children }: { children: ReactNode }) => {
+export function PosProvider({ children }: { children: ReactNode }) {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -2161,7 +2161,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
 
-  const value: PosContextType = {
+    const contextValue: PosContextType = {
       order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
       addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
       clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
@@ -2219,7 +2219,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       setCompanyInfo: setCompanyInfoCallback,
       addMappingTemplate,
   };
-  
+
   return (
     <PosContext.Provider value={contextValue}>
       {children}
@@ -2234,5 +2234,3 @@ export function usePos() {
   }
   return context;
 }
-
-    
