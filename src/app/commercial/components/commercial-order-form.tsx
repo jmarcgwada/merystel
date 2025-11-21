@@ -731,13 +731,13 @@ export const CommercialOrderForm = forwardRef<
                                         </div>
                                       )}
                                       <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
-                                        {isSupportTicketItem ? (
-                                            <>{field.description}</>
+                                        {(isSupportTicketItem || fullItem?.forceDescriptionDisplay) ? (
+                                          <>{field.description}</>
                                         ) : (
-                                            <>
-                                                {descriptionDisplay === 'first' && field.description}
-                                                {descriptionDisplay === 'both' && (<>{field.description}{field.description && field.description2 && <br />}{field.description2}</>)}
-                                            </>
+                                          <>
+                                            {descriptionDisplay === 'first' && field.description}
+                                            {descriptionDisplay === 'both' && (<>{field.description}{field.description && field.description2 && <br />}{field.description2}</>)}
+                                          </>
                                         )}
                                       </div>
                                       {field.selectedVariants && field.selectedVariants.length > 0 && <p className="text-xs text-muted-foreground capitalize mt-1">{field.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}</p>}
@@ -843,7 +843,7 @@ export const CommercialOrderForm = forwardRef<
                   setIsEditItemOpen(false);
                   setItemToEdit(null);
               }}
-              onItemUpdated={(updatedItem) => {
+              onItemSaved={() => {
                 // Here, you might want to update the item in the order if it's already there
               }}
           />

@@ -132,7 +132,8 @@
         "manageStock": { "type": "boolean" },
         "stock": { "type": "number" },
         "lowStockThreshold": { "type": "number" },
-        "isDisabled": { "type": "boolean", "description": "Whether the item is disabled and cannot be sold." }
+        "isDisabled": { "type": "boolean", "description": "Whether the item is disabled and cannot be sold." },
+        "forceDescriptionDisplay": { "type": "boolean", "description": "Force l'affichage de la description dans les documents commerciaux." }
       },
       "required": ["name", "price", "vatId", "barcode"]
     },

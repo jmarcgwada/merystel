@@ -60,6 +60,7 @@ export interface Item {
   hasForm?: boolean;
   formDefinition?: any; // Simple JSON form definition
   isDisabled?: boolean;
+  forceDescriptionDisplay?: boolean;
   createdAt?: Date | Timestamp;
   updatedAt?: Date | Timestamp;
 }

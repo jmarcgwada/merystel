@@ -76,6 +76,7 @@ const formSchema = z.object({
   stock: z.coerce.number().optional(),
   lowStockThreshold: z.coerce.number().optional(),
   isDisabled: z.boolean().default(false),
+  forceDescriptionDisplay: z.boolean().default(false),
   hasVariants: z.boolean().default(false),
   variantOptions: z.array(z.object({
     name: z.string().min(1, { message: "Le nom est requis." }),
@@ -158,7 +159,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
       name: '', price: 0, purchasePrice: 0, categoryId: '', supplierId: '', vatId: '',
       description: '', description2: '', isFavorite: false, image: '', showImage: true,
       barcode: '', marginPercentage: 30, requiresSerialNumber: false, additionalCosts: 0,
-      manageStock: false, stock: 0, lowStockThreshold: 0, isDisabled: false,
+      manageStock: false, stock: 0, lowStockThreshold: 0, isDisabled: false, forceDescriptionDisplay: false,
       hasVariants: false, variantOptions: [],
     },
   });
@@ -225,6 +226,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             requiresSerialNumber: item.requiresSerialNumber || false, additionalCosts: item.additionalCosts || 0,
             manageStock: item.manageStock || false, stock: item.stock || 0,
             lowStockThreshold: item.lowStockThreshold || 0, isDisabled: item.isDisabled || false,
+            forceDescriptionDisplay: item.forceDescriptionDisplay || false,
             hasVariants: item.hasVariants || false,
             variantOptions: item.variantOptions?.map(opt => ({ name: opt.name, values: opt.values.map(val => ({ value: val }))})) || [],
           });
@@ -234,7 +236,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
             description: '', description2: '', isFavorite: false, image: `https://picsum.photos/seed/new/200/150`,
             showImage: true, barcode: '', marginPercentage: 30, requiresSerialNumber: false,
             additionalCosts: 0, manageStock: false, stock: 0, lowStockThreshold: 0,
-            isDisabled: false, hasVariants: false, variantOptions: [],
+            isDisabled: false, forceDescriptionDisplay: false, hasVariants: false, variantOptions: [],
           });
         }
     }
@@ -333,6 +335,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemD
                                     </div><FormMessage /></FormItem>
                                 )}/>
                               </div>
+                                <FormField control={form.control} name="forceDescriptionDisplay" render={({ field }) => (<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"><div className="space-y-0.5"><FormLabel className="text-base">Forcer l'affichage de la description</FormLabel><FormDescription>Si activé, la description sera toujours visible sur les documents.</FormDescription></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem>)} />
                             </CardContent>
                         </Card>
                     </TabsContent>
