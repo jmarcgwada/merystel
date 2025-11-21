@@ -781,6 +781,7 @@ function ReportsPageContent() {
     };
 
     const handleOpenDetailModal = (sale: Sale) => {
+        setLastSelectedSaleId(sale.id);
         setSelectedSaleForModal(sale);
         setIsDetailModalOpen(true);
     };
@@ -813,11 +814,12 @@ function ReportsPageContent() {
     };
     
     const handleEdit = (sale: Sale) => {
-        if(sale.documentType && documentTypes[sale.documentType as keyof typeof documentTypes]?.path) {
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
             setLastSelectedSaleId(sale.id);
-            router.push(`${documentTypes[sale.documentType as keyof typeof documentTypes].path}?edit=${sale.id}`);
+            router.push(`${documentTypes[docType as keyof typeof documentTypes].path}?edit=${sale.id}`);
         } else {
-             toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
+            toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
         }
     };
   
@@ -1085,7 +1087,7 @@ function ReportsPageContent() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
-                                    Liste des Pièces
+                                     Liste des Pièces
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1203,11 +1205,10 @@ function ReportsPageContent() {
                                         
                                         return (
                                             <TableRow 
-                                            key={sale.id}
-                                            ref={(el) => {if(el) rowRefs.current[sale.id] = el}}
-                                            onClick={() => setLastSelectedSaleId(sale.id)}
-                                            className={cn(sale.id === lastSelectedSaleId && 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900')}
-                                            style={getRowStyle(sale)}
+                                                key={sale.id} 
+                                                onClick={() => setLastSelectedSaleId(sale.id)}
+                                                className={cn(sale.id === lastSelectedSaleId && 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900')}
+                                                style={getRowStyle(sale)}
                                             >
                                                 {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
                                                 {visibleColumns.ticketNumber && <TableCell>
@@ -1226,9 +1227,9 @@ function ReportsPageContent() {
                                                 {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                                 <TableCell className="text-right">
-                                                    <DropdownMenu>
+                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setLastSelectedSaleId(sale.id); }}><MoreVertical className="h-4 w-4"/></Button>
+                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); }}><MoreVertical className="h-4 w-4"/></Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
                                                             <DropdownMenuItem onClick={() => handleOpenDetailModal(sale)}>
@@ -1236,7 +1237,7 @@ function ReportsPageContent() {
                                                                 Détail rapide
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem onClick={() => handleEdit(sale)}>
-                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                {isValidated ? <Eye className="mr-2 h-4 w-4" /> : <Pencil className="mr-2 h-4 w-4" />}
                                                                 {isValidated ? 'Consulter' : 'Modifier'}
                                                             </DropdownMenuItem>
                                                             {canBeConverted && (
@@ -1299,5 +1300,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
