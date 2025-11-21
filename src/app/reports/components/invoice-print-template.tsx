@@ -169,11 +169,12 @@ export const InvoicePrintTemplate = React.forwardRef<HTMLDivElement, InvoicePrin
                         const vatInfo = vatRates.find(v => v.id === item.vatId);
                         const priceHT = item.price / (1 + (vatInfo?.rate || 0)/100);
                         const totalHT = (item.price * item.quantity * (1 - (item.discountPercent || 0)/100)) / (1 + (vatInfo?.rate || 0)/100);
+                        const isSupportTicketItem = item.name.toLowerCase().includes('prise en charge sav');
                         return (
                             <tr key={item.id} className="border-b">
                                 <td className="p-2 align-top">
                                   <p className="font-semibold">{item.name}</p>
-                                  {item.description && <p className="text-xs text-gray-600 whitespace-pre-wrap mt-1">{item.description}</p>}
+                                  {item.description && (isSupportTicketItem || item.description) && <p className="text-xs text-gray-600 whitespace-pre-wrap mt-1">{item.description}</p>}
                                 </td>
                                 <td className="p-2 text-right align-top">{item.quantity}</td>
                                 <td className="p-2 text-right align-top">{priceHT.toFixed(2)}€</td>
