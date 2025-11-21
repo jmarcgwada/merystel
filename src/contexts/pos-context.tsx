@@ -451,15 +451,15 @@ export function PosProvider({ children }: { children: ReactNode }) {
 
 
   // Settings States
-  const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
-  const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
-  const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
-  const [remises, setRemises, rehydrateRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
-  const [supportTickets, setSupportTickets, rehydrateSupportTickets] = usePersistentState<SupportTicket[]>('data.supportTickets', []);
-  const [repairActionPresets, setRepairActionPresets, rehydrateRepairActionPresets] = usePersistentState<RepairActionPreset[]>('data.repairActionPresets', []);
-  const [equipmentTypes, setEquipmentTypes, rehydrateEquipmentTypes] = usePersistentState<EquipmentType[]>('data.equipmentTypes', []);
-  const [formSubmissions, setFormSubmissions, rehydrateFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
-  const [tempFormSubmissions, setTempFormSubmissions, rehydrateTempFormSubmissions] = usePersistentState<Record<string, FormSubmission>>('data.tempFormSubmissions', {});
+  const [dunningLogs, setDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
+  const [cheques, setCheques] = usePersistentState<Cheque[]>('data.cheques', []);
+  const [paiementsPartiels, setPaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
+  const [remises, setRemises] = usePersistentState<RemiseCheque[]>('data.remises', []);
+  const [supportTickets, setSupportTickets] = usePersistentState<SupportTicket[]>('data.supportTickets', []);
+  const [repairActionPresets, setRepairActionPresets] = usePersistentState<RepairActionPreset[]>('data.repairActionPresets', []);
+  const [equipmentTypes, setEquipmentTypes] = usePersistentState<EquipmentType[]>('data.equipmentTypes', []);
+  const [formSubmissions, setFormSubmissions] = usePersistentState<FormSubmission[]>('data.formSubmissions', []);
+  const [tempFormSubmissions, setTempFormSubmissions] = usePersistentState<Record<string, FormSubmission>>('data.tempFormSubmissions', {});
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
   const [blockBrowserNav, setBlockBrowserNav] = usePersistentState('settings.blockBrowserNav', false);
@@ -520,7 +520,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [lastReportsUrl, setLastReportsUrl] = usePersistentState<string | null>('state.lastReportsUrl', '/reports');
   const [itemsPerPage, setItemsPerPage] = usePersistentState('settings.itemsPerPage', 15);
   const [importLimit, setImportLimit] = usePersistentState('settings.importLimit', 100);
-  const [mappingTemplates, setMappingTemplates, rehydrateMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
+  const [mappingTemplates, setMappingTemplates] = usePersistentState<MappingTemplate[]>('settings.mappingTemplates', []);
 
 
   const [order, setOrder] = useState<OrderItem[]>([]);
@@ -545,32 +545,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [formItemRequest, setFormItemRequest] = useState<{ item: Item | OrderItem, isEditing: boolean } | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   
-  const [items, setItems, rehydrateItems] = usePersistentState<Item[]>('data.items', []);
-  const [categories, setCategories, rehydrateCategories] = usePersistentState<Category[]>('data.categories', []);
-  const [customers, setCustomers, rehydrateCustomers] = usePersistentState<Customer[]>('data.customers', []);
-  const [suppliers, setSuppliers, rehydrateSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
-  const [tablesData, setTablesData, rehydrateTables] = usePersistentState<Table[]>('data.tables', []);
-  const [sales, setSales, rehydrateSales] = usePersistentState<Sale[]>('data.sales', []);
-  const [paymentMethods, setPaymentMethods, rehydratePaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
-  const [vatRates, setVatRates, rehydrateVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
-  const [heldOrders, setHeldOrders, rehydrateHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
-  const [auditLogs, setAuditLogs, rehydrateAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
-  const [companyInfo, setCompanyInfo, rehydrateCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
-  const [users, setUsers, rehydrateUsers] = usePersistentState<User[]>('data.users', []);
-  
-  const rehydrateFns = {
-      rehydrateDunningLogs, rehydrateCheques, rehydratePaiementsPartiels,
-      rehydrateRemises, rehydrateSupportTickets, rehydrateRepairActionPresets,
-      rehydrateEquipmentTypes, rehydrateFormSubmissions, rehydrateTempFormSubmissions,
-      rehydrateItems, rehydrateCategories, rehydrateCustomers, rehydrateSuppliers,
-      rehydrateTables, rehydrateSales, rehydratePaymentMethods, rehydrateVatRates,
-      rehydrateHeldOrders, rehydrateAuditLogs, rehydrateCompanyInfo, rehydrateUsers,
-      rehydrateMappingTemplates
-  };
-
-  const rehydrateAll = useCallback(() => {
-    Object.values(rehydrateFns).forEach(fn => fn());
-  }, [rehydrateFns]);
+  const [items, setItems] = usePersistentState<Item[]>('data.items', []);
+  const [categories, setCategories] = usePersistentState<Category[]>('data.categories', []);
+  const [customers, setCustomers] = usePersistentState<Customer[]>('data.customers', []);
+  const [suppliers, setSuppliers] = usePersistentState<Supplier[]>('data.suppliers', []);
+  const [tablesData, setTablesData] = usePersistentState<Table[]>('data.tables', []);
+  const [sales, setSales] = usePersistentState<Sale[]>('data.sales', []);
+  const [paymentMethods, setPaymentMethods] = usePersistentState<PaymentMethod[]>('data.paymentMethods', []);
+  const [vatRates, setVatRates] = usePersistentState<VatRate[]>('data.vatRates', []);
+  const [heldOrders, setHeldOrders] = usePersistentState<HeldOrder[]>('data.heldOrders', []);
+  const [auditLogs, setAuditLogs] = usePersistentState<AuditLog[]>('data.auditLogs', []);
+  const [companyInfo, setCompanyInfo] = usePersistentState<CompanyInfo | null>('data.companyInfo', null);
+  const [users, setUsers] = usePersistentState<User[]>('data.users', []);
 
   const isLoading = userLoading || !isHydrated;
   
@@ -1051,7 +1037,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         try {
             const data = JSON.parse(event.target?.result as string);
             
-            const dataSetters = {
+            const dataSetters: { [key: string]: React.Dispatch<React.SetStateAction<any>> } = {
                 items: setItems, categories: setCategories, customers: setCustomers,
                 suppliers: setSuppliers, tables: setTablesData, sales: setSales,
                 paymentMethods: setPaymentMethods, vatRates: setVatRates,
@@ -1064,14 +1050,18 @@ export function PosProvider({ children }: { children: ReactNode }) {
             };
 
             Object.entries(dataSetters).forEach(([key, setter]) => {
-                if (data[key]) {
-                    (setter as (value: any) => void)(data[key]);
+                if (data[key] !== undefined) {
+                    setter(data[key]);
                 }
             });
             
-            rehydrateAll(); // This should now trigger a state update correctly
+            toast({ title: 'Importation complète réussie!', description: 'Toutes les données ont été restaurées. La page va être rechargée.' });
             
-            toast({ title: 'Importation complète réussie!', description: 'Toutes les données ont été restaurées.' });
+            // Force a reload to ensure all components re-render with the new state
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+
         } catch (error) {
             console.error("Full import error:", error);
             toast({ variant: 'destructive', title: 'Erreur d\'importation complète' });
@@ -1082,7 +1072,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
       setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales, setPaymentMethods,
       setVatRates, setHeldOrders, setAuditLogs, setDunningLogs, setCheques, setPaiementsPartiels, setRemises,
       setSupportTickets, setRepairActionPresets, setEquipmentTypes, setFormSubmissions,
-      setCompanyInfo, setUsers, setMappingTemplates, toast, rehydrateAll
+      setCompanyInfo, setUsers, setMappingTemplates, toast
   ]);
   
   const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
@@ -2159,7 +2149,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         return report;
     }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
     
-    const contextValue: PosContextType = useMemo(() => ({
+    const contextValue: PosContextType = {
         order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
         addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
         clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
@@ -2216,65 +2206,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
         companyInfo,
         setCompanyInfo: setCompanyInfoCallback,
         addMappingTemplate,
-    }), [
-        order, systemDate, dynamicBgImage, recentlyAddedItemId, readOnlyOrder,
-        addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
-        clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen,
-        currentSaleId, currentSaleContext, serialNumberItem,
-        variantItem, customVariantRequest, formItemRequest, formSubmissions, tempFormSubmissions,
-        lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
-        sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated,
-        items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-        getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-        tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-        promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-        vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-        auditLogs, 
-        dunningLogs, addDunningLog,
-        cheques, addCheque, updateCheque, deleteCheque, 
-        paiementsPartiels, addPaiementPartiel, 
-        remises, addRemise,
-        supportTickets, addSupportTicket, updateSupportTicket, deleteSupportTicket,
-        repairActionPresets, addRepairActionPreset, updateRepairActionPreset, deleteRepairActionPreset,
-        equipmentTypes, addEquipmentType, updateEquipmentType, deleteEquipmentType,
-        isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-        seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
-        cameFromRestaurant, isLoading, user, toast, 
-        isCalculatorOpen, setIsCalculatorOpen, isFullscreen, toggleFullscreen,
-        blockBrowserNav, setBlockBrowserNav,
-        enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
-        showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
-        itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
-        setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-        setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-        externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight,
-        showDashboardStats, setShowDashboardStats,
-        enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-        enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
-        autoInvoiceOnSupportTicket, setAutoInvoiceOnSupportTicket,
-        directSaleBackgroundColor, setDirectSaleBackgroundColor,
-        restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-        dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-        setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonTextColor, setDashboardButtonTextColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-        dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
-        invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
-        quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
-        deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
-        supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
-        creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-        isCommercialNavVisible, setIsCommercialNavVisible,
-        smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
-        lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
-        itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
-        deleteMappingTemplate,
-        generateRandomSales,
-        importDataFromJson,
-        updateSale,
-        generateSingleRecurringInvoice,
-        companyInfo,
-        setCompanyInfoCallback,
-        addMappingTemplate,
-    ]);
+    };
 
   return (
     <PosContext.Provider value={contextValue}>
