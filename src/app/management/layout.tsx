@@ -5,7 +5,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarGroup,
@@ -59,22 +58,22 @@ export default function ManagementLayout({
   } = usePos();
   const [showScrollTop, setShowScrollTop] = useState(false);
   
-  const mainContentRef = useRef<HTMLElement | null>(null);
+  const mainContentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const mainEl = mainContentRef.current;
+    const mainEl = document.documentElement; // Listen on the root element
     if (!mainEl) return;
 
     const checkScroll = () => {
         setShowScrollTop(mainEl.scrollTop > 200);
     };
 
-    mainEl.addEventListener('scroll', checkScroll, { passive: true });
-    return () => mainEl.removeEventListener('scroll', checkScroll);
+    window.addEventListener('scroll', checkScroll, { passive: true });
+    return () => window.removeEventListener('scroll', checkScroll);
   }, []);
 
   const scrollToTop = () => {
-    mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
 
@@ -84,7 +83,6 @@ export default function ManagementLayout({
     { href: '/management/tables', label: 'Tables', icon: Utensils, count: tables?.filter(t => t.id !== 'takeaway').length || 0 },
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
-    { href: '/management/support-tickets', label: 'Prises en charge', icon: Wrench },
   ];
   
   const reportLinks = [
@@ -101,7 +99,6 @@ export default function ManagementLayout({
   const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
   const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
   
-  const serviceSettingsLink = { href: '/management/repair-actions', label: 'Paramètres SAV', icon: ClipboardList };
 
   const renderLink = (link: { href: string; label: string; icon: React.ElementType; count?: number }) => (
       <SidebarMenuItem key={link.href}>
@@ -117,8 +114,8 @@ export default function ManagementLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen">
-        <Sidebar>
+      <div className="flex">
+        <Sidebar className="h-screen sticky top-0">
           <SidebarContent className="p-2 flex-1 flex flex-col">
             <SidebarMenu className="flex-1">
               {mainNavLinks.map(renderLink)}
@@ -142,8 +139,6 @@ export default function ManagementLayout({
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-               <Separator className="my-2" />
-              {renderLink(serviceSettingsLink)}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
@@ -159,7 +154,7 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main ref={mainContentRef} className="flex-1 overflow-y-auto">
+        <main ref={mainContentRef} className="flex-1">
           <div className="p-4 sm:p-6 lg:p-8">
             {children}
           </div>
