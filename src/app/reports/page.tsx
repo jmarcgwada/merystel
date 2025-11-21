@@ -1082,187 +1082,182 @@ function ReportsPageContent() {
                             </CollapsibleContent>
                         </Card>
                     </Collapsible>
-                    <Card className="relative">
-                        {isDocTypeFilterLocked && docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam}/>}
-                        <CardHeader>
-                            <div className="flex justify-between items-center">
-                                <CardTitle className="flex items-center gap-2">
-                                     Liste des Pièces
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <Columns className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            {columnsConfig.map(column => {
-                                                const isMarginColumn = column.id === 'margin';
-                                                return (
-                                                <DropdownMenuCheckboxItem
-                                                    key={column.id}
-                                                    checked={visibleColumns[column.id] ?? true}
-                                                    onCheckedChange={(checked) => {
-                                                        if (isMarginColumn) {
-                                                            handleMarginToggle(checked);
-                                                        } else {
-                                                            handleColumnVisibilityChange(column.id, checked)
-                                                        }
-                                                    }}
-                                                    disabled={isMarginColumn && !!visibleColumns.margin && user?.role !== 'admin'}
-                                                >
-                                                    {isMarginColumn && <Lock className="mr-2 h-3 w-3" />}
-                                                    {column.label}
-                                                </DropdownMenuCheckboxItem>
-                                                )
-                                            })}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </CardTitle>
-                                <div className="flex items-center gap-1">
-                                    <Button
-                                        variant="outline" size="icon" className="h-9 w-9"
-                                        onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
-                                        onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
-                                        onMouseLeave={handleMouseLeave}
-                                        onTouchStart={() => handleMouseDown(() => setCurrentPage(1))}
-                                        onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
-                                        disabled={currentPage === 1}
-                                    >
-                                        <ArrowLeft className="h-4 w-4" />
-                                    </Button>
-                                     <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                                Page {currentPage} / {totalPages || 1}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-48 p-2">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                                <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                                    <span>{itemsPerPageState}</span>
-                                                </div>
-                                                <Slider
-                                                    id="items-per-page-slider"
-                                                    value={[itemsPerPageState]}
-                                                    onValueChange={(value) => setItemsPerPageState(value[0])}
-                                                    onValueCommit={(value) => setItemsPerPage(value[0])}
-                                                    min={5}
-                                                    max={50}
-                                                    step={5}
-                                                />
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                    <Button
-                                        variant="outline" size="icon" className="h-9 w-9"
-                                        onClick={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
-                                        onMouseDown={() => handleMouseDown(() => setCurrentPage(totalPages))}
-                                        onMouseLeave={handleMouseLeave}
-                                        onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))}
-                                        onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
-                                        disabled={currentPage === totalPages || totalPages <= 1}
-                                    >
-                                        <ArrowRight className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        {visibleColumns.type && <TableHead className="w-[120px]"><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Type {getSortIcon('ticketNumber')}</Button></TableHead>}
-                                        {visibleColumns.ticketNumber && <TableHead>Numéro</TableHead>}
-                                        {visibleColumns.date && <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>}
-                                        {visibleColumns.userName && <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>}
-                                        {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
-                                        {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
-                                        {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
-                                        {visibleColumns.details && <TableHead>Détails</TableHead>}
-                                        {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
-                                        {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
-                                        {visibleColumns.totalDiscount && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('totalDiscount')} className="justify-end w-full">Total Remise {getSortIcon('totalDiscount')}</Button></TableHead>}
-                                        {visibleColumns.margin && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('margin')} className="justify-end w-full">Marge {getSortIcon('margin')}</Button></TableHead>}
-                                        {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
-                                        {visibleColumns.payment && <TableHead>Paiement</TableHead>}
-                                        <TableHead className="w-[150px] text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paginatedSales.map(sale => {
-                                        const sellerName = getUserName(sale.userId, sale.userName);
-                                        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-                                        const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
-                                        const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
-                                        
-                                        const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
-                                        const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
-                                        const totalDiscount = sale.items.reduce((sum, item) => sum + (item.discount || 0), 0);
-                                        const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
-                                        
-                                        return (
-                                            <TableRow 
-                                                key={sale.id} 
-                                                onClick={() => setLastSelectedSaleId(sale.id)}
-                                                className={cn(sale.id === lastSelectedSaleId && 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900')}
-                                                style={getRowStyle(sale)}
+                <Card className="relative">
+                    {isDocTypeFilterLocked && docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam}/>}
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="flex items-center gap-2">
+                                 {pageTitleComponent}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Columns className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {columnsConfig.map(column => {
+                                            const isMarginColumn = column.id === 'margin';
+                                            return (
+                                            <DropdownMenuCheckboxItem
+                                                key={column.id}
+                                                checked={visibleColumns[column.id] ?? true}
+                                                onCheckedChange={(checked) => {
+                                                    if (isMarginColumn) {
+                                                        handleMarginToggle(checked);
+                                                    } else {
+                                                        handleColumnVisibilityChange(column.id, checked)
+                                                    }
+                                                }}
+                                                disabled={isMarginColumn && !!visibleColumns.margin && user?.role !== 'admin'}
                                             >
-                                                {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
-                                                {visibleColumns.ticketNumber && <TableCell>
-                                                  <span className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</span>
-                                                </TableCell>}
-                                                {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
-                                                {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
-                                                {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
-                                                {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
-                                                {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
-                                                {visibleColumns.details && <TableCell className="text-xs text-muted-foreground max-w-[200px] whitespace-pre-wrap">{sale.items.map(i => i.name).join(', ')}</TableCell>}
-                                                {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
-                                                {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
-                                                {visibleColumns.totalDiscount && <TableCell className="text-right font-medium text-destructive">{totalDiscount > 0 ? `-${totalDiscount.toFixed(2)}€` : '-'}</TableCell>}
-                                                {visibleColumns.margin && <TableCell className="text-right font-bold text-green-600">{(sale as Sale & { margin: number }).margin.toFixed(2)}€</TableCell>}
-                                                {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
-                                                {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
-                                                <TableCell className="text-right">
-                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); }}><MoreVertical className="h-4 w-4"/></Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                                                            <DropdownMenuItem onClick={() => handleOpenDetailModal(sale)}>
-                                                                <Eye className="mr-2 h-4 w-4" />
-                                                                Détail rapide
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleEdit(sale)}>
-                                                                {isValidated ? <Eye className="mr-2 h-4 w-4" /> : <Pencil className="mr-2 h-4 w-4" />}
-                                                                {isValidated ? 'Consulter' : 'Modifier'}
-                                                            </DropdownMenuItem>
-                                                            {canBeConverted && (
-                                                                <DropdownMenuItem onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
-                                                                    <FileCog className="mr-2 h-4 w-4 text-blue-600" /> Transformer en Facture
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={() => handlePrint(sale)} disabled={isPrinting && saleToPrint?.id === sale.id}>
-                                                                <Printer className="mr-2 h-4 w-4" /> Imprimer
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => { setSaleToPrint(sale); setEmailDialogOpen(true); }}>
-                                                                <Send className="mr-2 h-4 w-4" /> Envoyer par E-mail
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </div>
+                                                {isMarginColumn && <Lock className="mr-2 h-3 w-3" />}
+                                                {column.label}
+                                            </DropdownMenuCheckboxItem>
+                                            )
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </CardTitle>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="outline" size="icon" className="h-9 w-9"
+                                    onClick={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                                    onMouseDown={() => handleMouseDown(() => setCurrentPage(1))}
+                                    onMouseLeave={handleMouseLeave}
+                                    onTouchStart={() => handleMouseDown(() => setCurrentPage(1))}
+                                    onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))}
+                                    disabled={currentPage === 1}
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                </Button>
+                                 <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                            Page {currentPage} / {totalPages || 1}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-48 p-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                            <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                                <span>{itemsPerPageState}</span>
+                                            </div>
+                                            <Slider
+                                                id="items-per-page-slider"
+                                                value={[itemsPerPageState]}
+                                                onValueChange={(value) => setItemsPerPageState(value[0])}
+                                                onValueCommit={(value) => setItemsPerPage(value[0])}
+                                                min={5}
+                                                max={50}
+                                                step={5}
+                                            />
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <Button
+                                    variant="outline" size="icon" className="h-9 w-9"
+                                    onClick={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
+                                    onMouseDown={() => handleMouseDown(() => setCurrentPage(totalPages))}
+                                    onMouseLeave={handleMouseLeave}
+                                    onTouchStart={() => handleMouseDown(() => setCurrentPage(totalPages))}
+                                    onTouchEnd={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))}
+                                    disabled={currentPage === totalPages || totalPages <= 1}
+                                >
+                                    <ArrowRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    {visibleColumns.type && <TableHead className="w-[120px]"><Button variant="ghost" onClick={() => requestSort('ticketNumber')}>Type {getSortIcon('ticketNumber')}</Button></TableHead>}
+                                    {visibleColumns.ticketNumber && <TableHead>Numéro</TableHead>}
+                                    {visibleColumns.date && <TableHead><Button variant="ghost" onClick={() => requestSort('date')}>Date {getSortIcon('date')}</Button></TableHead>}
+                                    {visibleColumns.userName && <TableHead><Button variant="ghost" onClick={() => requestSort('userName')}>Vendeur {getSortIcon('userName')}</Button></TableHead>}
+                                    {visibleColumns.origin && <TableHead><Button variant="ghost" onClick={() => requestSort('tableName')}>Origine {getSortIcon('tableName')}</Button></TableHead>}
+                                    {visibleColumns.customerName && <TableHead><Button variant="ghost" onClick={() => requestSort('customerName')}>Client {getSortIcon('customerName')}</Button></TableHead>}
+                                    {visibleColumns.itemCount && <TableHead className="w-[80px] text-center"><Button variant="ghost" onClick={() => requestSort('itemCount')}>Articles {getSortIcon('itemCount')}</Button></TableHead>}
+                                    {visibleColumns.details && <TableHead>Détails</TableHead>}
+                                    {visibleColumns.subtotal && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('subtotal')} className="justify-end w-full">Total HT {getSortIcon('subtotal')}</Button></TableHead>}
+                                    {visibleColumns.tax && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('tax')} className="justify-end w-full">Total TVA {getSortIcon('tax')}</Button></TableHead>}
+                                    {visibleColumns.totalDiscount && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('totalDiscount')} className="justify-end w-full">Total Remise {getSortIcon('totalDiscount')}</Button></TableHead>}
+                                    {visibleColumns.margin && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('margin')} className="justify-end w-full">Marge {getSortIcon('margin')}</Button></TableHead>}
+                                    {visibleColumns.total && <TableHead className="text-right w-[120px]"><Button variant="ghost" onClick={() => requestSort('total')} className="justify-end w-full">Total TTC {getSortIcon('total')}</Button></TableHead>}
+                                    {visibleColumns.payment && <TableHead>Paiement</TableHead>}
+                                    <TableHead className="w-[150px] text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paginatedSales.map(sale => {
+                                    const sellerName = getUserName(sale.userId, sale.userName);
+                                    const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                                    const pieceType = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
+                                    const canBeConverted = (sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced';
+                                    
+                                    const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
+                                    const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
+                                    const totalDiscount = sale.items.reduce((sum, item) => sum + (item.discount || 0), 0);
+                                    const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
+                                    
+                                    return (
+                                        <TableRow 
+                                            key={sale.id}
+                                            style={getRowStyle(sale)}
+                                        >
+                                            {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
+                                            {visibleColumns.ticketNumber && <TableCell>
+                                              <span className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</span>
+                                            </TableCell>}
+                                            {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
+                                            {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
+                                            {visibleColumns.origin && <TableCell>{sale.tableName ? <Badge variant="outline">{sale.tableName}</Badge> : originText}</TableCell>}
+                                            {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
+                                            {visibleColumns.itemCount && <TableCell className="text-center">{Array.isArray(sale.items) ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 0}</TableCell>}
+                                            {visibleColumns.details && <TableCell className="text-xs text-muted-foreground max-w-[200px] whitespace-pre-wrap">{sale.items.map(i => i.name).join(', ')}</TableCell>}
+                                            {visibleColumns.subtotal && <TableCell className="text-right font-medium">{Math.abs(sale.subtotal || 0).toFixed(2)}€</TableCell>}
+                                            {visibleColumns.tax && <TableCell className="text-right font-medium">{Math.abs(sale.tax || 0).toFixed(2)}€</TableCell>}
+                                            {visibleColumns.totalDiscount && <TableCell className="text-right font-medium text-destructive">{totalDiscount > 0 ? `-${totalDiscount.toFixed(2)}€` : '-'}</TableCell>}
+                                            {visibleColumns.margin && <TableCell className="text-right font-bold text-green-600">{(sale as Sale & { margin: number }).margin.toFixed(2)}€</TableCell>}
+                                            {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
+                                            {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-0">
+                                                  <TooltipProvider>
+                                                      <Tooltip>
+                                                          <TooltipTrigger asChild>
+                                                              <Button variant="ghost" size="icon" onClick={() => handleOpenDetailModal(sale)}><Eye className="h-4 w-4" /></Button>
+                                                          </TooltipTrigger>
+                                                          <TooltipContent><p>Détail Rapide</p></TooltipContent>
+                                                      </Tooltip>
+                                                      <Tooltip>
+                                                          <TooltipTrigger asChild>
+                                                              <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                                                                  {isValidated ? <FileSignature className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                                                              </Button>
+                                                          </TooltipTrigger>
+                                                          <TooltipContent><p>{isValidated ? 'Consulter' : 'Modifier'}</p></TooltipContent>
+                                                      </Tooltip>
+                                                      <Tooltip>
+                                                          <TooltipTrigger asChild>
+                                                              <Button variant="ghost" size="icon" onClick={() => handlePrint(sale)} disabled={isPrinting && saleToPrint?.id === sale.id}><Printer className="h-4 w-4" /></Button>
+                                                          </TooltipTrigger>
+                                                          <TooltipContent><p>Imprimer</p></TooltipContent>
+                                                      </Tooltip>
+                                                  </TooltipProvider>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
       </div>
       <SaleDetailModal
         isOpen={isDetailModalOpen}
