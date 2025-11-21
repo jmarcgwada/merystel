@@ -97,6 +97,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       lastReportsUrl,
       recordCommercialDocument,
       vatRates,
+      updateOrderItemField
   } = usePos();
   
   const isEditing = !!currentSaleId;
@@ -107,6 +108,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const router = useRouter();
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
   const [isConfirmOpen, setConfirmOpen] = useState(false);
+  const [isDuplicateConfirmOpen, setIsDuplicateConfirmOpen] = useState(false);
 
   const config = docTypeConfig[documentType];
   const canBeConverted = isEditing && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
@@ -150,9 +152,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
     // 4. Navigate to the creation page.
     router.push(nextPath);
     toast({ title: 'Pièce dupliquée', description: `Une nouvelle ${nextDocTypeName} a été créée.` });
+    setIsDuplicateConfirmOpen(false);
   };
   
-const handleGenerateRandom = () => {
+const handleGenerateRandom = async () => {
     if (!items?.length || !customers?.length || !vatRates?.length) {
       toast({
         variant: 'destructive',
@@ -207,7 +210,7 @@ const handleGenerateRandom = () => {
         documentType: documentType,
     };
     
-    recordCommercialDocument(doc, documentType);
+    await recordCommercialDocument(doc, documentType);
 
     toast({
       title: 'Pièce Aléatoire Générée',
@@ -264,7 +267,7 @@ const handleGenerateRandom = () => {
                     )}
 
                     {isReadOnly ? (
-                        <Button size="lg" onClick={handleDuplicate}>
+                        <Button size="lg" onClick={() => setIsDuplicateConfirmOpen(true)}>
                             <Copy className="mr-2 h-4 w-4" />
                             Dupliquer
                         </Button>
@@ -292,6 +295,7 @@ const handleGenerateRandom = () => {
                   onTotalsChange={setTotals}
                   updateItemQuantityInOrder={updateItemQuantityInOrder}
                   documentType={documentType}
+                  updateOrderItemField={updateOrderItemField}
               />
           </div>
         </fieldset>
@@ -313,6 +317,22 @@ const handleGenerateRandom = () => {
                     handleConvertToInvoice();
                     setConfirmOpen(false);
                 }}>
+                    Confirmer
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+     <AlertDialog open={isDuplicateConfirmOpen} onOpenChange={setIsDuplicateConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la duplication ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Voulez-vous vraiment créer une nouvelle pièce basée sur celle-ci ?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDuplicate}>
                     Confirmer
                 </AlertDialogAction>
             </AlertDialogFooter>
