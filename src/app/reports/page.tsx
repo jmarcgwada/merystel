@@ -48,12 +48,12 @@ import { SaleDetailModal } from './components/sale-detail-modal';
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber' | 'subtotal' | 'tax' | 'totalDiscount' | 'margin';
 
 const documentTypes = {
-    ticket: { label: 'Ticket', type: 'in' },
-    invoice: { label: 'Facture', type: 'in', path: '/commercial/invoices' },
-    quote: { label: 'Devis', type: 'neutral', path: '/commercial/quotes' },
-    delivery_note: { label: 'Bon de Livraison', type: 'neutral', path: '/commercial/delivery-notes' },
-    supplier_order: { label: 'Cde Fournisseur', type: 'out', path: '/commercial/supplier-orders' },
-    credit_note: { label: 'Avoir', type: 'out', path: '/commercial/credit-notes' },
+    ticket: { label: 'Ticket', plural: 'Tickets', type: 'in' },
+    invoice: { label: 'Facture', plural: 'Factures', type: 'in', path: '/commercial/invoices' },
+    quote: { label: 'Devis', plural: 'Devis', type: 'neutral', path: '/commercial/quotes' },
+    delivery_note: { label: 'Bon de Livraison', plural: 'Bons de Livraison', type: 'neutral', path: '/commercial/delivery-notes' },
+    supplier_order: { label: 'Cde Fournisseur', plural: 'Cdes Fournisseur', type: 'out', path: '/commercial/supplier-orders' },
+    credit_note: { label: 'Avoir', plural: 'Avoirs', type: 'out', path: '/commercial/credit-notes' },
 };
 
 const hexToRgba = (hex: string, opacity: number) => {
@@ -111,7 +111,11 @@ const ClientFormattedDate = ({ date, showIcon }: { date: Date | Timestamp | unde
         let jsDate: Date;
         if (date instanceof Date) jsDate = date;
         else if (date && typeof (date as Timestamp)?.toDate === 'function') jsDate = (date as Timestamp).toDate();
-        else jsDate = new Date(date as any);
+        else if (date && typeof (date as any).seconds === 'number') {
+            jsDate = new Date((date as any).seconds * 1000);
+        } else {
+            jsDate = new Date(date as any);
+        }
 
         if (!isNaN(jsDate.getTime())) {
             setFormattedDate(format(jsDate, "d MMM yyyy, HH:mm", { locale: fr }));
@@ -782,8 +786,13 @@ function ReportsPageContent() {
         const balance = saleTotal - totalPaid;
         
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        if (documentTypes[docType as keyof typeof documentTypes]?.type === 'neutral') {
-             return {}; // No special color for neutral types
+        const typeInfo = documentTypes[docType as keyof typeof documentTypes];
+
+        if (typeInfo?.type === 'out') {
+            return { backgroundColor: hexToRgba('#ef4444', 10) }
+        }
+        if (typeInfo?.type === 'neutral') {
+             return { backgroundColor: hexToRgba('#3b82f6', 10) }; 
         }
         
         if (sale.status === 'paid' || balance <= 0.01) {
@@ -829,7 +838,7 @@ function ReportsPageContent() {
         setLongPressTimer(null);
     }
   };
-
+    
     if (isPosLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -841,9 +850,17 @@ function ReportsPageContent() {
         )
     }
 
-    const pageTitle = (
+    const pageTitle = (() => {
+        const docType = searchParams.get('docType');
+        if (docType && documentTypes[docType as keyof typeof documentTypes]) {
+            return `Rapport ${documentTypes[docType as keyof typeof documentTypes].plural}`;
+        }
+        return "Rapports des pièces";
+    })();
+
+    const pageTitleComponent = (
         <div className="flex items-center gap-4">
-            <span>Pièces</span>
+            <span>{pageTitle}</span>
             <span className="text-base font-normal text-muted-foreground">
                 ({filteredAndSortedSales.length} / {allSales?.length || 0})
             </span>
@@ -916,7 +933,7 @@ function ReportsPageContent() {
         </AlertDialog>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
-                title="Rapports des pièces"
+                title={pageTitle}
                 subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
                 <div className="flex items-center gap-2">
@@ -1025,7 +1042,7 @@ function ReportsPageContent() {
                                                 {Object.entries(documentTypes).map(([type, { label }]) => (
                                                     <DropdownMenuCheckboxItem
                                                         key={type}
-                                                        checked={filterDocTypes[type]}
+                                                        checked={filterDocTypes[type as keyof typeof filterDocTypes]}
                                                         onCheckedChange={(checked) => setFilterDocTypes(prev => ({...prev, [type]: checked}))}
                                                     >
                                                         {label}
@@ -1067,7 +1084,7 @@ function ReportsPageContent() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
-                                  {pageTitle}
+                                  {pageTitleComponent}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1082,7 +1099,7 @@ function ReportsPageContent() {
                                                 return (
                                                 <DropdownMenuCheckboxItem
                                                     key={column.id}
-                                                    checked={visibleColumns[column.id] ?? false}
+                                                    checked={visibleColumns[column.id] ?? true}
                                                     onCheckedChange={(checked) => {
                                                         if (isMarginColumn) {
                                                             handleMarginToggle(checked);
@@ -1260,7 +1277,7 @@ function ReportsPageContent() {
 }
 
 const DocumentTypeWatermark = ({ docType }: { docType: string }) => {
-    const typeLabel = documentTypes[docType as keyof typeof documentTypes]?.label || docType;
+    const typeLabel = documentTypes[docType as keyof typeof documentTypes]?.plural || docType;
     return (
         <div className="absolute inset-0 flex items-center justify-center -z-10 overflow-hidden">
             <h1 className="text-[12vw] font-black text-gray-200/50 dark:text-gray-800/50 select-none -rotate-12 whitespace-nowrap">
