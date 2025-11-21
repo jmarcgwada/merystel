@@ -9,7 +9,7 @@ import type { Sale } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Calendar, Clock } from 'lucide-react';
+import { User, Calendar, Clock, Edit } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,13 +56,24 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
   const balanceDue = sale.total - totalPaid;
   const isInvoice = sale.documentType === 'invoice';
 
-  const handleEdit = () => {
+  const handleNavigate = () => {
     onClose();
-    let path = '/commercial/invoices';
-    if(sale.documentType === 'quote') path = '/commercial/quotes';
-    else if (sale.documentType === 'delivery_note') path = '/commercial/delivery-notes';
-    else if (sale.documentType === 'supplier_order') path = '/commercial/supplier-orders';
-    else if (sale.documentType === 'credit_note') path = '/commercial/credit-notes';
+    let path = '/commercial/invoices'; // Default path
+    const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+
+    switch(docType) {
+        case 'quote': path = '/commercial/quotes'; break;
+        case 'delivery_note': path = '/commercial/delivery-notes'; break;
+        case 'supplier_order': path = '/commercial/supplier-orders'; break;
+        case 'credit_note': path = '/commercial/credit-notes'; break;
+        case 'ticket': 
+            // For tickets, we assume editing happens in the main POS view
+            // This logic might need adjustment based on desired flow for tickets
+            path = '/pos'; 
+            // You might need to set the order in the context here before navigating
+            break;
+    }
+    
     router.push(`${path}?edit=${sale.id}`);
   };
 
@@ -136,15 +147,13 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
                 </Card>
             </div>
         </div>
-        <DialogFooter className="gap-2 sm:justify-between">
-            <Button variant="outline" onClick={handleOpenFullDetail}>
+        <DialogFooter className="gap-2 sm:justify-end">
+             <Button variant="outline" onClick={handleOpenFullDetail}>
               Voir la fiche détaillée
             </Button>
-            {isInvoice && balanceDue > 0 && (
-                <Button onClick={handleEdit}>
-                    Ajouter un paiement
-                </Button>
-            )}
+            <Button onClick={handleNavigate}>
+                <Edit className="mr-2 h-4 w-4" /> Modifier / Consulter la pièce
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
