@@ -9,7 +9,7 @@ import type { Sale } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Calendar, Clock, Edit } from 'lucide-react';
+import { User, Calendar, Clock, Edit, FileText } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,18 +43,39 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
 };
 
 export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps) {
-  const { customers, users, lastReportsUrl } = usePos();
+  const { customers, users, vatRates } = usePos();
   const router = useRouter();
   const [isFullDetailOpen, setIsFullDetailOpen] = useState(false);
   
   const customer = useMemo(() => sale?.customerId ? customers.find(c => c.id === sale.customerId) : null, [sale, customers]);
   const seller = useMemo(() => sale?.userId ? users.find(u => u.id === sale.userId) : null, [sale, users]);
 
+  const { subtotal, tax, balanceDue } = useMemo(() => {
+    if (!sale || !vatRates) return { subtotal: 0, tax: 0, balanceDue: 0 };
+    
+    const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+    const balance = sale.total - totalPaid;
+
+    if (sale.subtotal !== undefined && sale.tax !== undefined) {
+        return { subtotal: sale.subtotal, tax: sale.tax, balanceDue: balance };
+    }
+    
+    let calcSubtotal = 0;
+    sale.items.forEach(item => {
+        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        const rate = vatInfo ? vatInfo.rate : 0;
+        const priceHT = item.total / (1 + rate / 100);
+        calcSubtotal += priceHT;
+    });
+
+    const calcTax = sale.total - calcSubtotal;
+    return { subtotal: calcSubtotal, tax: calcTax, balanceDue: balance };
+  }, [sale, vatRates]);
+
+
   if (!sale) return null;
 
   const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
-  const balanceDue = sale.total - totalPaid;
-  const isInvoice = sale.documentType === 'invoice';
 
   const handleNavigate = () => {
     onClose();
@@ -67,10 +88,7 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
         case 'supplier_order': path = '/commercial/supplier-orders'; break;
         case 'credit_note': path = '/commercial/credit-notes'; break;
         case 'ticket': 
-            // For tickets, we assume editing happens in the main POS view
-            // This logic might need adjustment based on desired flow for tickets
             path = '/pos'; 
-            // You might need to set the order in the context here before navigating
             break;
     }
     
@@ -85,9 +103,9 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
   return (
     <>
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Détail de la Pièce #{sale.ticketNumber}</DialogTitle>
+          <DialogTitle>Détail rapide de la pièce #{sale.ticketNumber}</DialogTitle>
           <DialogDescription>
              <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
                 <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /><ClientFormattedDate date={sale.date} formatString="d MMMM yyyy" /></span>
@@ -96,7 +114,7 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
             </span>
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 max-h-[60vh] overflow-y-auto">
+        <div className="py-4 grid grid-cols-1 gap-6">
             <div className="space-y-4">
                 <Card>
                     <CardHeader><CardTitle className="text-base">Client</CardTitle></CardHeader>
@@ -105,54 +123,31 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
                         <p className="text-sm text-muted-foreground">{customer?.email}</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader><CardTitle className="text-base">Articles ({sale.items.length})</CardTitle></CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow><TableHead>Désignation</TableHead><TableHead className="text-right">Total</TableHead></TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sale.items.map(item => (
-                                    <TableRow key={item.id}>
-                                        <TableCell>
-                                            <span className="text-muted-foreground">{item.quantity}x</span> {item.name}
-                                        </TableCell>
-                                        <TableCell className="text-right font-medium">{item.total.toFixed(2)}€</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
-             <div className="space-y-4">
                  <Card>
-                    <CardHeader><CardTitle className="text-base">Récapitulatif</CardTitle></CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Total à payer</span><span className="font-semibold">{sale.total.toFixed(2)}€</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Total payé</span><span className="font-semibold">{totalPaid.toFixed(2)}€</span></div>
-                        <Separator />
-                        <div className={`flex justify-between font-bold ${balanceDue > 0.01 ? 'text-destructive' : 'text-green-600'}`}>
-                          <span>{balanceDue > 0.01 ? 'Reste à payer' : 'Solde'}</span>
-                          <span>{balanceDue.toFixed(2)}€</span>
-                        </div>
+                    <CardHeader><CardTitle className="text-base">Résumé de la Vente</CardTitle></CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span>Articles</span><span className="font-medium">{sale.items.reduce((acc, item) => acc + item.quantity, 0)}</span></div>
+                        <div className="flex justify-between"><span>Total HT</span><span className="font-medium">{subtotal.toFixed(2)}€</span></div>
+                        <div className="flex justify-between"><span>Total TVA</span><span className="font-medium">{tax.toFixed(2)}€</span></div>
+                        <Separator className="my-2"/>
+                        <div className="flex justify-between font-bold text-base"><span>Total TTC</span><span>{sale.total.toFixed(2)}€</span></div>
+                        {balanceDue > 0.01 && <div className="flex justify-between font-bold text-destructive"><span>Solde Dû</span><span>{balanceDue.toFixed(2)}€</span></div>}
                     </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader><CardTitle className="text-base">Paiements enregistrés</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-base">Paiements</CardTitle></CardHeader>
                     <CardContent>
                         <PaymentsList payments={sale.payments || []} />
                     </CardContent>
                 </Card>
             </div>
         </div>
-        <DialogFooter className="gap-2 sm:justify-end">
-             <Button variant="outline" onClick={handleOpenFullDetail}>
-              Voir la fiche détaillée
+        <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" onClick={handleOpenFullDetail}>
+              <FileText className="mr-2 h-4 w-4" /> Fiche détaillée
             </Button>
             <Button onClick={handleNavigate}>
-                <Edit className="mr-2 h-4 w-4" /> Modifier / Consulter la pièce
+                <Edit className="mr-2 h-4 w-4" /> Modifier / Consulter
             </Button>
         </DialogFooter>
       </DialogContent>
