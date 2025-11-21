@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -68,7 +67,8 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
   };
 
   const handleOpenFullDetail = () => {
-    setIsFullDetailOpen(true);
+    onClose(); // Close the current modal first
+    setIsFullDetailOpen(true); // Then open the new one
   };
 
   return (
@@ -158,4 +158,3 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
     </>
   );
 }
-
