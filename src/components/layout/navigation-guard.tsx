@@ -6,32 +6,45 @@ import { usePathname } from 'next/navigation';
 import { usePos } from '@/contexts/pos-context';
 
 export function NavigationGuard() {
-  const { order, showNavConfirm } = usePos();
+  const { order, showNavConfirm, blockBrowserNav, isForcedMode } = usePos();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!order || order.length === 0) {
-      return;
-    }
-
-    // Push a new entry into the history stack.
-    history.pushState(null, '', pathname);
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // Most browsers will use a generic message.
+      event.returnValue = 'Êtes-vous sûr de vouloir quitter ? Des données pourraient ne pas être sauvegardées.';
+      return event.returnValue;
+    };
 
     const handlePopState = (event: PopStateEvent) => {
-      // If there's an order, prevent going back and show confirmation.
-      if (order && order.length > 0) {
-        history.go(1); // Go forward to cancel the back action.
-        showNavConfirm(pathname); // Show the confirmation dialog.
+      // If global lock is on, always prevent back/forward
+      if (blockBrowserNav || isForcedMode) {
+        history.go(1);
+        showNavConfirm(pathname);
+      }
+      // If there's an order, prevent going back and show confirmation
+      else if (order && order.length > 0) {
+        history.go(1); 
+        showNavConfirm(pathname);
       }
     };
+    
+    if (blockBrowserNav || isForcedMode) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+    }
+    
+    // This part handles the back/forward buttons
+    if ((blockBrowserNav || isForcedMode) || (order && order.length > 0)) {
+        history.pushState(null, '', pathname);
+        window.addEventListener('popstate', handlePopState);
+    }
 
-    window.addEventListener('popstate', handlePopState);
-
-    // Cleanup the event listener when the component unmounts or dependencies change.
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [pathname, order, showNavConfirm]);
+  }, [pathname, order, showNavConfirm, blockBrowserNav, isForcedMode]);
 
-  return null; // This component doesn't render anything visible.
+  return null;
 }

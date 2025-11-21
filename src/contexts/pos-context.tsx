@@ -267,6 +267,8 @@ export interface PosContextType {
   setIsCalculatorOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isFullscreen: boolean;
   toggleFullscreen: () => void;
+  blockBrowserNav: boolean;
+  setBlockBrowserNav: React.Dispatch<React.SetStateAction<boolean>>;
   enableDynamicBg: boolean;
   setEnableDynamicBg: React.Dispatch<React.SetStateAction<boolean>>;
   dynamicBgOpacity: number;
@@ -460,6 +462,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
   const [tempFormSubmissions, setTempFormSubmissions, rehydrateTempFormSubmissions] = usePersistentState<Record<string, FormSubmission>>('data.tempFormSubmissions', {});
   const [showNotifications, setShowNotifications] = usePersistentState('settings.showNotifications', true);
   const [notificationDuration, setNotificationDuration] = usePersistentState('settings.notificationDuration', 3000);
+  const [blockBrowserNav, setBlockBrowserNav] = usePersistentState('settings.blockBrowserNav', false);
   const [enableDynamicBg, setEnableDynamicBg] = usePersistentState('settings.enableDynamicBg', true);
   const [dynamicBgOpacity, setDynamicBgOpacity] = usePersistentState('settings.dynamicBgOpacity', 10);
   const [showTicketImages, setShowTicketImages] = usePersistentState('settings.showTicketImages', true);
@@ -979,10 +982,13 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
         vatRates,
         companyInfo,
         users,
-        mappingTemplates
+        mappingTemplates,
+        supportTickets,
+        repairActionPresets,
+        equipmentTypes,
     };
     return JSON.stringify(config, null, 2);
-  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, mappingTemplates]);
+  }, [items, categories, customers, suppliers, tablesData, paymentMethods, vatRates, companyInfo, users, mappingTemplates, supportTickets, repairActionPresets, equipmentTypes]);
 
   const importConfiguration = useCallback(async (file: File) => {
     const reader = new FileReader();
@@ -999,13 +1005,16 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
             if (config.companyInfo) setCompanyInfo(config.companyInfo);
             if (config.users) setUsers(config.users);
             if (config.mappingTemplates) setMappingTemplates(config.mappingTemplates);
+            if (config.supportTickets) setSupportTickets(config.supportTickets);
+            if (config.repairActionPresets) setRepairActionPresets(config.repairActionPresets);
+            if (config.equipmentTypes) setEquipmentTypes(config.equipmentTypes);
             toast({ title: 'Importation réussie!', description: 'La configuration a été restaurée.' });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erreur d\'importation' });
         }
     };
     reader.readAsText(file);
-  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, toast]);
+  }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, setSupportTickets, setRepairActionPresets, setEquipmentTypes, toast]);
   
     const exportFullData = useCallback(() => {
     const allData = {
@@ -2176,6 +2185,7 @@ export const PosProvider = ({ children }: { children: ReactNode }) => {
       seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
       cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
       isCalculatorOpen, setIsCalculatorOpen, isFullscreen, toggleFullscreen,
+      blockBrowserNav, setBlockBrowserNav,
       enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
       showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
       itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
@@ -2224,5 +2234,3 @@ export function usePos() {
   }
   return context;
 }
-
-    

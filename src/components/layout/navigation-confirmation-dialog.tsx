@@ -20,10 +20,21 @@ export function NavigationConfirmationDialog() {
     closeNavConfirm,
     confirmNavigation,
     selectedTable,
+    blockBrowserNav,
+    isForcedMode
   } = usePos();
 
-  const title = selectedTable ? `Vente en cours sur la table "${selectedTable.name}"` : 'Vente en cours';
-  const description = selectedTable 
+  const isGlobalLock = blockBrowserNav || isForcedMode;
+
+  const title = isGlobalLock 
+    ? 'Quitter la page ?'
+    : selectedTable
+    ? `Vente en cours sur la table "${selectedTable.name}"`
+    : 'Vente en cours';
+    
+  const description = isGlobalLock
+    ? "Des modifications non sauvegardées pourraient être perdues. Êtes-vous sûr de vouloir quitter ?"
+    : selectedTable 
     ? "La commande de cette table sera perdue si vous quittez sans sauvegarder."
     : "La commande actuelle sera perdue si vous quittez sans la mettre en attente ou la payer.";
 
@@ -34,7 +45,7 @@ export function NavigationConfirmationDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
-            {description} Voulez-vous vraiment quitter ?
+            {description} {isGlobalLock ? '' : 'Voulez-vous vraiment quitter ?'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-start gap-2">

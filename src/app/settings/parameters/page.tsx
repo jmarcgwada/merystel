@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine, ShoppingCart, Utensils, Lock } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, FileText, Upload, Download, ScanLine, ShoppingCart, Utensils, Lock, ShieldCheck } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -44,6 +44,8 @@ export default function ParametersPage() {
     setDefaultSalesMode,
     isForcedMode,
     setIsForcedMode,
+    blockBrowserNav,
+    setBlockBrowserNav,
   } = usePos();
   
   const [isClient, setIsClient] = useState(false);
@@ -149,6 +151,26 @@ export default function ParametersPage() {
                             id="enable-serial-number"
                             checked={enableSerialNumber}
                             onCheckedChange={setEnableSerialNumber}
+                        />
+                    ) : (
+                        <Skeleton className="h-6 w-11" />
+                    )}
+                </div>
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="block-browser-nav" className="text-base flex items-center gap-2">
+                            <ShieldCheck />
+                            Bloquer la navigation du navigateur
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                           Empêche le rafraîchissement (F5), la fermeture de l'onglet et les retours en arrière pour éviter les pertes de données.
+                        </p>
+                    </div>
+                    {isClient ? (
+                        <Switch 
+                            id="block-browser-nav"
+                            checked={blockBrowserNav}
+                            onCheckedChange={setBlockBrowserNav}
                         />
                     ) : (
                         <Skeleton className="h-6 w-11" />
