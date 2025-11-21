@@ -124,7 +124,32 @@ function UserForm() {
                 </div>
                 <FormField control={form.control} name="email" render={({ field }) => ( <FormItem> <FormLabel>Adresse e-mail</FormLabel> <FormControl> <Input type="email" placeholder="jean.dupont@example.com" {...field} readOnly={isEditMode} /> </FormControl> <FormMessage /> </FormItem> )}/>
                 {!isEditMode && ( <FormField control={form.control} name="password" render={({ field }) => ( <FormItem> <FormLabel>Mot de passe</FormLabel> <FormControl> <Input type="password" placeholder="••••••••" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/> )}
-                 <FormField control={form.control} name="sessionDuration" render={({ field }) => ( <FormItem> <FormLabel>Durée de session (minutes)</FormLabel> <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value ?? 30)}> <FormControl> <SelectTrigger> <SelectValue placeholder="Sélectionnez une durée" /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="15">15 minutes</SelectItem> <SelectItem value="30">30 minutes</SelectItem> <SelectItem value="60">1 heure</SelectItem> <SelectItem value="120">2 heures</SelectItem> <SelectItem value="240">4 heures</SelectItem> <SelectItem value="480">8 heures</SelectItem> <SelectItem value="0">Illimitée</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
+                 <FormField 
+                    control={form.control} 
+                    name="sessionDuration" 
+                    render={({ field }) => ( 
+                        <FormItem> 
+                            <FormLabel>Durée de session (minutes)</FormLabel> 
+                            <Select onValueChange={(value) => field.onChange(parseInt(value))} value={String(field.value ?? 30)}> 
+                                <FormControl>
+                                    <SelectTrigger> 
+                                        <SelectValue placeholder="Sélectionnez une durée" /> 
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent> 
+                                    <SelectItem value="15">15 minutes</SelectItem> 
+                                    <SelectItem value="30">30 minutes</SelectItem> 
+                                    <SelectItem value="60">1 heure</SelectItem> 
+                                    <SelectItem value="120">2 heures</SelectItem> 
+                                    <SelectItem value="240">4 heures</SelectItem> 
+                                    <SelectItem value="480">8 heures</SelectItem> 
+                                    <SelectItem value="0">Illimitée</SelectItem> 
+                                </SelectContent> 
+                            </Select> 
+                            <FormMessage /> 
+                        </FormItem> 
+                    )}
+                />
                 {isEditMode && ( <CardDescription>La modification de l'e-mail n'est pas disponible ici. Le mot de passe peut être réinitialisé depuis la liste des utilisateurs.</CardDescription> )}
               </CardContent>
             </Card>
