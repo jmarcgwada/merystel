@@ -394,10 +394,9 @@ export interface PosContextType {
   setCompanyInfo: (info: CompanyInfo) => void;
 }
 
-// This context remains unchanged.
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
-// This custom hook remains unchanged.
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -438,7 +437,7 @@ function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch
     return [state, setState, rehydrate];
 }
 
-export function PosProvider({ children }: { children: ReactNode }) {
+export const PosProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: userLoading } = useFirebaseUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -448,7 +447,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
   useEffect(() => { setIsHydrated(true); }, []);
 
-  // All state declarations using usePersistentState remain the same.
+
+  // Settings States
   const [dunningLogs, setDunningLogs, rehydrateDunningLogs] = usePersistentState<DunningLog[]>('data.dunningLogs', []);
   const [cheques, setCheques, rehydrateCheques] = usePersistentState<Cheque[]>('data.cheques', []);
   const [paiementsPartiels, setPaiementsPartiels, rehydratePaiementsPartiels] = usePersistentState<PaiementPartiel[]>('data.paiementsPartiels', []);
@@ -1276,27 +1276,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
       ));
   }, []);
 
-    const updateQuantity = useCallback(
+  const updateQuantity = useCallback(
     (itemId: string, quantity: number) => {
-      const itemToUpdate = order.find((item) => item.id === itemId);
-      if (!itemToUpdate) return;
-      
-      const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
-      if(!originalItem) return;
-
-      if (originalItem.requiresSerialNumber && enableSerialNumber) {
-        if (quantity <= 0) {
-          removeFromOrder(itemId);
-        } else {
-          setSerialNumberItem({ item: originalItem, quantity });
-        }
-        return;
-      }
-      
-      if (quantity <= 0) {
-        removeFromOrder(itemId);
-        return;
-      }
       setOrder((currentOrder) =>
         currentOrder.map((item) =>
           item.id === itemId
@@ -1309,9 +1290,8 @@ export function PosProvider({ children }: { children: ReactNode }) {
         )
       );
     },
-    [order, removeFromOrder, enableSerialNumber, items]
+    []
   );
-
   
   const updateQuantityFromKeypad = useCallback(
     (itemId: OrderItem['id'], quantity: number) => {
@@ -1569,63 +1549,665 @@ export function PosProvider({ children }: { children: ReactNode }) {
     
         return finalSale;
     }, [sales, user, currentSaleContext, currentSaleId, setTablesData, setHeldOrders, setSales]);
+    
+    const recordCommercialDocument = useCallback(async (docData: Omit<Sale, 'id' | 'date' | 'ticketNumber'>, type: 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note' | 'invoice' | 'ticket', docIdToUpdate?: string): Promise<Sale | null> => {
+        const today = new Date();
+        const prefixMap = {
+          quote: 'Devis',
+          delivery_note: 'BL',
+          supplier_order: 'CF',
+          invoice: 'Fact',
+          ticket: 'Tick',
+          credit_note: 'Avoir'
+        };
+        const prefix = prefixMap[type] || 'DOC';
+        
+        let finalDoc: Sale;
 
-  const contextValue = {
-    order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
-    addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
-    clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
-    variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, formSubmissions, tempFormSubmissions,
-    lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
-    sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
-    items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
-    getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
-    tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
-    promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
-    vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
-    auditLogs, 
-    dunningLogs, addDunningLog,
-    cheques, addCheque, updateCheque, deleteCheque, 
-    paiementsPartiels, addPaiementPartiel, 
-    remises, addRemise,
-    supportTickets, addSupportTicket, updateSupportTicket, deleteSupportTicket,
-    repairActionPresets, addRepairActionPreset, updateRepairActionPreset, deleteRepairActionPreset,
-    equipmentTypes, addEquipmentType, updateEquipmentType, deleteEquipmentType,
-    isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
-    seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
-    cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
-    isCalculatorOpen, setIsCalculatorOpen, isFullscreen, toggleFullscreen,
-    enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
-    showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
-    itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
-    setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
-    setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
-    externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight,
-    showDashboardStats, setShowDashboardStats,
-    enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
-    enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
-    autoInvoiceOnSupportTicket, setAutoInvoiceOnSupportTicket,
-    directSaleBackgroundColor, setDirectSaleBackgroundColor,
-    restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
-    dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
-    setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonTextColor, setDashboardButtonTextColor, dashboardButtonOpacity, setDashboardButtonOpacity,
-    dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
-    invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
-    quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
-    deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
-    supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
-    creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
-    isCommercialNavVisible, setIsCommercialNavVisible,
-    smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
-    lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
-    itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
-    deleteMappingTemplate,
-    generateRandomSales,
-    importDataFromJson,
-    updateSale,
-    generateSingleRecurringInvoice,
-    companyInfo,
-    setCompanyInfo: setCompanyInfoCallback,
-    addMappingTemplate,
+        // Move temp form submissions to permanent storage
+        const newSubmissions: FormSubmission[] = [];
+        const finalItems = docData.items.map(item => {
+          if (item.formSubmissionId && item.formSubmissionId.startsWith('temp_')) {
+            const tempSubmission = tempFormSubmissions[item.formSubmissionId];
+            if (tempSubmission) {
+              const newSubmissionId = uuidv4();
+              newSubmissions.push({ ...tempSubmission, id: newSubmissionId, orderItemId: item.id });
+              return { ...item, formSubmissionId: newSubmissionId };
+            }
+          }
+          return item;
+        });
+
+        if (newSubmissions.length > 0) {
+            setFormSubmissions(prev => [...prev, ...newSubmissions]);
+            setTempFormSubmissions({});
+        }
+
+        const finalDocData = { ...docData, items: finalItems };
+
+        if (docIdToUpdate) {
+            const existingDoc = sales.find(s => s.id === docIdToUpdate);
+            if (!existingDoc) return null;
+            finalDoc = {
+                ...existingDoc,
+                ...finalDocData,
+                documentType: type,
+                modifiedAt: today,
+            };
+            addAuditLog({
+                userId: user?.id || 'system',
+                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+                action: 'update',
+                documentType: type,
+                documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber,
+                details: `Mise à jour de la pièce.`,
+                 richDetails: {
+                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: finalDocData.total,
+                }
+            });
+            setSales(prev => prev.map(s => s.id === docIdToUpdate ? finalDoc : s));
+        } else {
+             const count = sales.filter(s => s.documentType === type).length;
+             const number = prefix + '-' + (count + 1).toString().padStart(4, '0');
+             finalDoc = {
+                id: uuidv4(),
+                date: today,
+                ticketNumber: number,
+                documentType: type,
+                userId: user?.id,
+                userName: user ? user.firstName + ' ' + user.lastName : 'N/A',
+                ...finalDocData,
+            };
+            addAuditLog({
+                userId: user?.id || 'system',
+                userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+                action: 'create',
+                documentType: type,
+                documentId: finalDoc.id,
+                documentNumber: finalDoc.ticketNumber,
+                details: `Création d'une nouvelle pièce.`,
+                 richDetails: {
+                  items: finalDocData.items.map(i => ({ name: i.name, qty: i.quantity, total: i.total })),
+                  total: finalDocData.total,
+                }
+            });
+            setSales(prev => [finalDoc, ...prev]);
+        }
+        
+        const docLabel = prefixMap[type] || "Document";
+        toast({ title: `${docLabel} ${finalDoc.status === 'paid' ? 'facturé(e)' : 'enregistré(e)'}` });
+        
+        if (pageTypeToResetRef.current === type) {
+          clearOrder();
+        }
+
+        const reportPath = type === 'quote' ? '/reports?docType=quote'
+                        : type === 'delivery_note' ? '/reports?docType=delivery_note'
+                        : '/reports';
+        router.push(reportPath);
+        return finalDoc;
+    }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, tempFormSubmissions, setFormSubmissions, setTempFormSubmissions]);
+
+    const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
+        if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
+            toast({ variant: 'destructive', title: 'Erreur', description: 'Cet email est déjà utilisé.' });
+            throw new Error('Email already in use.');
+        }
+        const newUser = { ...userData, id: uuidv4(), companyId: 'main', createdAt: new Date() };
+        setUsers(prev => [...prev, newUser]);
+        toast({ title: 'Utilisateur créé' });
+        return newUser;
+    }, [toast, setUsers, users]);
+    
+    const updateUser = useCallback((userData: User) => {
+        setUsers(prev => prev.map(u => u.id === userData.id ? {...userData, updatedAt: new Date()} : u));
+        toast({ title: 'Utilisateur mis à jour' });
+    }, [setUsers, toast]);
+
+    const deleteUser = useCallback((id: string) => {
+        setUsers(prev => prev.filter(u => u.id !== id));
+        toast({ title: 'Utilisateur supprimé' });
+    }, [setUsers, toast]);
+
+    const sendPasswordResetEmailForUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+    const findUserByEmail = useCallback((email: string) => users.find(u => u.email.toLowerCase() === email.toLowerCase()), [users]);
+    const handleSignOut = useCallback(async () => { router.push('/login'); }, [router]);
+    const forceSignOut = useCallback(() => { router.push('/login'); }, [router]);
+    const forceSignOutUser = useCallback(() => { toast({ title: 'Fonctionnalité désactivée' }) }, [toast]);
+
+    const addCategory = useCallback(async (category: Omit<Category, 'id'|'createdAt'|'updatedAt'>) => {
+        const newCategory = { ...category, id: uuidv4(), createdAt: new Date() };
+        setCategories(prev => [...prev, newCategory]);
+        return newCategory;
+    }, [setCategories]);
+    
+    const updateCategory = useCallback((category: Category) => {
+        setCategories(prev => prev.map(c => c.id === category.id ? {...category, updatedAt: new Date()} : c));
+    }, [setCategories]);
+    
+    const deleteCategory = useCallback((id: string) => {
+        setCategories(prev => prev.filter(c => c.id !== id));
+        setItems(prev => prev.filter(i => i.categoryId !== id));
+    }, [setCategories, setItems]);
+    const toggleCategoryFavorite = useCallback((id: string) => {
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, isFavorite: !c.isFavorite } : c));
+    }, [setCategories]);
+    
+    const getCategoryColor = useCallback((categoryId: string) => {
+      return categories.find(c => c.id === categoryId)?.color;
+    }, [categories]);
+
+    const addItem = useCallback(async (item: Omit<Item, 'id'|'createdAt'|'updatedAt'> & {barcode: string}) => {
+        const newItem = { ...item, id: uuidv4(), createdAt: new Date() };
+        setItems(prev => [newItem, ...prev]);
+        return newItem;
+    }, [setItems]);
+    const updateItem = useCallback((item: Item) => {
+        setItems(prev => prev.map(i => i.id === item.id ? {...item, updatedAt: new Date()} : i));
+    }, [setItems]);
+    const deleteItem = useCallback((id: string) => {
+        setItems(prev => prev.filter(i => i.id !== id));
+    }, [setItems]);
+    const toggleItemFavorite = useCallback((id: string) => {
+        setItems(prev => prev.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
+    }, [setItems]);
+    const toggleFavoriteForList = useCallback((itemIds: string[], setFavorite: boolean) => {
+        setItems(prev => prev.map(i => itemIds.includes(i.id) ? { ...i, isFavorite: setFavorite } : i));
+    }, [setItems]);
+
+    const addCustomer = useCallback(async (customer: Omit<Customer, 'isDefault'|'createdAt'|'updatedAt'> & {id?: string}) => {
+        const newId = customer.id || uuidv4();
+        if (customers.some(c => c.id === newId)) {
+            throw new Error('Un client avec ce code existe déjà.');
+        }
+        const newCustomer = { ...customer, id: newId, isDefault: customers.length === 0, createdAt: new Date() };
+        setCustomers(prev => [...prev, newCustomer]);
+        return newCustomer;
+    }, [customers, setCustomers]);
+    const updateCustomer = useCallback((customer: Customer) => {
+        setCustomers(prev => prev.map(c => c.id === customer.id ? {...customer, updatedAt: new Date()} : c));
+    }, [setCustomers]);
+    const deleteCustomer = useCallback((id: string) => {
+        setCustomers(prev => prev.filter(c => c.id !== id));
+    }, [setCustomers]);
+    const setDefaultCustomer = useCallback((id: string) => {
+        setCustomers(prev => prev.map(c => ({...c, isDefault: c.id === id ? !c.isDefault : false })));
+    }, [setCustomers]);
+
+    const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id'|'createdAt'> & {id?: string}) => {
+        const newId = supplier.id || uuidv4();
+        if (suppliers.some(s => s.id === newId)) {
+            throw new Error('Un fournisseur avec ce code existe déjà.');
+        }
+        const newSupplier = { ...supplier, id: newId, createdAt: new Date() };
+        setSuppliers(prev => [...prev, newSupplier]);
+        return newSupplier;
+    }, [suppliers, setSuppliers]);
+    const updateSupplier = useCallback((supplier: Supplier) => {
+        setSuppliers(prev => prev.map(s => s.id === supplier.id ? {...supplier, updatedAt: new Date()} : s));
+    }, [setSuppliers]);
+    const deleteSupplier = useCallback((id: string) => {
+        setSuppliers(prev => prev.filter(s => s.id !== id));
+    }, [setSuppliers]);
+
+    const addPaymentMethod = useCallback((method: Omit<PaymentMethod, 'id'|'createdAt'|'updatedAt'>) => {
+        setPaymentMethods(prev => [...prev, { ...method, id: uuidv4(), createdAt: new Date() }]);
+    }, [setPaymentMethods]);
+    const updatePaymentMethod = useCallback((method: PaymentMethod) => {
+        setPaymentMethods(prev => prev.map(pm => pm.id === method.id ? {...method, updatedAt: new Date()} : pm));
+    }, [setPaymentMethods]);
+    const deletePaymentMethod = useCallback((id: string) => {
+        setPaymentMethods(prev => prev.filter(pm => pm.id !== id));
+    }, [setPaymentMethods]);
+
+    const addVatRate = useCallback(async (vatRate: Omit<VatRate, 'id' | 'code'|'createdAt'|'updatedAt'>): Promise<VatRate | null> => {
+        const newCode = (vatRates.length > 0 ? Math.max(...vatRates.map(v => v.code)) : 0) + 1;
+        const newVatRate = { ...vatRate, id: uuidv4(), code: newCode, createdAt: new Date() };
+        setVatRates(prev => [...prev, newVatRate]);
+        return newVatRate;
+    }, [vatRates, setVatRates]);
+    const updateVatRate = useCallback((vatRate: VatRate) => {
+        setVatRates(prev => prev.map(v => v.id === vatRate.id ? {...vatRate, updatedAt: new Date()} : v));
+    }, [setVatRates]);
+    const deleteVatRate = useCallback((id: string) => {
+        setVatRates(prev => prev.filter(v => v.id !== id));
+    }, [setVatRates]);
+  
+  const popularItems = useMemo(() => {
+    if (!sales || !items) return [];
+    const itemCounts: { [key: string]: { item: Item; count: number } } = {};
+    sales.forEach((sale) => {
+      sale.items.forEach((orderItem) => {
+        if (itemCounts[orderItem.itemId]) {
+          itemCounts[orderItem.itemId].count += orderItem.quantity;
+        } else {
+          const itemDetails = items.find((i) => i.id === orderItem.itemId);
+          if (itemDetails) {
+            itemCounts[orderItem.itemId] = {
+              item: itemDetails,
+              count: orderItem.quantity,
+            };
+          }
+        }
+      });
+    });
+    return Object.values(itemCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, popularItemsCount)
+      .map((i) => i.item);
+  }, [sales, items, popularItemsCount]);
+  
+  const { lastDirectSale, lastRestaurantSale } = useMemo(() => {
+    if (!sales || sales.length === 0) {
+        return { lastDirectSale: null, lastRestaurantSale: null };
+    }
+    const sortedSales = [...sales].sort((a, b) => {
+        const dateA = a.date instanceof Object && 'toDate' in a.date ? a.date.toDate() : new Date(a.date as any);
+        const dateB = b.date instanceof Object && 'toDate' in b.date ? b.date.toDate() : new Date(b.date as any);
+        return dateB.getTime() - dateA.getTime();
+    });
+
+    const lastDirectSale = sortedSales.find(s => !s.tableId) || null;
+    const lastRestaurantSale = sortedSales.find(s => s.tableId && s.tableId !== 'takeaway') || null;
+
+    return { lastDirectSale, lastRestaurantSale };
+  }, [sales]);
+
+  const loadTicketForViewing = useCallback((ticket: Sale) => {
+    setReadOnlyOrder(ticket.items.map(item => ({...item, sourceSale: ticket })));
+    setCurrentSaleId(ticket.id);
+    setCurrentSaleContext({
+      ticketNumber: ticket.ticketNumber,
+      date: ticket.date,
+      userName: ticket.userName,
+      isTableSale: !!ticket.tableId,
+      tableName: ticket.tableName,
+      tableId: ticket.tableId,
+      isReadOnly: true,
+    });
+  }, []);
+  
+  const loadSaleForEditing = useCallback(async (saleId: string, type: 'invoice' | 'quote' | 'delivery_note' | 'supplier_order' | 'credit_note'): Promise<boolean> => {
+      const saleToEdit = sales.find(s => s.id === saleId);
+      if (saleToEdit) {
+        const isReadOnly = saleToEdit.status === 'paid' || saleToEdit.status === 'invoiced';
+        
+        const totalPaid = (saleToEdit.payments || []).reduce((acc, p) => acc + p.amount, 0);
+
+        setOrder(saleToEdit.items);
+        setCurrentSaleId(saleId);
+        setCurrentSaleContext({
+          ...saleToEdit,
+          documentType: type,
+          isReadOnly: isReadOnly,
+          originalTotal: saleToEdit.total,
+          originalPayments: saleToEdit.payments,
+          acompte: totalPaid,
+          change: saleToEdit.change,
+        });
+        return true;
+      } else {
+        toast({ title: "Erreur", description: "Pièce introuvable.", variant: "destructive" });
+        return false;
+      }
+    }, [sales, toast]);
+
+    const loadSaleForConversion = useCallback((saleId: string) => {
+      const saleToConvert = sales.find(s => s.id === saleId);
+      if (!saleToConvert) {
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Pièce originale introuvable.' });
+          return;
+      }
+  
+      setOrder(saleToConvert.items);
+      setCurrentSaleId(null); 
+      
+      const { items: _, ticketNumber: __, ...restOfSale } = saleToConvert;
+
+      setCurrentSaleContext({
+        ...restOfSale,
+        documentType: 'invoice',
+        status: 'pending',
+        date: new Date(),
+        payments: [],            
+        originalTotal: undefined,
+        originalPayments: undefined,
+        change: undefined,
+        modifiedAt: undefined,
+        originalSaleId: saleToConvert.id,
+      });
+  }, [sales, toast]);
+
+    const convertToInvoice = useCallback((saleId: string) => {
+        const sale = sales.find(s => s.id === saleId);
+        if (sale) {
+          addAuditLog({
+            userId: user?.id || 'system',
+            userName: user ? `${user.firstName} ${user.lastName}` : 'System',
+            action: 'transform',
+            documentType: sale.documentType || 'unknown',
+            documentId: sale.id,
+            documentNumber: sale.ticketNumber,
+            details: `Transformation en facture.`
+          });
+        }
+        router.push(`/commercial/invoices?fromConversion=${saleId}`);
+    }, [router, sales, addAuditLog, user]);
+    
+    const generateRandomSales = useCallback(async (count: number) => {
+        if (!items || !customers || !paymentMethods || !user) {
+            toast({ variant: 'destructive', title: 'Données manquantes', description: 'Clients, articles ou méthodes de paiement manquants.' });
+            return;
+        }
+
+        const newSales: Sale[] = [];
+        for (let i = 0; i < count; i++) {
+            const saleDate = subDays(new Date(), Math.floor(Math.random() * 365));
+            const numItems = Math.floor(Math.random() * 5) + 1;
+            const saleItems: OrderItem[] = [];
+            for (let j = 0; j < numItems; j++) {
+                const randomItem = items[Math.floor(Math.random() * items.length)];
+                const quantity = Math.floor(Math.random() * 3) + 1;
+                saleItems.push({
+                    itemId: randomItem.id, id: uuidv4(), name: randomItem.name, price: randomItem.price,
+                    vatId: randomItem.vatId, quantity, total: randomItem.price * quantity,
+                    discount: 0, barcode: randomItem.barcode!,
+                });
+            }
+            const total = saleItems.reduce((acc, item) => acc + item.total, 0);
+            const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+            const randomPaymentMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)];
+            
+            const newSale: Sale = {
+                id: uuidv4(),
+                ticketNumber: `Tick-RAND-${uuidv4().substring(0, 4)}`,
+                date: saleDate,
+                items: saleItems,
+                subtotal: total / 1.2,
+                tax: total * 0.2 / 1.2,
+                total: total,
+                payments: [{ method: randomPaymentMethod, amount: total, date: saleDate }],
+                status: 'paid',
+                documentType: 'ticket',
+                userId: user.id,
+                userName: user.firstName,
+            };
+            newSales.push(newSale);
+        }
+        setSales(prev => [...prev, ...newSales]);
+        toast({ title: `${count} ventes aléatoires générées !` });
+    }, [items, customers, paymentMethods, user, setSales, toast]);
+    
+    const updateSale = async (sale: Sale) => {
+      setSales(prev => prev.map(s => s.id === sale.id ? sale : s));
+    };
+    
+    const setCompanyInfoCallback = useCallback((info: CompanyInfo) => {
+    setCompanyInfo(info);
+  }, [setCompanyInfo]);
+  
+  const addMappingTemplate = useCallback((template: MappingTemplate) => {
+      setMappingTemplates(prev => {
+          const existingIndex = prev.findIndex(t => t.name === template.name);
+          if (existingIndex > -1) {
+              const newTemplates = [...prev];
+              newTemplates[existingIndex] = template;
+              return newTemplates;
+          }
+          return [...prev, template];
+      });
+      toast({ title: 'Modèle de mappage sauvegardé !' });
+  }, [setMappingTemplates, toast]);
+
+  const deleteMappingTemplate = useCallback((templateName: string) => {
+      setMappingTemplates(prev => prev.filter(t => t.name !== templateName));
+      toast({ title: 'Modèle supprimé.' });
+  }, [setMappingTemplates, toast]);
+    
+    const generateSingleRecurringInvoice = useCallback(async (saleId: string, note?: string) => {
+        const saleToRecur = sales.find(s => s.id === saleId);
+        if (!saleToRecur) return;
+        
+        await recordCommercialDocument(
+            { ...saleToRecur, status: 'pending', notes: note || undefined }, 
+            'invoice'
+        );
+    }, [sales, recordCommercialDocument]);
+    
+    const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
+        const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
+        const toastId = toast({
+            title: 'Importation...',
+            description: `Préparation de ${jsonData.length} lignes.`
+        });
+    
+        const addError = (line: number, message: string) => {
+            report.errorCount++;
+            report.errors.push(`Ligne ${line + 1}: ${message}`);
+        };
+    
+        let localCategories = [...categories];
+        let localItems = [...items];
+        let localCustomers = [...customers];
+    
+        if (dataType === 'ventes_completes') {
+            const existingSaleNumbers = new Set(sales.map(s => s.ticketNumber));
+            const groupedByTicket = new Map<string, any[]>();
+                
+            jsonData.forEach((row, index) => {
+                const ticketNum = row.ticketNumber;
+                if (!ticketNum) {
+                    addError(index, 'Numéro de pièce manquant.');
+                    return;
+                }
+                if (!groupedByTicket.has(ticketNum)) {
+                    groupedByTicket.set(ticketNum, []);
+                }
+                groupedByTicket.get(ticketNum)!.push({ ...row, originalIndex: index + 1 });
+            });
+    
+            for (const [ticketNumber, rows] of groupedByTicket.entries()) {
+                if (existingSaleNumbers.has(ticketNumber)) {
+                    addError(rows[0].originalIndex, `La pièce #${ticketNumber} existe déjà.`);
+                    continue;
+                }
+    
+                try {
+                    const firstRow = rows[0];
+                    let saleDate: Date;
+                    const dateString = firstRow.saleDate;
+                    const timeString = firstRow.saleTime || '00:00';
+                    const fullDateTimeString = `${dateString} ${timeString}`;
+                    const parsed = dateString.includes('/') ? parse(fullDateTimeString, 'dd/MM/yyyy HH:mm', new Date()) : parse(fullDateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+    
+                    if (!isValid(parsed)) {
+                        addError(firstRow.originalIndex, `Format de date invalide pour la pièce #${ticketNumber}.`);
+                        continue;
+                    }
+                    saleDate = parsed;
+    
+                    let customer = localCustomers.find(c => c.id === firstRow.customerCode) || null;
+                    if (!customer && firstRow.customerName) {
+                        const newCustomer = await addCustomer({
+                            id: firstRow.customerCode || `C-${uuidv4().substring(0, 6)}`,
+                            name: firstRow.customerName, email: firstRow.customerEmail, phone: firstRow.customerPhone,
+                            address: firstRow.customerAddress, postalCode: firstRow.customerPostalCode, city: firstRow.customerCity
+                        });
+                        if (newCustomer) { 
+                            customer = newCustomer; 
+                            report.newCustomersCount = (report.newCustomersCount || 0) + 1;
+                            localCustomers.push(newCustomer);
+                        }
+                    }
+    
+                    const saleItems: OrderItem[] = [];
+                    for (const row of rows) {
+                        if (!row.itemBarcode) {
+                            if (saleItems.length > 0 && row.itemName) {
+                                saleItems[saleItems.length - 1].note = ((saleItems[saleItems.length - 1].note || '') + '\n' + row.itemName).trim();
+                            }
+                            continue;
+                        }
+                        
+                        let item = localItems.find(i => i.barcode === row.itemBarcode);
+                        if (!item && row.itemName) {
+                            let category = localCategories.find(c => c.name === row.itemCategory);
+                            if (!category) {
+                                category = await addCategory({ name: row.itemCategory || 'Importé' });
+                                if (category) localCategories.push(category);
+                            }
+                            let vat = vatRates.find(v => v.code === parseInt(row.vatCode));
+                            if (!vat) vat = vatRates[0];
+                             
+                            item = await addItem({
+                                name: row.itemName, barcode: row.itemBarcode,
+                                price: row.unitPriceHT * (1 + (vat?.rate || 0) / 100),
+                                purchasePrice: row.itemPurchasePrice, categoryId: category?.id, vatId: vat?.id || '',
+                            });
+                            if(item) {
+                                report.newItemsCount = (report.newItemsCount || 0) + 1;
+                                localItems.push(item);
+                            }
+                        }
+    
+                        if (item) {
+                             const vatInfo = vatRates.find(v => v.id === item!.vatId);
+                             const priceTTC = row.unitPriceHT * (1 + (vatInfo?.rate || 0) / 100);
+                             const discountAmount = row.discountPercentage > 0 ? (priceTTC * row.quantity) * (row.discountPercentage / 100) : 0;
+                             const total = priceTTC * row.quantity - discountAmount;
+                             saleItems.push({
+                                id: uuidv4(), itemId: item.id, name: item.name, price: priceTTC, vatId: item.vatId,
+                                quantity: row.quantity, total, discount: discountAmount,
+                                discountPercent: row.discountPercentage, barcode: item.barcode!,
+                            });
+                        }
+                    }
+    
+                    const total = saleItems.reduce((sum, i) => sum + i.total, 0);
+                    const totalTax = saleItems.reduce((sum, i) => {
+                        const vat = vatRates.find(v => v.id === i.vatId);
+                        return sum + (i.total - i.total / (1 + (vat?.rate || 0) / 100));
+                    }, 0);
+                    
+                    const paymentTotals: Record<string, number> = {};
+                    if(firstRow) {
+                        ['paymentCash', 'paymentCard', 'paymentCheck', 'paymentOther'].forEach(pm => {
+                            if (firstRow[pm]) paymentTotals[pm] = (paymentTotals[pm] || 0) + firstRow[pm];
+                        });
+                    }
+    
+                    const payments: Payment[] = [];
+                    const paymentMapping: Record<string, string> = {
+                      paymentCash: 'Espèces', paymentCard: 'Carte Bancaire',
+                      paymentCheck: 'Chèque', paymentOther: 'AUTRE'
+                    };
+                    Object.entries(paymentTotals).forEach(([key, amount]) => {
+                      const method = paymentMethods.find(pm => pm.name === paymentMapping[key]);
+                      if(method && amount > 0) payments.push({ method, amount, date: saleDate });
+                    });
+                    
+                    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+                    const isPaid = totalPaid >= total - 0.01;
+    
+                    const newSale: Omit<Sale, 'id'> = {
+                        ticketNumber, date: saleDate, items: saleItems, subtotal: total - totalTax, tax: totalTax, total,
+                        payments, status: isPaid ? 'paid' : 'pending',
+                        customerId: customer?.id,
+                        documentType: (firstRow.pieceName?.toLowerCase().includes('facture') ? 'invoice' : 'ticket') as any,
+                        userId: user?.id, userName: firstRow.sellerName || user?.firstName || 'Import',
+                    };
+                    
+                    await recordSale(newSale);
+                    report.newSalesCount = (report.newSalesCount || 0) + 1;
+                    existingSaleNumbers.add(ticketNumber);
+                } catch (e: any) { addError(0, `Erreur sur pièce ${firstRow.ticketNumber}: ${e.message}`); }
+            }
+        } else {
+            for (const [index, row] of jsonData.entries()) {
+                try {
+                    if (dataType === 'clients') {
+                        if (!row.id || !row.name) throw new Error("L'ID et le nom du client sont requis.");
+                        if (customers.some(c => c.id === row.id)) throw new Error("Client déjà existant.");
+                        await addCustomer(row);
+                    } else if (dataType === 'articles') {
+                        if (!row.barcode || !row.name || !row.price || !row.vatId) throw new Error("Champs article requis.");
+                        if (items.some(i => i.barcode === row.barcode)) throw new Error("Article déjà existant.");
+                        await addItem(row);
+                    } else if (dataType === 'fournisseurs') {
+                         if (!row.id || !row.name) throw new Error("L'ID et le nom du fournisseur sont requis.");
+                        if (suppliers.some(s => s.id === row.id)) throw new Error("Fournisseur déjà existant.");
+                        await addSupplier(row);
+                    }
+                    report.successCount++;
+                } catch (e: any) { addError(index, e.message); }
+            }
+        }
+        
+        shadcnToast({
+            title: "Importation terminée !",
+            description: `${report.successCount} succès, ${report.errorCount} échecs.`
+        });
+        return report;
+    }, [customers, items, sales, paymentMethods, vatRates, addCustomer, addItem, recordSale, user, categories, addCategory, addSupplier, suppliers, toast, shadcnToast]);
+
+  const contextValue: PosContextType = {
+      order, setOrder, systemDate, dynamicBgImage, recentlyAddedItemId, setRecentlyAddedItemId, readOnlyOrder, setReadOnlyOrder,
+      addToOrder, addFormItemToOrder, addSerializedItemToOrder, updateOrderItemFormData, removeFromOrder, updateQuantity, updateItemQuantityInOrder, updateQuantityFromKeypad, updateItemNote, updateItemPrice, updateOrderItem, updateOrderItemField, applyDiscount,
+      clearOrder, resetCommercialPage, orderTotal, orderTax, isKeypadOpen, setIsKeypadOpen, currentSaleId, setCurrentSaleId, currentSaleContext, setCurrentSaleContext, serialNumberItem, setSerialNumberItem,
+      variantItem, setVariantItem, customVariantRequest, setCustomVariantRequest, formItemRequest, setFormItemRequest, formSubmissions, tempFormSubmissions,
+      lastDirectSale, lastRestaurantSale, loadTicketForViewing, loadSaleForEditing, loadSaleForConversion, convertToInvoice, users, addUser, updateUser, deleteUser,
+      sendPasswordResetEmailForUser, findUserByEmail, handleSignOut, forceSignOut, forceSignOutUser, sessionInvalidated, setSessionInvalidated,
+      items, addItem, updateItem, deleteItem, toggleItemFavorite, toggleFavoriteForList, popularItems, categories, addCategory, updateCategory, deleteCategory, toggleCategoryFavorite,
+      getCategoryColor, customers, addCustomer, updateCustomer, deleteCustomer, setDefaultCustomer, suppliers, addSupplier, updateSupplier, deleteSupplier,
+      tables, addTable, updateTable, deleteTable, forceFreeTable, selectedTable, setSelectedTable, setSelectedTableById, updateTableOrder, saveTableOrderAndExit,
+      promoteTableToTicket, sales, recordSale, recordCommercialDocument, deleteAllSales, paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod,
+      vatRates, addVatRate, updateVatRate, deleteVatRate, heldOrders, holdOrder, recallOrder, deleteHeldOrder,
+      auditLogs, 
+      dunningLogs, addDunningLog,
+      cheques, addCheque, updateCheque, deleteCheque, 
+      paiementsPartiels, addPaiementPartiel, 
+      remises, addRemise,
+      supportTickets, addSupportTicket, updateSupportTicket, deleteSupportTicket,
+      repairActionPresets, addRepairActionPreset, updateRepairActionPreset, deleteRepairActionPreset,
+      equipmentTypes, addEquipmentType, updateEquipmentType, deleteEquipmentType,
+      isNavConfirmOpen, showNavConfirm, closeNavConfirm, confirmNavigation,
+      seedInitialData, resetAllData, selectivelyResetData, exportConfiguration, importConfiguration, exportFullData, importFullData, importDemoData, importDemoCustomers, importDemoSuppliers,
+      cameFromRestaurant, setCameFromRestaurant, isLoading, user, toast, 
+      isCalculatorOpen, setIsCalculatorOpen, isFullscreen, toggleFullscreen,
+      enableDynamicBg, setEnableDynamicBg, dynamicBgOpacity, setDynamicBgOpacity,
+      showTicketImages, setShowTicketImages, showItemImagesInGrid, setShowItemImagesInGrid, descriptionDisplay, setDescriptionDisplay, popularItemsCount, setPopularItemsCount,
+      itemCardOpacity, setItemCardOpacity, paymentMethodImageOpacity, setPaymentMethodImageOpacity, itemDisplayMode, setItemDisplayMode, itemCardShowImageAsBackground,
+      setItemCardShowImageAsBackground, itemCardImageOverlayOpacity, setItemCardImageOverlayOpacity, itemCardTextColor, setItemCardTextColor, itemCardShowPrice,
+      setItemCardShowPrice, externalLinkModalEnabled, setExternalLinkModalEnabled, externalLinkUrl, setExternalLinkUrl, externalLinkTitle, setExternalLinkTitle,
+      externalLinkModalWidth, setExternalLinkModalWidth, externalLinkModalHeight, setExternalLinkModalHeight,
+      showDashboardStats, setShowDashboardStats,
+      enableRestaurantCategoryFilter, setEnableRestaurantCategoryFilter, showNotifications, setShowNotifications, notificationDuration, setNotificationDuration,
+      enableSerialNumber, setEnableSerialNumber, defaultSalesMode, setDefaultSalesMode, isForcedMode, setIsForcedMode, requirePinForAdmin, setRequirePinForAdmin,
+      autoInvoiceOnSupportTicket, setAutoInvoiceOnSupportTicket,
+      directSaleBackgroundColor, setDirectSaleBackgroundColor,
+      restaurantModeBackgroundColor, setRestaurantModeBackgroundColor, directSaleBgOpacity, setDirectSaleBgOpacity, restaurantModeBgOpacity, setRestaurantModeBgOpacity,
+      dashboardBgType, setDashboardBgType, dashboardBackgroundColor, setDashboardBackgroundColor, dashboardBackgroundImage, setDashboardBackgroundImage, dashboardBgOpacity,
+      setDashboardBgOpacity, dashboardButtonBackgroundColor, setDashboardButtonBackgroundColor, dashboardButtonTextColor, setDashboardButtonTextColor, dashboardButtonOpacity, setDashboardButtonOpacity,
+      dashboardButtonShowBorder, setDashboardButtonShowBorder, dashboardButtonBorderColor, setDashboardButtonBorderColor, 
+      invoiceBgColor, setInvoiceBgColor, invoiceBgOpacity, setInvoiceBgOpacity,
+      quoteBgColor, setQuoteBgColor, quoteBgOpacity, setQuoteBgOpacity,
+      deliveryNoteBgColor, setDeliveryNoteBgColor, deliveryNoteBgOpacity, setDeliveryNoteBgOpacity,
+      supplierOrderBgColor, setSupplierOrderBgColor, supplierOrderBgOpacity, setSupplierOrderBgOpacity,
+      creditNoteBgColor, setCreditNoteBgColor, creditNoteBgOpacity, setCreditNoteBgOpacity,
+      isCommercialNavVisible, setIsCommercialNavVisible,
+      smtpConfig, setSmtpConfig, ftpConfig, setFtpConfig, twilioConfig, setTwilioConfig, sendEmailOnSale, setSendEmailOnSale,
+      lastSelectedSaleId, setLastSelectedSaleId, lastReportsUrl, setLastReportsUrl,
+      itemsPerPage, setItemsPerPage, importLimit, setImportLimit, mappingTemplates,
+      deleteMappingTemplate,
+      generateRandomSales,
+      importDataFromJson,
+      updateSale,
+      generateSingleRecurringInvoice,
+      companyInfo,
+      setCompanyInfo: setCompanyInfoCallback,
+      addMappingTemplate,
   };
   
   return (
