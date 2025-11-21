@@ -6,10 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { usePos } from '@/contexts/pos-context';
 import type { Sale } from '@/lib/types';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Calendar, Clock, Edit, FileText } from 'lucide-react';
+import { User, Calendar, Clock, Edit, FileText, CreditCard } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +22,7 @@ interface SaleDetailModalProps {
 }
 
 const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
-    if (!payments || payments.length === 0) return <p className="text-sm text-muted-foreground">Aucun paiement.</p>;
+    if (!payments || payments.length === 0) return <p className="text-sm text-muted-foreground">Aucun paiement enregistré.</p>;
     
     return (
         <div className="space-y-2">
@@ -42,6 +41,7 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
     );
 };
 
+
 export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps) {
   const { customers, users, vatRates } = usePos();
   const router = useRouter();
@@ -50,14 +50,14 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
   const customer = useMemo(() => sale?.customerId ? customers.find(c => c.id === sale.customerId) : null, [sale, customers]);
   const seller = useMemo(() => sale?.userId ? users.find(u => u.id === sale.userId) : null, [sale, users]);
 
-  const { subtotal, tax, balanceDue } = useMemo(() => {
-    if (!sale || !vatRates) return { subtotal: 0, tax: 0, balanceDue: 0 };
+  const { subtotal, tax, balanceDue, totalPaid } = useMemo(() => {
+    if (!sale || !vatRates) return { subtotal: 0, tax: 0, balanceDue: 0, totalPaid: 0 };
     
-    const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
-    const balance = sale.total - totalPaid;
+    const paid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
+    const balance = sale.total - paid;
 
     if (sale.subtotal !== undefined && sale.tax !== undefined) {
-        return { subtotal: sale.subtotal, tax: sale.tax, balanceDue: balance };
+        return { subtotal: sale.subtotal, tax: sale.tax, balanceDue: balance, totalPaid: paid };
     }
     
     let calcSubtotal = 0;
@@ -69,13 +69,11 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
     });
 
     const calcTax = sale.total - calcSubtotal;
-    return { subtotal: calcSubtotal, tax: calcTax, balanceDue: balance };
+    return { subtotal: calcSubtotal, tax: calcTax, balanceDue: balance, totalPaid: paid };
   }, [sale, vatRates]);
 
 
   if (!sale) return null;
-
-  const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
 
   const handleNavigate = () => {
     onClose();
@@ -94,10 +92,17 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
     
     router.push(`${path}?edit=${sale.id}`);
   };
+  
+   const handlePayment = () => {
+    onClose();
+    router.push(`/commercial/invoices?edit=${sale.id}`);
+  };
 
   const handleOpenFullDetail = () => {
-    onClose(); // Close the current modal first
-    setIsFullDetailOpen(true); // Then open the new one
+    onClose();
+    setTimeout(() => {
+        setIsFullDetailOpen(true);
+    }, 150)
   };
 
   return (
@@ -131,11 +136,12 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
                         <div className="flex justify-between"><span>Total TVA</span><span className="font-medium">{tax.toFixed(2)}€</span></div>
                         <Separator className="my-2"/>
                         <div className="flex justify-between font-bold text-base"><span>Total TTC</span><span>{sale.total.toFixed(2)}€</span></div>
+                         <div className="flex justify-between font-medium text-base"><span>Total Payé</span><span>{totalPaid.toFixed(2)}€</span></div>
                         {balanceDue > 0.01 && <div className="flex justify-between font-bold text-destructive"><span>Solde Dû</span><span>{balanceDue.toFixed(2)}€</span></div>}
                     </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader><CardTitle className="text-base">Paiements</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-base">Détail des Paiements</CardTitle></CardHeader>
                     <CardContent>
                         <PaymentsList payments={sale.payments || []} />
                     </CardContent>
@@ -146,9 +152,16 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
             <Button variant="outline" onClick={handleOpenFullDetail}>
               <FileText className="mr-2 h-4 w-4" /> Fiche détaillée
             </Button>
-            <Button onClick={handleNavigate}>
-                <Edit className="mr-2 h-4 w-4" /> Modifier / Consulter
-            </Button>
+            <div className="flex gap-2">
+                {balanceDue > 0.01 && (
+                    <Button variant="default" onClick={handlePayment}>
+                        <CreditCard className="mr-2 h-4 w-4" /> Encaisser le solde
+                    </Button>
+                )}
+                 <Button variant="secondary" onClick={handleNavigate}>
+                    <Edit className="mr-2 h-4 w-4" /> Modifier / Consulter
+                </Button>
+            </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
