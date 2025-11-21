@@ -538,9 +538,15 @@ function ReportsPageContent() {
         if (filterPaymentMethod !== 'all') params.set('paymentMethod', filterPaymentMethod);
         if (dateRange?.from) params.set('dateFrom', dateRange.from.toISOString());
         if (dateRange?.to) params.set('dateTo', dateRange.to.toISOString());
+        
+        const activeDocTypes = Object.entries(filterDocTypes).filter(([,isActive]) => isActive).map(([type]) => type);
+        if (activeDocTypes.length === 1 && docTypeFilterParam) {
+            params.set('docType', activeDocTypes[0]);
+        }
+        
         router.replace(`${pathname}?${params.toString()}`);
         setLastReportsUrl(`${pathname}?${params.toString()}`);
-    }, [generalFilter, sortConfig, currentPage, filterCustomerName, filterOrigin, filterSellerName, filterStatus, filterPaymentMethod, dateRange, router, pathname, setLastReportsUrl]);
+    }, [generalFilter, sortConfig, currentPage, filterCustomerName, filterOrigin, filterSellerName, filterStatus, filterPaymentMethod, dateRange, router, pathname, setLastReportsUrl, filterDocTypes, docTypeFilterParam]);
     
     const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
@@ -849,14 +855,14 @@ function ReportsPageContent() {
             </div>
         )
     }
-
-    const pageTitle = (() => {
-        const docType = searchParams.get('docType');
-        if (docType && documentTypes[docType as keyof typeof documentTypes]) {
-            return `Rapport ${documentTypes[docType as keyof typeof documentTypes].plural}`;
-        }
-        return "Rapports des pièces";
-    })();
+    
+    const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
+    
+    const pageTitle = isDocTypeFilterLocked && docTypeFilterParam && documentTypes[docTypeFilterParam as keyof typeof documentTypes]
+        ? `RAPPORT ${documentTypes[docTypeFilterParam as keyof typeof documentTypes].plural.toUpperCase()}`
+        : activeDocTypes.length === 1 && documentTypes[activeDocTypes[0] as keyof typeof documentTypes]
+        ? `RAPPORT ${documentTypes[activeDocTypes[0] as keyof typeof documentTypes].plural.toUpperCase()}`
+        : "Rapports des pièces";
 
     const pageTitleComponent = (
         <div className="flex items-center gap-4">
@@ -933,7 +939,7 @@ function ReportsPageContent() {
         </AlertDialog>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
             <PageHeader
-                title={pageTitle}
+                title={pageTitleComponent}
                 subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
                 <div className="flex items-center gap-2">
@@ -1042,7 +1048,7 @@ function ReportsPageContent() {
                                                 {Object.entries(documentTypes).map(([type, { label }]) => (
                                                     <DropdownMenuCheckboxItem
                                                         key={type}
-                                                        checked={filterDocTypes[type as keyof typeof filterDocTypes]}
+                                                        checked={filterDocTypes[type]}
                                                         onCheckedChange={(checked) => setFilterDocTypes(prev => ({...prev, [type]: checked}))}
                                                     >
                                                         {label}
@@ -1080,11 +1086,11 @@ function ReportsPageContent() {
                         </Card>
                     </Collapsible>
                     <Card className="relative">
-                        {docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam}/>}
+                        {isDocTypeFilterLocked && docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam}/>}
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
-                                  {pageTitleComponent}
+                                    {pageTitleComponent}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
