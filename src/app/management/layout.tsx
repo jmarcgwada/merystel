@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -85,6 +84,7 @@ export default function ManagementLayout({
     { href: '/management/tables', label: 'Tables', icon: Utensils, count: tables?.filter(t => t.id !== 'takeaway').length || 0 },
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
+    { href: '/management/support-tickets', label: 'Prises en charge', icon: Wrench },
   ];
   
   const reportLinks = [
@@ -100,6 +100,8 @@ export default function ManagementLayout({
 
   const vatLink = { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 };
   const chequeLink = { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 };
+  
+  const serviceSettingsLink = { href: '/management/repair-actions', label: 'Paramètres SAV', icon: ClipboardList };
 
   const renderLink = (link: { href: string; label: string; icon: React.ElementType; count?: number }) => (
       <SidebarMenuItem key={link.href}>
@@ -115,7 +117,7 @@ export default function ManagementLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen">
         <Sidebar>
           <SidebarContent className="p-2 flex-1 flex flex-col">
             <SidebarMenu className="flex-1">
@@ -140,6 +142,8 @@ export default function ManagementLayout({
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+               <Separator className="my-2" />
+              {renderLink(serviceSettingsLink)}
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
@@ -155,8 +159,8 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main ref={mainContentRef} className="flex-1 flex flex-col overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
+        <main ref={mainContentRef} className="flex-1 overflow-y-auto">
+          <div className="p-4 sm:p-6 lg:p-8">
             {children}
           </div>
           {showScrollTop && (
