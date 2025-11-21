@@ -6,16 +6,12 @@ import {
   Sidebar,
   SidebarContent,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarProvider,
-  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard,
   ArrowUp,
 } from 'lucide-react';
-import Link from 'next/link';
 import ManagementSideNav from './components/management-sidenav';
 
 
@@ -47,8 +43,8 @@ export default function ManagementLayout({
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden">
-        <Sidebar className="sticky top-0 h-screen">
-          <SidebarContent className="p-2 flex-1 flex flex-col">
+        <Sidebar className="h-full">
+          <SidebarContent className="flex-1 flex flex-col">
             <SidebarMenu className="flex-1">
                <ManagementSideNav />
             </SidebarMenu>
