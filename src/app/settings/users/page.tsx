@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Edit, Trash2, RefreshCw, KeyRound, Lock, LogOut, ArrowLeft } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, KeyRound, LockOpen, LogOut, ArrowLeft, MoreVertical, ChevronRight, User as UserIcon, Clock } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -23,10 +22,10 @@ import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/firebase/auth/use-user';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 
 export default function UsersPage() {
   const { users, deleteUser, isLoading, sendPasswordResetEmailForUser, forceSignOutUser, updateUser } = usePos();
@@ -36,6 +35,7 @@ export default function UsersPage() {
   const [userToReset, setUserToReset] = useState<User | null>(null);
   const [userToSignOut, setUserToSignOut] = useState<User | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -66,6 +66,10 @@ export default function UsersPage() {
     if(currentUser?.id === user.id) return; // Can't disable self
     updateUser({ ...user, isDisabled: !user.isDisabled });
   };
+  
+  const toggleDetails = (userId: string) => {
+    setOpenDetails(prev => ({ ...prev, [userId]: !prev[userId] }));
+  };
 
   return (
     <>
@@ -92,68 +96,99 @@ export default function UsersPage() {
               <Table>
                   <TableHeader>
                       <TableRow>
+                          <TableHead className="w-[50px]"></TableHead>
                           <TableHead>Nom</TableHead>
                           <TableHead>Email</TableHead>
+                          <TableHead>Rôle</TableHead>
                           <TableHead>Statut session</TableHead>
                           <TableHead>Statut compte</TableHead>
-                          <TableHead className="w-[180px] text-right">Actions</TableHead>
+                          <TableHead className="w-[100px] text-right">Actions</TableHead>
                       </TableRow>
                   </TableHeader>
                   <TableBody>
                       {(isLoading || !isClient) && Array.from({ length: 3 }).map((_, i) => (
                           <TableRow key={i}>
-                              <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                              <TableCell><Skeleton className="h-4 w-52" /></TableCell>
-                              <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                              <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                              <TableCell className="text-right"><Skeleton className="h-8 w-28 ml-auto" /></TableCell>
+                              <TableCell colSpan={7}><Skeleton className="h-10 w-full" /></TableCell>
                           </TableRow>
                       ))}
                       {isClient && !isLoading && users && users.map(u => {
                           const isUserConnected = u.sessionToken && u.sessionToken.length > 0;
                           return (
-                          <TableRow key={u.id}>
-                            <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
-                            <TableCell>{u.email}</TableCell>
-                            <TableCell>
-                              {isUserConnected ? (
-                                  <Badge className="bg-green-500 hover:bg-green-600">Connecté</Badge>
-                              ) : (
-                                  <Badge variant="outline">Déconnecté</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex items-center space-x-2">
-                                    <Switch
-                                        id={`active-switch-${u.id}`}
-                                        checked={!u.isDisabled}
-                                        onCheckedChange={() => toggleUserDisabled(u)}
-                                        disabled={!currentUser || currentUser.id === u.id}
-                                    />
-                                    <label htmlFor={`active-switch-${u.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                        {u.isDisabled ? "Inactif" : "Actif"}
-                                    </label>
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                {currentUser?.id !== u.id && isUserConnected && (
-                                    <Button variant="ghost" size="icon" title="Déconnecter l'utilisateur" onClick={() => setUserToSignOut(u)}>
-                                        <LogOut className="h-4 w-4 text-destructive"/>
-                                    </Button>
+                          <React.Fragment key={u.id}>
+                            <TableRow className="cursor-pointer" onClick={() => toggleDetails(u.id)}>
+                                <TableCell>
+                                    <ChevronRight className={`h-4 w-4 transition-transform ${openDetails[u.id] ? 'rotate-90' : ''}`} />
+                                </TableCell>
+                                <TableCell className="font-medium">{u.firstName} {u.lastName}</TableCell>
+                                <TableCell>{u.email}</TableCell>
+                                <TableCell><Badge variant="secondary" className="capitalize">{u.role || 'N/A'}</Badge></TableCell>
+                                <TableCell>
+                                {isUserConnected ? (
+                                    <Badge className="bg-green-500 hover:bg-green-600">Connecté</Badge>
+                                ) : (
+                                    <Badge variant="outline">Déconnecté</Badge>
                                 )}
-                                {currentUser?.id !== u.id && (
-                                    <Button variant="ghost" size="icon" title="Réinitialiser le mot de passe" onClick={() => setUserToReset(u)}>
-                                        <KeyRound className="h-4 w-4"/>
-                                    </Button>
-                                )}
-                                <Button variant="ghost" size="icon" onClick={() => router.push(`/settings/users/form?id=${u.id}`)}>
-                                    <Edit className="h-4 w-4"/>
-                                </Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)} disabled={!currentUser || currentUser.id === u.id}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
-                            </TableCell>
-                          </TableRow>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center space-x-2">
+                                        <Switch
+                                            id={`active-switch-${u.id}`}
+                                            checked={!u.isDisabled}
+                                            onCheckedChange={() => toggleUserDisabled(u)}
+                                            disabled={!currentUser || currentUser.id === u.id}
+                                        />
+                                        <label htmlFor={`active-switch-${u.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            {u.isDisabled ? "Inactif" : "Actif"}
+                                        </label>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => router.push(`/settings/users/form?id=${u.id}`)}>
+                                                <Edit className="mr-2 h-4 w-4"/> Modifier
+                                            </DropdownMenuItem>
+                                             <DropdownMenuItem onClick={() => setUserToReset(u)} disabled={!currentUser || currentUser.id === u.id}>
+                                                <KeyRound className="mr-2 h-4 w-4"/> Réinitialiser MDP
+                                            </DropdownMenuItem>
+                                            {isUserConnected && (
+                                                <DropdownMenuItem onClick={() => setUserToSignOut(u)} disabled={!currentUser || currentUser.id === u.id}>
+                                                    <LogOut className="mr-2 h-4 w-4 text-destructive"/> Forcer la déconnexion
+                                                </DropdownMenuItem>
+                                            )}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => setUserToDelete(u)} className="text-destructive" disabled={!currentUser || currentUser.id === u.id}>
+                                                <Trash2 className="mr-2 h-4 w-4"/> Supprimer
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                             {openDetails[u.id] && (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="p-0">
+                                        <div className="bg-secondary/50 p-4 pl-16">
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <UserIcon className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="text-muted-foreground">Rôle:</span>
+                                                    <span className="font-semibold capitalize">{u.role}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="text-muted-foreground">Durée de session:</span>
+                                                    <span className="font-semibold">{u.sessionDuration === 0 ? 'Illimitée' : `${u.sessionDuration || 'N/A'} min`}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                         <Separator />
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                          </React.Fragment>
                       )})}
                   </TableBody>
               </Table>
