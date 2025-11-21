@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -15,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { CustomerSelectionDialog } from '@/components/shared/customer-selection-dialog';
 import type { Customer, Item, EquipmentType } from '@/lib/types';
-import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil } from 'lucide-react';
+import { ArrowLeft, Save, User, Euro, PackageSearch, Mail, Phone, MapPin, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { ItemSelectionDialog } from './components/item-selection-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,6 +22,8 @@ import Image from 'next/image';
 import { EditCustomerDialog } from '@/app/management/customers/components/edit-customer-dialog';
 import { EditItemDialog } from '@/app/management/items/components/edit-item-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddEquipmentTypeDialog } from '@/app/management/repair-actions/components/add-equipment-type-dialog';
+
 
 const formSchema = z.object({
   customerId: z.string().min(1, 'Un client est requis.'),
@@ -51,6 +52,7 @@ function NewSupportTicketPageContent() {
 
   const [isEditCustomerOpen, setEditCustomerOpen] = useState(false);
   const [isEditItemOpen, setEditItemOpen] = useState(false);
+  const [isAddEquipmentTypeOpen, setIsAddEquipmentTypeOpen] = useState(false);
 
 
   const form = useForm<SupportTicketFormValues>({
@@ -112,6 +114,12 @@ function NewSupportTicketPageContent() {
         form.setValue('amount', selectedType.price);
     }
   }
+
+  const handleEquipmentTypeAdded = (newType: EquipmentType) => {
+    form.setValue('equipmentType', newType.name);
+    form.setValue('amount', newType.price);
+    setIsAddEquipmentTypeOpen(false);
+  };
 
   const onSubmit = async (data: SupportTicketFormValues) => {
     const newTicket = await addSupportTicket(data);
@@ -235,6 +243,7 @@ function NewSupportTicketPageContent() {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Type de matériel *</FormLabel>
+                                <div className="flex items-center gap-2">
                                 <Select onValueChange={handleEquipmentTypeChange} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
@@ -249,6 +258,10 @@ function NewSupportTicketPageContent() {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <Button type="button" variant="outline" size="icon" onClick={() => setIsAddEquipmentTypeOpen(true)}>
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                                </div>
                                 <FormMessage />
                                 </FormItem>
                             )}
@@ -313,9 +326,14 @@ function NewSupportTicketPageContent() {
             isOpen={isEditItemOpen}
             onClose={() => setEditItemOpen(false)}
             item={selectedItem}
-            onItemUpdated={() => {}}
+            onItemSaved={() => {}}
           />
       )}
+      <AddEquipmentTypeDialog 
+        isOpen={isAddEquipmentTypeOpen}
+        onClose={() => setIsAddEquipmentTypeOpen(false)}
+        onEquipmentTypeAdded={handleEquipmentTypeAdded}
+      />
     </>
   );
 }
