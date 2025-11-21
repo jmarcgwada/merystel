@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -249,12 +248,6 @@ export default function FirestoreDataPage() {
             text: `La sauvegarde de la configuration de Zenith POS a été effectuée avec succès sur le serveur FTP.\nNom du fichier : ${fileName}`,
             html: `<p>La sauvegarde de la configuration de <b>Zenith POS</b> a été effectuée avec succès sur le serveur FTP.</p><p><b>Nom du fichier :</b> ${fileName}</p>`,
           });
-        } else {
-            toast({
-                variant: 'default',
-                title: 'Notification par e-mail ignorée',
-                description: 'La configuration SMTP est incomplète, aucun e-mail n\'a été envoyé.'
-            })
         }
 
       } else {
