@@ -13,13 +13,13 @@ import { format, startOfDay, endOfDay, addMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer, Send, Repeat, Save, Notebook } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Utensils, User, Pencil, Edit, FileText, Copy, LayoutDashboard, Printer, Send, Repeat, Save, Notebook, Wrench } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Timestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase/auth/use-user';
-import type { Sale, Payment, Item, OrderItem, VatBreakdown, Customer, Cheque } from '@/lib/types';
+import type { Sale, Payment, Item, OrderItem, VatBreakdown, Customer, Cheque, SupportTicket } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from '../components/invoice-print-template';
@@ -41,11 +41,9 @@ const ClientFormattedDate = ({ date, formatString }: { date: Date | Timestamp | 
     useEffect(() => {
         if (date) {
             let jsDate: Date;
-            if (date instanceof Date) {
-                jsDate = date;
-            } else if (date && typeof (date as Timestamp).toDate === 'function') {
-                jsDate = (date as Timestamp).toDate();
-            } else if (date && typeof (date as any).seconds === 'number') {
+            if (date instanceof Date) jsDate = date;
+            else if (date && typeof (date as Timestamp)?.toDate === 'function') jsDate = (date as Timestamp).toDate();
+            else if (date && typeof (date as any).seconds === 'number') {
                 jsDate = new Date((date as any).seconds * 1000);
             } else {
                 jsDate = new Date(date as any);
@@ -140,13 +138,14 @@ function SaleDetailContent() {
   const articleFilter = searchParams.get('article');
 
 
-  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, users: allUsers, companyInfo, updateSale } = usePos();
+  const { customers, vatRates, sales: allSales, items: allItems, isLoading: isPosLoading, users: allUsers, companyInfo, updateSale, supportTickets } = usePos();
   const { user } = useUser();
   const printRef = useRef<HTMLDivElement>(null);
   
   const [isEmailDialogOpen, setEmailDialogOpen] = useState(false);
 
   const [sale, setSale] = useState<Sale | null>(null);
+  const [linkedSupportTicket, setLinkedSupportTicket] = useState<SupportTicket | null>(null);
 
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceFrequency, setRecurrenceFrequency] = useState('monthly');
@@ -157,6 +156,14 @@ function SaleDetailContent() {
     if (allSales && saleId) {
       const foundSale = allSales.find(s => s.id === saleId);
       setSale(foundSale || null);
+
+      if (foundSale) {
+        const foundTicket = supportTickets.find(ticket => ticket.saleId === foundSale.id);
+        setLinkedSupportTicket(foundTicket || null);
+      } else {
+        setLinkedSupportTicket(null);
+      }
+
       if (foundSale?.isRecurring) {
         setIsRecurring(true);
         setRecurrenceFrequency(foundSale.recurrence?.frequency || 'monthly');
@@ -168,7 +175,7 @@ function SaleDetailContent() {
       }
       setIsRecurrenceModified(false);
     }
-  }, [allSales, saleId]);
+  }, [allSales, saleId, supportTickets]);
 
   const handleSaveRecurrence = async () => {
     if (!sale) return;
@@ -454,6 +461,14 @@ function SaleDetailContent() {
         }
       >
         <div className="flex items-center gap-2">
+            {linkedSupportTicket && (
+                <Button asChild>
+                    <Link href={`/management/support-tickets/${linkedSupportTicket.id}`}>
+                        <Wrench className="mr-2 h-4 w-4" />
+                        Voir la prise en charge
+                    </Link>
+                </Button>
+            )}
             <Button onClick={() => setEmailDialogOpen(true)} variant="outline">
                 <Send className="mr-2 h-4 w-4" />
                 Envoyer par E-mail
