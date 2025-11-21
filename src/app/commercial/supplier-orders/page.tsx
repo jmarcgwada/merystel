@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -9,8 +8,8 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, useEffect, Suspense, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Sparkles, CheckCircle, Lock, Save, Eye, EyeOff } from 'lucide-react';
-import type { OrderItem } from '@/lib/types';
+import { ArrowLeft, Sparkles, CheckCircle, Lock, Save, Eye, EyeOff, Printer } from 'lucide-react';
+import type { OrderItem, Sale } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -25,6 +24,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { CheckoutModal } from '@/app/pos/components/checkout-modal';
 import isEqual from 'lodash.isequal';
+import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
+import jsPDF from 'jspdf';
 
 
 const hexToRgba = (hex: string, opacity: number) => {
@@ -50,6 +51,8 @@ function SupplierOrdersPageContent() {
       removeFromOrder, 
       items,
       suppliers,
+      customers,
+      companyInfo,
       setCurrentSaleContext,
       updateItemNote,
       updateItemQuantityInOrder,
@@ -64,6 +67,7 @@ function SupplierOrdersPageContent() {
       orderTotal,
       orderTax,
       sales,
+      vatRates,
   } = usePos();
   
   const formRef = useRef<{ submit: (validate?: boolean) => void }>(null);
@@ -76,6 +80,10 @@ function SupplierOrdersPageContent() {
   const [originalOrderItems, setOriginalOrderItems] = useState<OrderItem[]>([]);
   const saleIdToEdit = searchParams.get('edit');
   const newItemId = searchParams.get('newItemId');
+
+  const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const saleToPrint = sales.find(s => s.id === currentSaleId);
 
   const isEditing = !!currentSaleId;
   const isReadOnly = currentSaleContext?.isReadOnly ?? false;
@@ -159,6 +167,31 @@ function SupplierOrdersPageContent() {
     setCheckoutOpen(true);
   };
 
+  const handlePrint = async () => {
+      if (!saleToPrint) return;
+
+      setIsPrinting(true);
+      await new Promise(res => setTimeout(res, 100)); // allow state to update and render template
+
+      if (!printRef.current) {
+        toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de préparer l'impression." });
+        setIsPrinting(false);
+        return;
+      }
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      await pdf.html(printRef.current, {
+        callback: function (pdf) {
+          pdf.save(`${saleToPrint.ticketNumber}.pdf`);
+          setIsPrinting(false);
+        },
+        x: 0,
+        y: 0,
+        width: 210,
+        windowWidth: printRef.current.scrollWidth,
+        autoPaging: 'text',
+      });
+  }
 
   const handleGenerateRandomOrder = useCallback(() => {
     if (!items?.length || !suppliers?.length) {
@@ -207,6 +240,17 @@ function SupplierOrdersPageContent() {
 
   return (
     <>
+      <div className="absolute -left-[9999px] -top-[9999px]">
+        {saleToPrint && vatRates && companyInfo && (
+          <InvoicePrintTemplate 
+              ref={printRef} 
+              sale={saleToPrint} 
+              customer={customers.find(c => c.id === saleToPrint.customerId) || null} 
+              companyInfo={companyInfo} 
+              vatRates={vatRates} 
+          />
+        )}
+      </div>
     <div className="h-full flex flex-col" style={{ backgroundColor }}>
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col">
         <PageHeader
@@ -217,6 +261,11 @@ function SupplierOrdersPageContent() {
             {!isEditing && (
               <Button variant="outline" size="icon" onClick={handleGenerateRandomOrder} title="Générer une commande aléatoire" disabled={order.length > 0}>
                 <Sparkles className="h-4 w-4" />
+              </Button>
+            )}
+             {isEditing && (
+              <Button variant="outline" onClick={handlePrint} disabled={isPrinting}>
+                  <Printer className="mr-2 h-4 w-4"/> {isPrinting ? 'Génération...' : 'Imprimer'}
               </Button>
             )}
              <Button size="lg" onClick={() => handleSave(false)} disabled={isReadOnly}>
