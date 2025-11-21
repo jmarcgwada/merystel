@@ -139,20 +139,23 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
     const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
     const balance = sale.total - totalPaid;
 
-    if (sale.subtotal !== undefined && sale.tax !== undefined) {
-        return { subtotal: sale.subtotal, tax: sale.tax, balanceDue: balance };
-    }
-    
     let calcSubtotal = 0;
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
-        const rate = vatInfo ? vatInfo.rate : 0;
-        const priceHT = item.total / (1 + rate / 100);
+        const rate = vatInfo ? vatInfo.rate / 100 : 0;
+        const priceHT = item.total / (1 + rate);
         calcSubtotal += priceHT;
     });
 
     const calcTax = sale.total - calcSubtotal;
-    return { subtotal: calcSubtotal, tax: calcTax, balanceDue: balance };
+    
+    const finalSubtotal = sale.subtotal ?? calcSubtotal;
+
+    return { 
+        subtotal: finalSubtotal,
+        tax: sale.tax ?? calcTax,
+        balanceDue: balance 
+    };
   }, [sale, vatRates]);
   
   const pieceType = sale?.documentType === 'invoice' ? 'Facture'
@@ -238,12 +241,14 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                     <TableHeader><TableRow>
                       <TableHead className="w-[64px]">Image</TableHead>
                       <TableHead>Article</TableHead>
+                      <TableHead>Code TVA</TableHead>
                       <TableHead className="text-center">Qté</TableHead>
                       <TableHead className="text-right">Total (TTC)</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
                       {sale.items.map(item => {
                         const fullItem = getItemInfo(item);
+                        const vatInfo = vatRates.find(v => v.id === item.vatId);
                         return (
                             <TableRow key={item.id}>
                                 <TableCell><Image src={fullItem.image || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.name} width={40} height={40} className="rounded-md" data-ai-hint="product image" /></TableCell>
@@ -251,6 +256,7 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                                     <div>{item.name}</div>
                                     {item.note && <div className="text-xs text-amber-600 mt-1 flex items-start gap-1.5"><Pencil className="h-3 w-3 mt-0.5 shrink-0"/><span>{item.note}</span></div>}
                                 </TableCell>
+                                <TableCell><Badge variant="outline">{vatInfo?.code}</Badge></TableCell>
                                 <TableCell className="text-center">{item.quantity}</TableCell>
                                 <TableCell className="text-right font-bold">{item.total.toFixed(2)}€</TableCell>
                             </TableRow>
@@ -277,7 +283,7 @@ export function FullSaleDetailDialog({ isOpen, onClose, saleId }: FullSaleDetail
                   <CardHeader><CardTitle>Résumé</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between"><span className="text-muted-foreground">Total HT</span><span>{subtotal.toFixed(2)}€</span></div>
-                    <div className="flex justify-between text-muted-foreground"><span>Total TVA</span><span>{tax.toFixed(2)}€</span></div>
+                    <div className="flex justify-between text-muted-foreground font-semibold"><span>Total TVA</span><span>{tax.toFixed(2)}€</span></div>
                     <Separator />
                     <div className="flex justify-between font-bold text-lg"><span>Total (TTC)</span><span>{sale.total.toFixed(2)}€</span></div>
                     {balanceDue > 0.01 && <div className="flex justify-between font-bold text-lg text-destructive pt-2 border-t border-destructive/20"><span>Solde Dû</span><span>{balanceDue.toFixed(2)}€</span></div>}

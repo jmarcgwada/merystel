@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -101,6 +102,33 @@ const PaymentsList = ({ payments, title, saleId }: { payments: Payment[], title:
             )}
         </div>
     );
+};
+
+const VatBreakdownTable = ({ breakdown }: { breakdown: VatBreakdown }) => {
+  if (Object.keys(breakdown).length === 0) return null;
+  return (
+    <div className="border rounded-md p-2 break-inside-avoid w-full">
+        <h3 className="font-semibold text-gray-500 text-sm mb-2">Détail TVA</h3>
+        <table className="w-full text-xs">
+            <thead>
+                <tr className="bg-gray-100">
+                    <th className="p-1 text-left">Code</th>
+                    <th className="p-1 text-right">Base HT</th>
+                    <th className="p-1 text-right">Montant TVA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {Object.entries(breakdown).map(([rate, values]) => (
+                    <tr key={rate}>
+                        <td className="p-1">{values.code} ({parseFloat(rate).toFixed(2)}%)</td>
+                        <td className="p-1 text-right">{values.base.toFixed(2)}€</td>
+                        <td className="p-1 text-right">{values.total.toFixed(2)}€</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+  );
 };
 
 type SortKey = 'date' | 'total' | 'tableName' | 'customerName' | 'itemCount' | 'userName' | 'ticketNumber';
@@ -361,13 +389,9 @@ function SaleDetailContent() {
     const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
     const balance = sale.total - totalPaid;
 
-    if (sale.vatBreakdown && sale.subtotal !== undefined && sale.tax !== undefined) {
-        return { subtotal: sale.subtotal, tax: sale.tax, vatBreakdown: sale.vatBreakdown, balanceDue: balance };
-    }
+    const breakdown: VatBreakdown = {};
     
     let calcSubtotal = 0;
-    const breakdown: VatBreakdown = {};
-
     sale.items.forEach(item => {
         const vatInfo = vatRates.find(v => v.id === item.vatId);
         const rate = vatInfo ? vatInfo.rate : 0;
@@ -375,7 +399,7 @@ function SaleDetailContent() {
         const taxAmount = item.total - priceHT;
 
         calcSubtotal += priceHT;
-
+        
         const rateKey = rate.toString();
         if (breakdown[rateKey]) {
             breakdown[rateKey].base += priceHT;
@@ -506,6 +530,7 @@ function SaleDetailContent() {
                   <TableRow>
                     <TableHead className="w-[64px]">Image</TableHead>
                     <TableHead>Article</TableHead>
+                    <TableHead>Code TVA</TableHead>
                     <TableHead className="text-center">Qté</TableHead>
                     <TableHead className="text-right">Prix Unitaire (TTC)</TableHead>
                     <TableHead className="text-right">Remise</TableHead>
@@ -515,7 +540,7 @@ function SaleDetailContent() {
                 <TableBody>
                   {sale.items.map(item => {
                     const fullItem = getItemInfo(item);
-                    
+                    const vatInfo = vatRates.find(v => v.id === item.vatId);
                     return (
                         <TableRow key={item.id}>
                             <TableCell>
@@ -541,6 +566,7 @@ function SaleDetailContent() {
                                     </div>
                                 )}
                             </TableCell>
+                            <TableCell><Badge variant="outline">{vatInfo?.code}</Badge></TableCell>
                             <TableCell className="text-center">{item.quantity}</TableCell>
                             <TableCell className="text-right">{item.price.toFixed(2)}€</TableCell>
                              <TableCell className="text-right text-destructive">
@@ -658,19 +684,11 @@ function SaleDetailContent() {
                 <span>{subtotal.toFixed(2)}€</span>
               </div>
               
-              <div className="space-y-1 text-sm border-t pt-2">
-                 <h4 className="font-medium mb-1">Détail TVA</h4>
-                 {Object.entries(vatBreakdown).map(([rate, values]) => (
-                    <div key={rate} className="flex justify-between text-muted-foreground pl-2">
-                        <span>Base TVA ({parseFloat(rate).toFixed(2)}%)</span>
-                        <span>{values.base.toFixed(2)}€</span>
-                    </div>
-                ))}
-              </div>
               <div className="flex justify-between text-muted-foreground font-semibold">
                  <span>Total TVA</span>
                  <span>{tax.toFixed(2)}€</span>
               </div>
+              <VatBreakdownTable breakdown={vatBreakdown} />
 
               <Separator />
               {sale.originalTotal && (
