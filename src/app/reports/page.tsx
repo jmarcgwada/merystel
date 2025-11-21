@@ -188,8 +188,6 @@ function ReportsPageContent() {
       smtpConfig,
       companyInfo,
       vatRates,
-      lastSelectedSaleId,
-      setLastSelectedSaleId,
       itemsPerPage,
       setItemsPerPage,
       lastReportsUrl,
@@ -270,6 +268,7 @@ function ReportsPageContent() {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
   
+  const [lastSelectedSaleId, setLastSelectedSaleId] = useState<string | null>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -697,10 +696,10 @@ function ReportsPageContent() {
         setCurrentPage(1);
     }
 
-  const handleActionClick = (saleId: string) => {
-    setLastSelectedSaleId(saleId);
-    setNavigationAction({ type: 'edit', saleId });
-  };
+    const handleActionClick = (saleId: string) => {
+      setLastSelectedSaleId(saleId);
+      setNavigationAction({ type: 'edit', saleId });
+    };
     
     useEffect(() => {
         if (navigationAction) {
@@ -857,17 +856,12 @@ function ReportsPageContent() {
     }
     
     const pageTitleText = isDocTypeFilterLocked && docTypeFilterParam && documentTypes[docTypeFilterParam as keyof typeof documentTypes]
-        ? `RAPPORT ${documentTypes[docTypeFilterParam as keyof typeof documentTypes].plural.toUpperCase()}`
+        ? `Rapport des ${documentTypes[docTypeFilterParam as keyof typeof documentTypes].plural}`
         : "Rapports des pièces";
 
-    const pageTitle = (
-        <div className="flex items-center gap-4">
-            <span>{pageTitleText}</span>
-            <span className="text-base font-normal text-muted-foreground">
-                ({filteredAndSortedSales.length} / {allSales?.length || 0})
-            </span>
-        </div>
-      );
+    const pageSubtitleText = isClient
+        ? `Page ${currentPage} sur ${totalPages || 1} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)`
+        : 'Chargement...';
 
   return (
     <>
@@ -877,8 +871,8 @@ function ReportsPageContent() {
                 {saleToPrint && vatRates && <InvoicePrintTemplate ref={printRef} sale={saleToPrint} customer={customers.find(c => c.id === saleToPrint.customerId) || null} companyInfo={companyInfo} vatRates={vatRates} />}
              </div>
             <PageHeader
-                title={pageTitle}
-                subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
+                title={pageTitleText}
+                subtitle={pageSubtitleText}
             >
               <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
@@ -1019,7 +1013,7 @@ function ReportsPageContent() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
-                            {pageTitle}
+                           Liste des pièces
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1034,10 +1028,19 @@ function ReportsPageContent() {
                                             key={column.id}
                                             checked={visibleColumns[column.id] ?? true}
                                             onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                            disabled={column.id === 'margin'}
                                         >
                                             {column.label}
+                                            {column.id === 'margin' && <Lock className="ml-2 h-3 w-3" />}
                                         </DropdownMenuCheckboxItem>
                                     ))}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuCheckboxItem
+                                        checked={visibleColumns['margin']}
+                                        onCheckedChange={handleMarginToggle}
+                                    >
+                                        Marge (Accès Sécurisé)
+                                    </DropdownMenuCheckboxItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </CardTitle>
@@ -1237,5 +1240,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
