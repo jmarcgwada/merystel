@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -168,7 +167,7 @@ function ReportsPageContent() {
       sales: allSales, 
       customers, 
       users, 
-      isPosLoading, 
+      isLoading: isPosLoading, 
       deleteAllSales, 
       convertToInvoice,
       paymentMethods,
@@ -807,7 +806,30 @@ function ReportsPageContent() {
              toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
         }
     };
-    
+  
+  const handleMouseDown = (action: () => void) => {
+    const timer = setTimeout(() => {
+        action();
+        setLongPressTimer(null); // Prevent click
+    }, 700); // 700ms for long press
+    setLongPressTimer(timer);
+  };
+  
+  const handleMouseUp = (clickAction: () => void) => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+        clickAction();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+    }
+  };
+
     if (isPosLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
