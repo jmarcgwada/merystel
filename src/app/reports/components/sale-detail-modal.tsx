@@ -1,16 +1,15 @@
 
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { usePos } from '@/contexts/pos-context';
-import type { Sale } from '@/lib/types';
+import type { Sale, Payment, VatBreakdown } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { User, Calendar, Clock, Edit, FileText, CreditCard } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { FullSaleDetailDialog } from './full-sale-detail-dialog';
@@ -43,20 +42,66 @@ const PaymentsList = ({ payments }: { payments: Sale['payments'] }) => {
 
 
 export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps) {
-  const { customers, users, vatRates } = usePos();
+  const { customers, users, vatRates, items: allItems } = usePos();
   const router = useRouter();
   const [isFullDetailOpen, setIsFullDetailOpen] = useState(false);
   
   const customer = useMemo(() => sale?.customerId ? customers.find(c => c.id === sale.customerId) : null, [sale, customers]);
   const seller = useMemo(() => sale?.userId ? users.find(u => u.id === sale.userId) : null, [sale, users]);
 
-  const { balanceDue, totalPaid } = useMemo(() => {
-    if (!sale) return { balanceDue: 0, totalPaid: 0 };
+  const { balanceDue, totalPaid, subtotal, tax, vatBreakdown, margin } = useMemo(() => {
+    if (!sale) return { balanceDue: 0, totalPaid: 0, subtotal: 0, tax: 0, vatBreakdown: {}, margin: 0 };
     
     const paid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
     const balance = sale.total - paid;
-    return { balanceDue: balance, totalPaid: paid };
-  }, [sale]);
+
+    let calcSubtotal = 0;
+    let calcTax = 0;
+    const breakdown: VatBreakdown = {};
+    let totalCost = 0;
+
+    sale.items.forEach(item => {
+        const vatInfo = vatRates.find(v => v.id === item.vatId);
+        const rate = vatInfo ? vatInfo.rate / 100 : 0;
+        const priceHT = item.total / (1 + rate);
+        const taxAmount = item.total - priceHT;
+
+        calcSubtotal += priceHT;
+        calcTax += taxAmount;
+
+        const rateKey = String(vatInfo?.rate || 0);
+        if (breakdown[rateKey]) {
+            breakdown[rateKey].base += priceHT;
+            breakdown[rateKey].total += taxAmount;
+        } else if (vatInfo) {
+            breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT, code: vatInfo.code };
+        }
+        
+        const catalogItem = allItems.find(i => i.id === item.itemId);
+        totalCost += (catalogItem?.purchasePrice || 0) * item.quantity;
+    });
+
+    const calcMargin = (sale.subtotal ?? calcSubtotal) - totalCost;
+
+    return { 
+        balanceDue: balance, 
+        totalPaid: paid, 
+        subtotal: sale.subtotal ?? calcSubtotal,
+        tax: sale.tax ?? calcTax,
+        vatBreakdown: sale.vatBreakdown ?? breakdown,
+        margin: calcMargin,
+    };
+  }, [sale, vatRates, allItems]);
+  
+  const [isMarginVisible, setIsMarginVisible] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const storedCols = localStorage.getItem('reportsVisibleColumns');
+        if (storedCols) {
+            setIsMarginVisible(JSON.parse(storedCols).margin === true);
+        }
+    }
+  }, [isOpen]);
 
 
   if (!sale) return null;
@@ -115,36 +160,51 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
                     </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader><CardTitle className="text-base">Articles ({sale.items.reduce((acc, item) => acc + item.quantity, 0)})</CardTitle></CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm font-semibold text-muted-foreground">
-                                <span>Désignation</span>
-                                <span>Total</span>
-                            </div>
-                             <Separator />
-                            {sale.items.map(item => (
-                                <div key={item.id} className="flex justify-between text-sm">
-                                    <span className="pr-4">{item.quantity}x {item.name}</span>
-                                    <span className="font-medium whitespace-nowrap">{item.total.toFixed(2)}€</span>
-                                </div>
-                            ))}
+                    <CardHeader><CardTitle className="text-base">Résumé Articles</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Nombre d'articles</span>
+                            <span className="font-semibold">{sale.items.reduce((acc, item) => acc + item.quantity, 0)}</span>
                         </div>
+                        <Separator/>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Total HT</span>
+                            <span className="font-semibold">{subtotal.toFixed(2)}€</span>
+                        </div>
+                         {Object.entries(vatBreakdown).map(([rate, values]) => (
+                            <div key={rate} className="flex justify-between text-xs text-muted-foreground pl-4">
+                                <span>Dont TVA à {parseFloat(rate).toFixed(2)}%</span>
+                                <span>{values.total.toFixed(2)}€</span>
+                            </div>
+                        ))}
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Total TVA</span>
+                            <span className="font-semibold">{tax.toFixed(2)}€</span>
+                        </div>
+                        {isMarginVisible && (
+                            <>
+                            <Separator/>
+                             <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Marge Brute</span>
+                                <span className="font-semibold">{margin.toFixed(2)}€</span>
+                            </div>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             </div>
             <div className="space-y-6">
                  <Card>
-                    <CardHeader><CardTitle className="text-base">Récapitulatif</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-base">Récapitulatif Financier</CardTitle></CardHeader>
                     <CardContent className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span>Total à payer</span><span className="font-semibold">{sale.total.toFixed(2)}€</span></div>
-                        <div className="flex justify-between"><span>Total payé</span><span className="font-semibold">{totalPaid.toFixed(2)}€</span></div>
+                        <div className="flex justify-between"><span>Total TTC</span><span className="font-semibold">{sale.total.toFixed(2)}€</span></div>
+                        <div className="flex justify-between"><span>Total Payé</span><span className="font-semibold">{totalPaid.toFixed(2)}€</span></div>
                         <Separator className="my-2"/>
                         <div className="flex justify-between font-bold text-base"><span>Solde</span><span className={balanceDue > 0.01 ? 'text-destructive' : 'text-green-600'}>{balanceDue.toFixed(2)}€</span></div>
                     </CardContent>
                 </Card>
                  <Card>
-                    <CardHeader><CardTitle className="text-base">Paiements enregistrés</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-base">Paiements Enregistrés</CardTitle></CardHeader>
                     <CardContent>
                         <PaymentsList payments={sale.payments || []} />
                     </CardContent>
@@ -178,3 +238,4 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
     </>
   );
 }
+
