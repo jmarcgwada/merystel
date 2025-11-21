@@ -298,26 +298,19 @@ function ReportsPageContent() {
     useEffect(() => {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
-    
-    useEffect(() => {
-      if (navigationAction) {
-        setLastSelectedSaleId(navigationAction.saleId);
-        const sale = allSales.find(s => s.id === navigationAction.saleId);
-        if (sale) {
-          const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-          if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
-            const basePath = documentTypes[docType as keyof typeof documentTypes].path;
-            const actionParam = navigationAction.type === 'edit' ? `?edit=${navigationAction.saleId}` : `?copy=${navigationAction.saleId}`;
-            router.push(`${basePath}${actionParam}`);
-          } else {
-            toast({ variant: 'destructive', title: 'Action impossible', description: "Ce type de document n'est pas modifiable directement." });
-          }
-        }
-        setNavigationAction(null);
-      }
-    }, [navigationAction, allSales, setLastSelectedSaleId, router, toast]);
 
      useEffect(() => {
+        const storedSalesColumns = localStorage.getItem('reportsVisibleColumns');
+        if(storedSalesColumns) {
+            setVisibleColumns(JSON.parse(storedSalesColumns));
+        } else {
+             setVisibleColumns({
+                type: true, ticketNumber: true, date: true, userName: true, origin: false, customerName: true, itemCount: false, details: true, subtotal: false, tax: false, totalDiscount: false, margin: false, total: true, payment: true,
+            });
+        }
+    }, []);
+    
+    useEffect(() => {
         if (docTypeFilterParam) {
             const newFilterDocTypes: Record<string, boolean> = {};
             for (const key in documentTypes) {
@@ -693,29 +686,19 @@ function ReportsPageContent() {
     }
 
     const resetFilters = () => {
-        if (isDateFilterLocked) return;
+        if (!isDateFilterLocked) setDateRange(undefined);
+        if (!isDocTypeFilterLocked) setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
         setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
         setFilterPaymentMethod('all');
-        setDateRange(undefined);
         setFilterSellerName('');
         setGeneralFilter('');
-        if(!isDocTypeFilterLocked) setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
         setCurrentPage(1);
     }
 
-    const handleEdit = (sale: Sale) => {
-        setNavigationAction({ type: 'edit', saleId: sale.id });
-    };
-
-    const handleCopy = (sale: Sale) => {
-        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
-            const path = documentTypes[docType as keyof typeof documentTypes].path;
-            router.push(`${path}?fromConversion=${sale.id}`);
-            toast({ title: 'Pièce dupliquée', description: `Préparation d'une nouvelle pièce basée sur ${sale.ticketNumber}.` });
-        }
+    const handleActionClick = (saleId: string, actionType: 'edit' | 'copy') => {
+        setNavigationAction({ type: actionType, saleId: saleId });
     };
   
     const handleMouseDown = (action: () => void) => {
@@ -821,31 +804,24 @@ function ReportsPageContent() {
         setIsDetailModalOpen(true);
     };
     
-    const getRowStyle = (sale: Sale) => {
-        const totalPaid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
-        const saleTotal = sale.total;
-        const balance = saleTotal - totalPaid;
-        
+    const getRowStyle = (sale: Sale): React.CSSProperties => {
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        if (!docType || !filterDocTypes[docType]) return {};
+
         const typeInfo = documentTypes[docType as keyof typeof documentTypes];
 
         if (typeInfo?.type === 'out') {
-            return { backgroundColor: hexToRgba('#ef4444', 10) }
+            const color = docType === 'credit_note' ? creditNoteBgColor : supplierOrderBgColor;
+            const opacity = docType === 'credit_note' ? creditNoteBgOpacity : supplierOrderBgOpacity;
+            return { backgroundColor: hexToRgba(color, opacity) }
         }
         if (typeInfo?.type === 'neutral') {
-             return { backgroundColor: hexToRgba('#3b82f6', 10) }; 
+             const color = docType === 'quote' ? quoteBgColor : deliveryNoteBgColor;
+             const opacity = docType === 'quote' ? quoteBgOpacity : deliveryNoteBgOpacity;
+             return { backgroundColor: hexToRgba(color, opacity) }; 
         }
         
-        if (sale.status === 'paid' || balance <= 0.01) {
-            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' };
-        }
-        if (sale.status === 'pending') {
-            if (totalPaid > 0) {
-                 return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' };
-            }
-            return { backgroundColor: 'hsla(0, 84%, 97%, 0.5)' };
-        }
-        return {};
+        return { backgroundColor: hexToRgba(invoiceBgColor, invoiceBgOpacity) };
     };
     
     
@@ -1023,7 +999,7 @@ function ReportsPageContent() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
-                           {pageTitle}
+                            {pageTitle}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1113,7 +1089,7 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} data-state={lastSelectedSaleId === sale.id && 'selected'}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
                             {visibleColumns.date && <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={sale.date} /></TableCell>}
@@ -1143,7 +1119,7 @@ function ReportsPageContent() {
                                         </Button>
                                     </TooltipTrigger><TooltipContent><p>Détails rapides</p></TooltipContent></Tooltip></TooltipProvider>
                                     <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                                        <Button variant="ghost" size="icon" onClick={() => handleActionClick(sale.id, 'edit')}>
                                             {isValidated ? <FileSignature className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                                         </Button>
                                     </TooltipTrigger><TooltipContent><p>{isValidated ? 'Consulter' : 'Modifier'}</p></TooltipContent></Tooltip></TooltipProvider>
