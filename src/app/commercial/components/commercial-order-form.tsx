@@ -732,7 +732,7 @@ export const CommercialOrderForm = forwardRef<
                                       )}
                                       <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
                                         {(isSupportTicketItem || fullItem?.forceDescriptionDisplay) ? (
-                                          <>{field.description}</>
+                                          <>{field.description}{field.description && field.description2 && <br />}{field.description2}</>
                                         ) : (
                                           <>
                                             {descriptionDisplay === 'first' && field.description}

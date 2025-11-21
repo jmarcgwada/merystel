@@ -119,6 +119,8 @@ export function OrderSummary() {
     user,
     items: allItems,
     updateOrderItem,
+    recentlyAddedItemId,
+    setRecentlyAddedItemId,
   } = usePos();
   
   const { toast } = useToast();
@@ -522,17 +524,20 @@ export function OrderSummary() {
     }
 
 
-  const renderOrderItem = (item: OrderItem, isSelected: boolean) => (
+  const renderOrderItem = (item: OrderItem, isSelected: boolean) => {
+    const fullItem = allItems.find(i => i.id === item.itemId);
+    return (
     <div 
         ref={el => itemRefs.current[item.id] = el}
         className={cn(
           "flex items-start gap-4 transition-colors duration-300 group",
           !readOnlyOrder && "cursor-pointer",
-          isSelected ? 'bg-accent/50' : 'bg-transparent',
-          !readOnlyOrder && !isSelected && "hover:bg-secondary/50",
+          isSelected ? 'bg-accent/50' : 'bg-transparent hover:bg-secondary/50',
+          recentlyAddedItemId === item.id && !isSelected && 'animate-pulse-bg',
           showTicketImages ? 'p-4' : 'p-2'
         )}
         onClick={() => handleItemSelect(item)}
+        onAnimationEnd={() => { if(recentlyAddedItemId === item.id) setRecentlyAddedItemId(null) }}
     >
         {showTicketImages && (
           <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md">
@@ -552,15 +557,16 @@ export function OrderSummary() {
               </div>
               <span className="text-sm text-muted-foreground whitespace-nowrap">Qté: {item.quantity}</span>
             </div>
-            {descriptionDisplay === 'first' && item.description && (
-              <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>
-            )}
-            {descriptionDisplay === 'both' && (
+            <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
+              {(fullItem?.forceDescriptionDisplay) ? (
+                <>{item.description}{item.description && item.description2 && <br />}{item.description2}</>
+              ) : (
                 <>
-                    {item.description && <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description}</p>}
-                    {item.description2 && <p className="text-xs text-muted-foreground mt-1 pr-2 whitespace-pre-wrap">{item.description2}</p>}
+                  {descriptionDisplay === 'first' && item.description}
+                  {descriptionDisplay === 'both' && (<>{item.description}{item.description && item.description2 && <br />}{item.description2}</>)}
                 </>
-            )}
+              )}
+            </div>
             {item.selectedVariants && (
               <p className="text-xs text-muted-foreground capitalize">
                 {item.selectedVariants.map(v => `${v.name}: ${v.value}`).join(', ')}
@@ -589,7 +595,7 @@ export function OrderSummary() {
             <X className="h-4 w-4" />
         </Button>
     </div>
-  );
+  )};
   
   const backgroundColor = selectedTable 
     ? hexToRgba(restaurantModeBackgroundColor, restaurantModeBgOpacity)
@@ -845,14 +851,15 @@ export function OrderSummary() {
                 setIsEditItemOpen(false);
                 setItemToEdit(null);
             }}
-            onItemUpdated={(updatedItem) => {
-                updateOrderItem(updatedItem);
+            onItemSaved={() => {
+                updateOrderItem(itemToEdit);
             }}
         />
     )}
     </>
   );
 }
+
 
 
 
