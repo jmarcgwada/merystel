@@ -61,19 +61,19 @@ export default function ManagementLayout({
   const mainContentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const mainEl = document.documentElement; // Listen on the root element
+    const mainEl = mainContentRef.current;
     if (!mainEl) return;
 
     const checkScroll = () => {
         setShowScrollTop(mainEl.scrollTop > 200);
     };
 
-    window.addEventListener('scroll', checkScroll, { passive: true });
-    return () => window.removeEventListener('scroll', checkScroll);
+    mainEl.addEventListener('scroll', checkScroll, { passive: true });
+    return () => mainEl.removeEventListener('scroll', checkScroll);
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
 
@@ -114,8 +114,8 @@ export default function ManagementLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex">
-        <Sidebar className="h-screen sticky top-0">
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar className="sticky top-0 h-screen">
           <SidebarContent className="p-2 flex-1 flex flex-col">
             <SidebarMenu className="flex-1">
               {mainNavLinks.map(renderLink)}
@@ -154,7 +154,7 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main ref={mainContentRef} className="flex-1">
+        <main ref={mainContentRef} className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8">
             {children}
           </div>
