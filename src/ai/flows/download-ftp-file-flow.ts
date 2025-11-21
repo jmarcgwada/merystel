@@ -1,9 +1,10 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import * as ftp from 'basic-ftp';
-import { Readable } from 'stream';
+import { Writable } from 'stream';
 
 const FtpConfigSchema = z.object({
   host: z.string(),
@@ -30,6 +31,20 @@ export async function downloadFtpFile(input: DownloadFtpFileInput): Promise<Down
     return downloadFtpFileFlow(input);
 }
 
+class MemoryStream extends Writable {
+    private chunks: Buffer[] = [];
+    
+    _write(chunk: any, encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
+        this.chunks.push(Buffer.from(chunk, encoding));
+        callback();
+    }
+
+    getBuffer(): Buffer {
+        return Buffer.concat(this.chunks);
+    }
+}
+
+
 const downloadFtpFileFlow = ai.defineFlow(
   {
     name: 'downloadFtpFileFlow',
@@ -47,21 +62,10 @@ const downloadFtpFileFlow = ai.defineFlow(
             secure: ftpConfig.secure,
         });
 
-        const readableStream = new Readable();
-        const chunks: Buffer[] = [];
-        readableStream._read = () => {}; // No-op
-
-        const downloadPromise = new Promise<void>((resolve, reject) => {
-            readableStream.on('data', (chunk) => chunks.push(chunk));
-            readableStream.on('end', resolve);
-            readableStream.on('error', reject);
-        });
+        const memoryStream = new MemoryStream();
+        await client.downloadTo(memoryStream, filePath);
         
-        await client.downloadTo(readableStream, filePath);
-        readableStream.push(null); // End the stream
-        await downloadPromise;
-        
-        const fileContent = Buffer.concat(chunks).toString('base64');
+        const fileContent = memoryStream.getBuffer().toString('base64');
         
         return { 
             success: true, 
