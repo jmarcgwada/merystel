@@ -25,6 +25,7 @@ export default function ManagementSideNav() {
       vatRates,
       cheques,
       supportTickets,
+      remises,
   } = usePos();
   
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function ManagementSideNav() {
     { href: '/management/categories', label: 'Catégories', icon: LayoutGrid, count: categories?.length || 0 },
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
+    { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
   ];
   
   const restaurantNavLinks = [
@@ -44,9 +46,9 @@ export default function ManagementSideNav() {
   
   const financeNavLinks = [
       { href: '/management/payment-methods', label: 'Moyens de paiement', icon: CreditCard, count: paymentMethods?.length || 0 },
-      { href: '/management/vat', label: 'TVA', icon: Percent, count: vatRates?.length || 0 },
+      { href: '/management/recurring', label: 'Récurrences', icon: History, count: usePos().sales?.filter(s => s.isRecurring).length || 0 },
+      { href: '/management/remises', label: 'Remises', icon: Library, count: remises?.length || 0 },
       { href: '/management/checks', label: 'Chèques', icon: Landmark, count: cheques?.filter(c => c.statut === 'enPortefeuille').length || 0 },
-      { href: '/management/remises', label: 'Remises', icon: Library, count: usePos().remises?.length || 0 },
   ];
 
   const serviceNavLinks = [
@@ -88,10 +90,6 @@ export default function ManagementSideNav() {
       <Separator className="my-2" />
       <h3 className="px-3 py-1 text-xs font-semibold text-muted-foreground/80 tracking-wider">Restaurant</h3>
       {restaurantNavLinks.map(renderLink)}
-
-      <Separator className="my-2" />
-      <h3 className="px-3 py-1 text-xs font-semibold text-muted-foreground/80 tracking-wider">Finance</h3>
-      {financeNavLinks.map(renderLink)}
 
       <Separator className="my-2" />
       <h3 className="px-3 py-1 text-xs font-semibold text-muted-foreground/80 tracking-wider">Services</h3>
