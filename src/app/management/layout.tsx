@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +30,7 @@ import {
   LayoutDashboard,
   Wrench,
   ClipboardList,
+  ArrowUp,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -58,6 +59,24 @@ export default function ManagementLayout({
       supportTickets,
       repairActionPresets,
   } = usePos();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
+    const checkScroll = () => {
+        setShowScrollTop(mainEl.scrollTop > 200);
+    };
+
+    mainEl.addEventListener('scroll', checkScroll, { passive: true });
+    return () => mainEl.removeEventListener('scroll', checkScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
 
   const mainNavLinks = [
     { href: '/management/items', label: 'Articles', icon: Box, count: items?.length || 0 },
@@ -153,6 +172,15 @@ export default function ManagementLayout({
           <div className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
             {children}
           </div>
+          {showScrollTop && (
+            <Button
+              onClick={scrollToTop}
+              className="fixed bottom-8 right-8 h-12 w-12 rounded-full shadow-lg z-50"
+              size="icon"
+            >
+              <ArrowUp className="h-6 w-6" />
+            </Button>
+          )}
         </main>
       </div>
     </SidebarProvider>
