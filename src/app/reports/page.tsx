@@ -697,11 +697,31 @@ function ReportsPageContent() {
         setCurrentPage(1);
     }
 
-    const handleActionClick = (saleId: string, actionType: 'edit' | 'copy') => {
-        setNavigationAction({ type: actionType, saleId: saleId });
+    const handleActionClick = (saleId: string) => {
+        setLastSelectedSaleId(saleId);
+        setNavigationAction({ type: 'edit', saleId });
     };
+
+    useEffect(() => {
+        if (navigationAction) {
+            const sale = allSales.find(s => s.id === navigationAction.saleId);
+            if (!sale) return;
+
+            const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+            const typeInfo = documentTypes[docType as keyof typeof documentTypes];
+
+            if (typeInfo && typeInfo.path) {
+                router.push(`${typeInfo.path}?edit=${navigationAction.saleId}`);
+            } else if (docType === 'ticket') {
+                router.push(`/pos?edit=${navigationAction.saleId}`);
+            } else {
+                toast({ variant: 'destructive', title: 'Action non supportée pour ce type de document.' });
+            }
+            setNavigationAction(null);
+        }
+    }, [navigationAction, allSales, router, toast]);
   
-    const handleMouseDown = (action: () => void) => {
+  const handleMouseDown = (action: () => void) => {
         const timer = setTimeout(() => {
             action();
             setLongPressTimer(null); // Prevent click
@@ -1118,11 +1138,6 @@ function ReportsPageContent() {
                                             <Eye className="h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger><TooltipContent><p>Détails rapides</p></TooltipContent></Tooltip></TooltipProvider>
-                                    <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={() => handleActionClick(sale.id, 'edit')}>
-                                            {isValidated ? <FileSignature className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-                                        </Button>
-                                    </TooltipTrigger><TooltipContent><p>{isValidated ? 'Consulter' : 'Modifier'}</p></TooltipContent></Tooltip></TooltipProvider>
                                 </div>
                             </TableCell>
                         </TableRow>
