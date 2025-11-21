@@ -270,7 +270,7 @@ function SupplierOrdersPageContent() {
             )}
              <Button size="lg" onClick={() => handleSave(false)} disabled={isReadOnly}>
                  <Save className="mr-2 h-4 w-4" />
-                 {isEditing ? 'Sauvegarder' : 'Sauvegarder'}
+                 {isEditing ? 'Mettre à jour' : 'Sauvegarder'}
             </Button>
             <Button size="lg" onClick={handleValidation} disabled={isReadOnly}>
                 <CheckCircle className="mr-2 h-4 w-4" />

@@ -9,7 +9,7 @@ import { VariantSelectionModal } from '../../pos/components/variant-selection-mo
 import { useState, Suspense, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3, ArrowLeft, EyeOff, Eye, Wrench } from 'lucide-react';
+import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3, ArrowLeft, EyeOff, Eye, Wrench, Printer } from 'lucide-react';
 import type { OrderItem, Sale, SupportTicket } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
+import { InvoicePrintTemplate } from '@/app/reports/components/invoice-print-template';
+import jsPDF from 'jspdf';
 
 type DocumentType = 'invoice' | 'quote' | 'delivery_note' | 'credit_note';
 
@@ -99,6 +101,8 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       lastReportsUrl,
       recordCommercialDocument,
       vatRates,
+      companyInfo,
+      sales,
       supportTickets,
   } = usePos();
   
@@ -111,6 +115,10 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
   const [totals, setTotals] = useState({ subtotal: 0, tax: 0, total: 0 });
   const [isConfirmOpen, setConfirmOpen] = useState(false);
   const [isDuplicateConfirmOpen, setIsDuplicateConfirmOpen] = useState(false);
+  
+  const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const saleToPrint = sales.find(s => s.id === currentSaleId);
 
   const config = docTypeConfig[documentType];
   const canBeConverted = isEditing && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
@@ -225,6 +233,32 @@ const handleGenerateRandom = async () => {
     });
   };
 
+  const handlePrint = async () => {
+    if (!saleToPrint) return;
+
+    setIsPrinting(true);
+    await new Promise(res => setTimeout(res, 100)); // allow state to update and render template
+
+    if (!printRef.current) {
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de préparer l'impression." });
+      setIsPrinting(false);
+      return;
+    }
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    await pdf.html(printRef.current, {
+      callback: function (pdf) {
+        pdf.save(`${saleToPrint.ticketNumber}.pdf`);
+        setIsPrinting(false);
+      },
+      x: 0,
+      y: 0,
+      width: 210,
+      windowWidth: printRef.current.scrollWidth,
+      autoPaging: 'text',
+    });
+  }
+
   const pageTitle = (
     <div className="flex items-center gap-4">
       <span>{isEditing ? config.editTitle : config.title}</span>
@@ -247,6 +281,17 @@ const handleGenerateRandom = async () => {
 
   return (
     <>
+      <div className="absolute -left-[9999px] -top-[9999px]">
+        {saleToPrint && vatRates && companyInfo && (
+          <InvoicePrintTemplate 
+              ref={printRef} 
+              sale={saleToPrint} 
+              customer={customers.find(c => c.id === saleToPrint.customerId) || null} 
+              companyInfo={companyInfo} 
+              vatRates={vatRates} 
+          />
+        )}
+      </div>
     <div className="h-full flex flex-col">
        <div className="container mx-auto px-4 pt-0 sm:px-6 lg:px-8 flex-1 flex flex-col min-h-0">
         <PageHeader
@@ -255,6 +300,11 @@ const handleGenerateRandom = async () => {
         >
             <div className="flex items-center gap-2">
                  <div className="flex items-center gap-2">
+                    {isEditing && (
+                      <Button variant="outline" onClick={handlePrint} disabled={isPrinting}>
+                          <Printer className="mr-2 h-4 w-4"/> {isPrinting ? 'Génération...' : 'Imprimer'}
+                      </Button>
+                    )}
                     {!isEditing && (
                     <Button
                         variant="outline"
