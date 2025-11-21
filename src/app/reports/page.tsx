@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -144,7 +143,7 @@ const getDateFromSale = (sale: Sale): Date => {
 };
 
 // Custom hook to manage persistent state
-function usePersistentDocTypeFilter(key: string, defaultValue: Record<string, boolean>) {
+function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
     const [state, setState] = useState(() => {
         if (typeof window === 'undefined') {
             return defaultValue;
@@ -164,7 +163,7 @@ function usePersistentDocTypeFilter(key: string, defaultValue: Record<string, bo
     }, [key, state]);
 
     return [state, setState];
-}
+  }
 
 
 function ReportsPageContent() {
@@ -708,6 +707,39 @@ function ReportsPageContent() {
         setCurrentPage(1);
     }
 
+    const handleEdit = (sale: Sale) => {
+        setLastSelectedSaleId(sale.id);
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
+            router.push(`${documentTypes[docType as keyof typeof documentTypes].path}?edit=${sale.id}`);
+        } else {
+            toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
+        }
+    };
+  
+    const handleMouseDown = (action: () => void) => {
+        const timer = setTimeout(() => {
+            action();
+            setLongPressTimer(null); // Prevent click
+        }, 700); // 700ms for long press
+        setLongPressTimer(timer);
+    };
+    
+    const handleMouseUp = (clickAction: () => void) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+            clickAction();
+        }
+    };
+
+    const handleMouseLeave = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
+    };
+
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
       const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
       const saleTotal = Math.abs(sale.total);
@@ -815,37 +847,6 @@ function ReportsPageContent() {
         return {};
     };
     
-    const handleEdit = (sale: Sale) => {
-        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
-            router.push(`${documentTypes[docType as keyof typeof documentTypes].path}?edit=${sale.id}`);
-        } else {
-            toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
-        }
-    };
-  
-  const handleMouseDown = (action: () => void) => {
-    const timer = setTimeout(() => {
-        action();
-        setLongPressTimer(null); // Prevent click
-    }, 700); // 700ms for long press
-    setLongPressTimer(timer);
-  };
-  
-  const handleMouseUp = (clickAction: () => void) => {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
-        clickAction();
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
-    }
-  };
     
     if (isPosLoading) {
         return (
@@ -863,7 +864,7 @@ function ReportsPageContent() {
         : "Rapports des pièces";
 
     const pageTitleComponent = (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
             <span>{pageTitle}</span>
             <span className="text-base font-normal text-muted-foreground">
                 ({filteredAndSortedSales.length} / {allSales?.length || 0})
@@ -991,34 +992,6 @@ function ReportsPageContent() {
                         </div>
                         <div className="flex items-center gap-2">
                            <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
-                           <div className="flex items-center gap-1">
-                              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                              <Popover>
-                                  <PopoverTrigger asChild>
-                                      <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                          Page {currentPage} / {totalPages || 1}
-                                      </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-48 p-2">
-                                      <div className="space-y-2">
-                                          <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                          <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                              <span>{itemsPerPageState}</span>
-                                          </div>
-                                          <Slider
-                                              id="items-per-page-slider"
-                                              value={[itemsPerPageState]}
-                                              onValueChange={(value) => setItemsPerPageState(value[0])}
-                                              onValueCommit={(value) => setItemsPerPage(value[0])}
-                                              min={5}
-                                              max={50}
-                                              step={5}
-                                          />
-                                      </div>
-                                  </PopoverContent>
-                              </Popover>
-                              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
-                            </div>
                         </div>
                     </div>
                   </CardHeader>
@@ -1049,35 +1022,63 @@ function ReportsPageContent() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
-                            {pageTitleComponent}
+                           Liste des pièces
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Columns className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {columnsConfig.map(column => (
+                                        <DropdownMenuCheckboxItem
+                                            key={column.id}
+                                            checked={visibleColumns[column.id] ?? true}
+                                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                        >
+                                            {column.label}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuCheckboxItem
+                                        checked={visibleColumns.margin}
+                                        onCheckedChange={handleMarginToggle}
+                                    >
+                                        Marge
+                                    </DropdownMenuCheckboxItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </CardTitle>
-                        <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <Columns className="h-4 w-4" />
-                                  </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                  <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  {columnsConfig.map(column => (
-                                      <DropdownMenuCheckboxItem
-                                          key={column.id}
-                                          checked={visibleColumns[column.id] ?? true}
-                                          onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                      >
-                                          {column.label}
-                                      </DropdownMenuCheckboxItem>
-                                  ))}
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuCheckboxItem
-                                      checked={visibleColumns.margin}
-                                      onCheckedChange={handleMarginToggle}
-                                  >
-                                      Marge
-                                  </DropdownMenuCheckboxItem>
-                              </DropdownMenuContent>
-                          </DropdownMenu>
+                        <div className="flex items-center gap-1">
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(1))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                        Page {currentPage} / {totalPages || 1}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                        <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                            <span>{itemsPerPageState}</span>
+                                        </div>
+                                        <Slider
+                                            id="items-per-page-slider"
+                                            value={[itemsPerPageState]}
+                                            onValueChange={(value) => setItemsPerPageState(value[0])}
+                                            onValueCommit={(value) => setItemsPerPage(value[0])}
+                                            min={5}
+                                            max={50}
+                                            step={5}
+                                        />
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="pt-0">
@@ -1111,7 +1112,7 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} className={cn(lastSelectedSaleId === sale.id && 'bg-blue-100 dark:bg-blue-900/30')} onClick={() => setLastSelectedSaleId(sale.id)}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
                             {visibleColumns.date && <TableCell className="text-xs text-muted-foreground"><ClientFormattedDate date={sale.date} /></TableCell>}
@@ -1134,23 +1135,17 @@ function ReportsPageContent() {
                             {visibleColumns.total && <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>}
                             {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                             <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                    <TooltipProvider><Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDetailModal(sale)}>
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Détails rapides</p></TooltipContent>
-                                    </Tooltip></TooltipProvider>
-                                    <TooltipProvider><Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
-                                                {isValidated ? <FileSignature className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>{isValidated ? 'Consulter' : 'Modifier'}</p></TooltipContent>
-                                    </Tooltip></TooltipProvider>
+                                <div className="flex items-center justify-end">
+                                    <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => handleOpenDetailModal(sale)}>
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger><TooltipContent><p>Détails rapides</p></TooltipContent></Tooltip></TooltipProvider>
+                                    <TooltipProvider><Tooltip><TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                                            {isValidated ? <FileSignature className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                                        </Button>
+                                    </TooltipTrigger><TooltipContent><p>{isValidated ? 'Consulter' : 'Modifier'}</p></TooltipContent></Tooltip></TooltipProvider>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -1257,4 +1252,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
