@@ -1,11 +1,10 @@
-
 'use client';
 
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History, Printer, Eye, FileText } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowUpDown, ChevronDown, MoreVertical, Edit, Trash2, FileCog, History, Printer, Eye, FileText, Send } from 'lucide-react';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePos } from '@/contexts/pos-context';
@@ -31,6 +30,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { TicketPrintTemplate } from './components/ticket-print-template';
 import jsPDF from 'jspdf';
 import { useToast } from '@/hooks/use-toast';
+import { EmailSenderDialog } from '@/app/reports/components/email-sender-dialog';
 
 
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
@@ -46,6 +46,9 @@ export default function SupportTicketsPage() {
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const [isEmailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [ticketForEmail, setTicketForEmail] = useState<SupportTicket | null>(null);
 
 
   const sortedTickets = useMemo(() => {
@@ -297,6 +300,9 @@ export default function SupportTicketsPage() {
                                                 <DropdownMenuItem onClick={() => handlePrint(ticket)} disabled={isPrinting}>
                                                     <Printer className="mr-2 h-4 w-4" /> Imprimer
                                                 </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => { setTicketForEmail(ticket); setIsEmailDialogOpen(true); }}>
+                                                    <Send className="mr-2 h-4 w-4" /> Envoyer par Email
+                                                </DropdownMenuItem>
                                                  {ticket.saleId ? (
                                                   <DropdownMenuItem asChild>
                                                     <Link href={`/commercial/invoices?edit=${ticket.saleId}`}>
@@ -387,6 +393,11 @@ export default function SupportTicketsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <EmailSenderDialog
+        isOpen={isEmailDialogOpen}
+        onClose={() => setIsEmailDialogOpen(false)}
+        ticket={ticketForEmail}
+      />
     </>
   );
 }

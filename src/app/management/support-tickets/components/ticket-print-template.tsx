@@ -92,7 +92,7 @@ export const TicketPrintTemplate = React.forwardRef<HTMLDivElement, TicketPrintT
                         {ticket.repairActions.sort((a,b) => new Date(a.date as any).getTime() - new Date(b.date as any).getTime()).map(action => (
                             <div key={action.id} className="border-l-2 pl-3">
                                 <p className="font-semibold">{action.title}</p>
-                                <p className="text-xs text-gray-500 mb-1"><ClientFormattedDate date={action.date} formatString="d MMM yyyy, HH:mm" /> par {action.userName}</p>
+                                <p className="text-xs text-gray-500 mb-1"><ClientFormattedDate date={action.date} formatString="d MMM yy, HH:mm" /> par {action.userName}</p>
                                 <p className="text-sm whitespace-pre-wrap">{action.details}</p>
                             </div>
                         ))}

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -7,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { usePos } from '@/contexts/pos-context';
-import type { Sale, Customer } from '@/lib/types';
+import type { Sale, Customer, SupportTicket } from '@/lib/types';
 import { useToast as useShadcnToast } from '@/hooks/use-toast';
 import { sendEmail } from '@/ai/flows/send-email-flow';
 import jsPDF from 'jspdf';
 import { InvoicePrintTemplate } from './invoice-print-template';
+import { TicketPrintTemplate } from '@/app/management/support-tickets/components/ticket-print-template';
 import { Send, File, Upload, Trash2, Loader2, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
@@ -36,6 +36,7 @@ interface EmailSenderDialogProps {
   onClose: () => void;
   sale?: Sale | null;
   customer?: Customer | null;
+  ticket?: SupportTicket | null;
   dunningMode?: boolean;
   onSend?: (notes?: string) => void;
 }
@@ -45,6 +46,7 @@ export function EmailSenderDialog({
   onClose,
   sale,
   customer: initialCustomer,
+  ticket,
   dunningMode,
   onSend,
 }: EmailSenderDialogProps) {
@@ -59,59 +61,67 @@ export function EmailSenderDialog({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const printRef = useRef<HTMLDivElement>(null);
+  const ticketPrintRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const customer = useMemo(() => {
     if (initialCustomer) return initialCustomer;
-    if (!sale || !customers) return null;
-    return customers.find(c => c.id === sale.customerId);
-  }, [sale, customers, initialCustomer]);
+    const customerId = sale?.customerId || ticket?.customerId;
+    if (!customerId || !customers) return null;
+    return customers.find(c => c.id === customerId);
+  }, [sale, ticket, customers, initialCustomer]);
 
   const pieceType = sale?.documentType === 'invoice' ? 'facture'
                   : sale?.documentType === 'quote' ? 'devis'
                   : sale?.documentType === 'delivery_note' ? 'bon de livraison'
                   : sale?.documentType === 'credit_note' ? 'avoir'
+                  : ticket ? 'prise en charge'
                   : 'document';
   
-  const generatePdfForEmail = useCallback(async (saleForPdf: Sale): Promise<Attachment | null> => {
-    if (!printRef.current || !saleForPdf) {
+  const generatePdfForEmail = useCallback(async (doc: Sale | SupportTicket): Promise<Attachment | null> => {
+    const isSale = 'items' in doc;
+    const templateRef = isSale ? printRef : ticketPrintRef;
+    
+    if (!templateRef.current) {
       toast({ variant: 'destructive', title: "Erreur de génération PDF" });
       return null;
     }
+
     const pdf = new jsPDF('p', 'mm', 'a4');
-    await pdf.html(printRef.current, {
+    await pdf.html(templateRef.current, {
       autoPaging: 'text',
       width: 210,
-      windowWidth: printRef.current.scrollWidth,
+      windowWidth: templateRef.current.scrollWidth,
     });
     const pdfDataString = pdf.output('datauristring');
-    const pdfType = saleForPdf.documentType === 'invoice' ? 'facture'
-                    : saleForPdf.documentType === 'quote' ? 'devis'
-                    : saleForPdf.documentType === 'delivery_note' ? 'bon_de_livraison'
-                    : saleForPdf.documentType === 'credit_note' ? 'avoir'
-                    : 'document';
-    const filename = `${pdfType}-${saleForPdf.ticketNumber || 'document'}.pdf`.replace(/ /g, '_');
+    
+    const docNumber = isSale ? doc.ticketNumber : doc.ticketNumber;
+    const filename = `${pieceType.replace(' ', '_')}-${docNumber || 'document'}.pdf`.replace(/ /g, '_');
+
     return {
       content: pdfDataString.split(',')[1],
       filename: filename,
       encoding: 'base64',
     };
-  }, [toast]);
+  }, [toast, pieceType]);
   
 
   useEffect(() => {
-    if (isOpen && sale) {
+    if (isOpen && (sale || ticket)) {
         setIsGeneratingPdf(true);
-        generatePdfForEmail(sale).then(pdfAttachment => {
-            if(pdfAttachment) {
-                setAttachments([pdfAttachment]);
-            }
-            setIsGeneratingPdf(false);
-        });
+        const docToProcess = sale || ticket;
+        if(docToProcess) {
+          generatePdfForEmail(docToProcess).then(pdfAttachment => {
+              if(pdfAttachment) {
+                  setAttachments([pdfAttachment]);
+              }
+              setIsGeneratingPdf(false);
+          });
+        }
     } else if (!isOpen) {
       setAttachments([]);
     }
-  }, [isOpen, sale, generatePdfForEmail]);
+  }, [isOpen, sale, ticket, generatePdfForEmail]);
 
   useEffect(() => {
     if (!customer) return;
@@ -121,7 +131,6 @@ export function EmailSenderDialog({
     
     if (sale) {
         const totalDue = sale.total - (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
-
         if (dunningMode) {
             setEmailSubject(`Rappel pour votre facture impayée #${sale.ticketNumber}`);
             setEmailBody(
@@ -139,12 +148,19 @@ export function EmailSenderDialog({
             companySignature
             );
         }
+    } else if (ticket) {
+      setEmailSubject(`Votre prise en charge SAV #${ticket.ticketNumber}`);
+      setEmailBody(
+        `Bonjour ${customer.name || 'client(e)'},\n\n` +
+        `Veuillez trouver ci-joint le récapitulatif de votre prise en charge n°${ticket.ticketNumber}.` +
+        companySignature
+      );
     } else {
         // Spontaneous email
         setEmailSubject(`Message de ${companyInfo?.name || 'votre entreprise'}`);
         setEmailBody(`Bonjour ${customer.name || 'client(e)'},\n\n` + companySignature);
     }
-  }, [sale, customer, dunningMode, companyInfo, pieceType]);
+  }, [sale, ticket, customer, dunningMode, companyInfo, pieceType]);
 
   const handleSendEmail = async () => {
     if (!smtpConfig?.host || !smtpConfig.port || !smtpConfig.user || !smtpConfig.password || !smtpConfig.senderEmail) {
@@ -215,12 +231,13 @@ export function EmailSenderDialog({
     <>
       <div className="absolute -left-[9999px] -top-[9999px]">
         {sale && vatRates && <InvoicePrintTemplate ref={printRef} sale={sale} customer={customer} companyInfo={companyInfo} vatRates={vatRates} />}
+        {ticket && <TicketPrintTemplate ref={ticketPrintRef} ticket={ticket} customer={customer} companyInfo={companyInfo} />}
       </div>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-2xl flex flex-col p-0">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>
-              {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ''}
+              {dunningMode ? "Enregistrer une action de relance" : `Envoyer ${pieceType}`} - {sale?.ticketNumber || ticket?.ticketNumber || ''}
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 pt-0 flex-1 overflow-y-auto">
