@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -568,10 +569,10 @@ function ReportsPageContent() {
     };
     
     const getSmartDateButtonLabel = () => {
-        if (isDateFilterLocked && dateRange?.from) {
-             return format(dateRange.from, "d MMMM yyyy", { locale: fr });
-        }
-        if (!dateRange || !dateRange.from) return 'Période';
+      if (isDateFilterLocked && dateRange?.from) {
+        return format(dateRange.from, "d MMMM yyyy", { locale: fr });
+      }
+      if (!dateRange || !dateRange.from) return 'Période';
         if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
         if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
         if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
@@ -584,6 +585,7 @@ function ReportsPageContent() {
         }
         return 'Période';
     };
+
 
     const handleDateArrowClick = (direction: 'prev' | 'next') => {
         if (isDateFilterLocked) return;
@@ -816,7 +818,6 @@ function ReportsPageContent() {
     const handleEdit = (sale: Sale) => {
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
         if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
-            setLastSelectedSaleId(sale.id);
             router.push(`${documentTypes[docType as keyof typeof documentTypes].path}?edit=${sale.id}`);
         } else {
             toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
@@ -872,7 +873,7 @@ function ReportsPageContent() {
 
   return (
     <>
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 relative">
+      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 relative">
            {isDocTypeFilterLocked && docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam} />}
              <div className="absolute -left-[9999px] -top-[9999px]">
                 {saleToPrint && vatRates && <InvoicePrintTemplate ref={printRef} sale={saleToPrint} customer={customers.find(c => c.id === saleToPrint.customerId) || null} companyInfo={companyInfo} vatRates={vatRates} />}
@@ -1025,10 +1026,12 @@ function ReportsPageContent() {
                     <CardContent className="flex items-center gap-2 flex-wrap pt-0">
                         <Popover>
                             <PopoverTrigger asChild disabled={isDateFilterLocked}>
-                                <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                               <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
                                     <CalendarIcon className="mr-2 h-4 w-4" />
                                     {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
-                                    {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                                    {getSmartDateButtonLabel() !== 'Période' ? getSmartDateButtonLabel() : 
+                                      dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "d MMMM yyyy", { locale: fr })) : <span>Choisir une période</span>
+                                    }
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
@@ -1046,7 +1049,7 @@ function ReportsPageContent() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
-                            Liste des Pièces
+                            {pageTitleComponent}
                         </CardTitle>
                         <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -1108,7 +1111,7 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} className={cn(lastSelectedSaleId === sale.id && 'bg-blue-100 dark:bg-blue-900/30')}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} className={cn(lastSelectedSaleId === sale.id && 'bg-blue-100 dark:bg-blue-900/30')} onClick={() => setLastSelectedSaleId(sale.id)}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
                             {visibleColumns.date && <TableCell className="text-xs text-muted-foreground"><ClientFormattedDate date={sale.date} /></TableCell>}
@@ -1132,23 +1135,14 @@ function ReportsPageContent() {
                             {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => handlePrint(sale)}><Printer className="mr-2 h-4 w-4" />Imprimer</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleOpenDetailModal(sale)}><Eye className="mr-2 h-4 w-4"/>Détails Rapides</DropdownMenuItem>
-                                            {(sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced' && (
-                                                <>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
-                                                        <FileCog className="mr-2 h-4 w-4" />Transformer en Facture
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <TooltipProvider><Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" onClick={() => handleOpenDetailModal(sale)}>
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Détails rapides</p></TooltipContent>
+                                    </Tooltip></TooltipProvider>
                                     <TooltipProvider><Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
@@ -1263,3 +1257,4 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
