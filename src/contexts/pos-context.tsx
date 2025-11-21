@@ -396,6 +396,7 @@ export interface PosContextType {
 
 const PosContext = createContext<PosContextType | undefined>(undefined);
 
+// Helper hook for persisting state to localStorage
 function usePersistentState<T>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
     const [state, setState] = useState(defaultValue);
     const [isHydrated, setIsHydrated] = useState(false);
@@ -673,6 +674,56 @@ export function PosProvider({ children }: { children: ReactNode }) {
     return newRemise;
   }, [setRemises]);
 
+  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
+    const itemToRemove = order.find(item => item.id === itemId);
+    if (itemToRemove && itemToRemove.formSubmissionId && itemToRemove.formSubmissionId.startsWith('temp_')) {
+      setTempFormSubmissions(prev => {
+        const newTemp = { ...prev };
+        delete newTemp[itemToRemove.formSubmissionId!];
+        return newTemp;
+      });
+    }
+    setOrder((currentOrder) =>
+      currentOrder.filter((item) => item.id !== itemId)
+    );
+  }, [order, setTempFormSubmissions]);
+  
+  const updateQuantity = useCallback(
+    (itemId: string, quantity: number) => {
+      const itemToUpdate = order.find((item) => item.id === itemId);
+      if (!itemToUpdate) return;
+      
+      const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
+      if(!originalItem) return;
+
+      if (originalItem.requiresSerialNumber && enableSerialNumber) {
+        if (quantity <= 0) {
+          removeFromOrder(itemId);
+        } else {
+          setSerialNumberItem({ item: originalItem, quantity });
+        }
+        return;
+      }
+      
+      if (quantity <= 0) {
+        removeFromOrder(itemId);
+        return;
+      }
+      setOrder((currentOrder) =>
+        currentOrder.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                quantity,
+                total: item.price * quantity - (item.discount || 0),
+              }
+            : item
+        )
+      );
+    },
+    [order, removeFromOrder, enableSerialNumber, items]
+  );
+  
   const recordSale = useCallback(async (saleData: Omit<Sale, 'id' | 'ticketNumber' | 'date'>, saleIdToUpdate?: string): Promise<Sale | null> => {
     let finalSale: Sale;
 
@@ -848,101 +899,15 @@ export function PosProvider({ children }: { children: ReactNode }) {
     router.push(reportPath);
 }, [sales, setSales, user, clearOrder, toast, router, addAuditLog, tempFormSubmissions, setFormSubmissions, setTempFormSubmissions]);
   
-  const addSupportTicket = useCallback(async (ticketData: Omit<SupportTicket, 'id'|'ticketNumber'|'createdAt'|'status'>): Promise<SupportTicket | null> => {
-    const count = supportTickets.length;
-    const ticketNumber = `SAV-${(count + 1).toString().padStart(4, '0')}`;
+  const generateSingleRecurringInvoice = useCallback(async (saleId: string, note?: string) => {
+    const saleToRecur = sales.find(s => s.id === saleId);
+    if (!saleToRecur) return;
     
-    const newTicket: SupportTicket = {
-      ...ticketData,
-      id: uuidv4(),
-      ticketNumber,
-      createdAt: new Date(),
-      status: 'Ouvert',
-    };
-
-    if (autoInvoiceOnSupportTicket) {
-      const equipmentType = equipmentTypes.find(et => et.name === ticketData.equipmentType);
-      const serviceItem = items.find(item => item.id === 'PRISE_EN_CHARGE');
-      let amountToInvoice = ticketData.amount || equipmentType?.price || 0;
-
-      if (!serviceItem) {
-        toast({
-          variant: 'destructive',
-          title: "Article 'PRISE_EN_CHARGE' manquant",
-          description: "Veuillez créer un article avec l'ID 'PRISE_EN_CHARGE' pour facturer automatiquement.",
-          duration: 7000
-        });
-      } else if (amountToInvoice > 0) {
-        const vatInfo = vatRates.find(v => v.id === serviceItem.vatId);
-        if (!vatInfo) {
-           toast({ variant: 'destructive', title: "TVA manquante", description: "L'article de prise en charge doit avoir une TVA."});
-        } else {
-            const amountTTC = amountToInvoice;
-            const amountHT = amountTTC / (1 + vatInfo.rate / 100);
-            const taxAmount = amountTTC - amountHT;
-            
-            const saleItem = {
-              id: uuidv4(), itemId: serviceItem.id, name: serviceItem.name,
-              price: amountTTC, quantity: 1, total: amountTTC, vatId: serviceItem.vatId,
-              discount: 0, barcode: serviceItem.barcode!,
-              description: `Type: ${ticketData.equipmentType}\nMarque: ${ticketData.equipmentBrand}\nModèle: ${ticketData.equipmentModel}\nPanne: ${ticketData.issueDescription}`
-            };
-
-            const newSale = await recordSale({
-                items: [saleItem], customerId: ticketData.customerId, subtotal: amountHT, tax: taxAmount,
-                total: amountTTC, status: 'pending', payments: [], documentType: 'invoice'
-            });
-
-            if (newSale) {
-                newTicket.saleId = newSale.id;
-                newTicket.status = 'Facturé';
-            }
-        }
-      }
-    }
-    
-    setSupportTickets(prev => [newTicket, ...prev]);
-    toast({ title: 'Prise en charge créée', description: `La fiche #${ticketNumber} a été enregistrée.` });
-    return newTicket;
-  }, [supportTickets, setSupportTickets, toast, autoInvoiceOnSupportTicket, items, vatRates, recordSale, equipmentTypes]);
-  
-  const updateSupportTicket = useCallback(async (ticketData: SupportTicket) => {
-    setSupportTickets(prev => prev.map(t => t.id === ticketData.id ? { ...ticketData, updatedAt: new Date() } : t));
-    toast({ title: 'Prise en charge modifiée' });
-  }, [setSupportTickets, toast]);
-
-  const deleteSupportTicket = useCallback(async (ticketId: string) => {
-    setSupportTickets(prev => prev.filter(t => t.id !== ticketId));
-    toast({ title: 'Prise en charge supprimée' });
-  }, [setSupportTickets, toast]);
-
-  const addRepairActionPreset = useCallback(async (preset: Omit<RepairActionPreset, 'id'|'createdAt'|'updatedAt'>) => {
-    const newPreset = { ...preset, id: uuidv4(), createdAt: new Date() };
-    setRepairActionPresets(prev => [...prev, newPreset]);
-    return newPreset;
-  }, [setRepairActionPresets]);
-
-  const updateRepairActionPreset = useCallback(async (preset: RepairActionPreset) => {
-    setRepairActionPresets(prev => prev.map(p => p.id === preset.id ? { ...preset, updatedAt: new Date() } : p));
-  }, [setRepairActionPresets]);
-  
-  const deleteRepairActionPreset = useCallback(async (presetId: string) => {
-    setRepairActionPresets(prev => prev.filter(p => p.id !== presetId));
-  }, [setRepairActionPresets]);
-
-  const addEquipmentType = useCallback(async (equipmentType: Omit<EquipmentType, 'id'|'createdAt'|'updatedAt'>): Promise<EquipmentType | null> => {
-    const newEquipmentType = { ...equipmentType, id: uuidv4(), createdAt: new Date() };
-    setEquipmentTypes(prev => [...prev, newEquipmentType]);
-    return newEquipmentType;
-  }, [setEquipmentTypes]);
-  
-  const updateEquipmentType = useCallback(async (equipmentType: EquipmentType) => {
-      setEquipmentTypes(prev => prev.map(e => e.id === equipmentType.id ? { ...equipmentType, updatedAt: new Date() } : e));
-  }, [setEquipmentTypes]);
-  
-  const deleteEquipmentType = useCallback(async (equipmentTypeId: string) => {
-      setEquipmentTypes(prev => prev.filter(e => e.id !== equipmentTypeId));
-  }, [setEquipmentTypes]);
+    await recordCommercialDocument(
+        { ...saleToRecur, status: 'pending', notes: note || undefined }, 
+        'invoice'
+    );
+}, [sales, recordCommercialDocument]);
 
   const closeNavConfirm = useCallback(() => {
     setNextUrl(null);
@@ -1126,10 +1091,10 @@ export function PosProvider({ children }: { children: ReactNode }) {
     if (dataToReset.remises) setRemises([]);
     if (dataToReset.paiementsPartiels) setPaiementsPartiels([]);
     if (dataToReset.dunningLogs) setDunningLogs([]);
-    if (dataToReset.formSubmissions) setFormSubmissions([]);
     if (dataToReset.supportTickets) setSupportTickets([]);
     if (dataToReset.repairActionPresets) setRepairActionPresets([]);
     if (dataToReset.equipmentTypes) setEquipmentTypes([]);
+    if (dataToReset.formSubmissions) setFormSubmissions([]);
     toast({ title: 'Données sélectionnées supprimées !' });
   }, [
     setItems, setCategories, setCustomers, setSuppliers, setTablesData, setSales,
@@ -1215,7 +1180,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     reader.readAsText(file);
   }, [setItems, setCategories, setCustomers, setSuppliers, setTablesData, setPaymentMethods, setVatRates, setCompanyInfo, setUsers, setMappingTemplates, setSupportTickets, setRepairActionPresets, setEquipmentTypes, toast]);
   
-  const exportFullData = useCallback(() => {
+    const exportFullData = useCallback(() => {
     const allData = {
         items, categories, customers, suppliers, tables: tablesData, sales, heldOrders,
         paymentMethods, vatRates, auditLogs, dunningLogs, cheques, paiementsPartiels, remises,
@@ -1280,20 +1245,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
       rehydrateEquipmentTypes, rehydrateFormSubmissions, rehydrateCompanyInfo, rehydrateUsers,
       rehydrateMappingTemplates
   ]);
-  
-  const removeFromOrder = useCallback((itemId: OrderItem['id']) => {
-    const itemToRemove = order.find(item => item.id === itemId);
-    if (itemToRemove && itemToRemove.formSubmissionId && itemToRemove.formSubmissionId.startsWith('temp_')) {
-      setTempFormSubmissions(prev => {
-        const newTemp = { ...prev };
-        delete newTemp[itemToRemove.formSubmissionId!];
-        return newTemp;
-      });
-    }
-    setOrder((currentOrder) =>
-      currentOrder.filter((item) => item.id !== itemId)
-    );
-  }, [order, setTempFormSubmissions]);
   
   const addSerializedItemToOrder = useCallback((item: Item | OrderItem, quantity: number, serialNumbers: string[]) => {
     setOrder(currentOrder => {
@@ -1479,43 +1430,6 @@ export function PosProvider({ children }: { children: ReactNode }) {
       ));
   }, []);
 
-    const updateQuantity = useCallback(
-    (itemId: string, quantity: number) => {
-      const itemToUpdate = order.find((item) => item.id === itemId);
-      if (!itemToUpdate) return;
-      
-      const originalItem = items?.find(i => i.id === itemToUpdate.itemId);
-      if(!originalItem) return;
-
-      if (originalItem.requiresSerialNumber && enableSerialNumber) {
-        if (quantity <= 0) {
-          removeFromOrder(itemId);
-        } else {
-          setSerialNumberItem({ item: originalItem, quantity });
-        }
-        return;
-      }
-      
-      if (quantity <= 0) {
-        removeFromOrder(itemId);
-        return;
-      }
-      setOrder((currentOrder) =>
-        currentOrder.map((item) =>
-          item.id === itemId
-            ? {
-                ...item,
-                quantity,
-                total: item.price * quantity - (item.discount || 0),
-              }
-            : item
-        )
-      );
-    },
-    [order, removeFromOrder, enableSerialNumber, items]
-  );
-
-  
   const updateQuantityFromKeypad = useCallback(
     (itemId: OrderItem['id'], quantity: number) => {
       updateQuantity(itemId, quantity);
@@ -1708,7 +1622,7 @@ export function PosProvider({ children }: { children: ReactNode }) {
     const deleteTable = useCallback((tableId: string) => {
       setTablesData(prev => prev.filter(t => t.id !== tableId));
     }, [setTablesData]);
-    
+  
     const addUser = useCallback(async (userData: Omit<User, 'id'|'companyId'|'createdAt'>, password?: string): Promise<User | null> => { 
         if(users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
             toast({ variant: 'destructive', title: 'Erreur', description: 'Cet email est déjà utilisé.' });
@@ -2025,16 +1939,85 @@ export function PosProvider({ children }: { children: ReactNode }) {
       toast({ title: 'Modèle supprimé.' });
   }, [setMappingTemplates, toast]);
     
-    const generateSingleRecurringInvoice = useCallback(async (saleId: string, note?: string) => {
-        const saleToRecur = sales.find(s => s.id === saleId);
-        if (!saleToRecur) return;
+    const addSupportTicket = useCallback(async (ticketData: Omit<SupportTicket, 'id' | 'ticketNumber' | 'createdAt' | 'status'>): Promise<SupportTicket | null> => {
+        const ticketNumber = `SAV-${format(new Date(), 'yyyyMMdd')}-${(supportTickets.length + 1).toString().padStart(3, '0')}`;
+        const newTicket: SupportTicket = {
+            id: uuidv4(),
+            ticketNumber,
+            createdAt: new Date(),
+            status: 'Ouvert',
+            ...ticketData,
+        };
         
-        await recordCommercialDocument(
-            { ...saleToRecur, status: 'pending', notes: note || undefined }, 
-            'invoice'
-        );
-    }, [sales, recordCommercialDocument]);
+        setSupportTickets(prev => [newTicket, ...prev]);
+
+        if(autoInvoiceOnSupportTicket && newTicket.amount && newTicket.amount > 0) {
+            const article = items.find(item => item.name.toLowerCase() === 'prise en charge');
+            if(article && vatRates.find(v => v.id === article.vatId)) {
+                await recordCommercialDocument({
+                    items: [{
+                        id: uuidv4(),
+                        itemId: article.id,
+                        name: `Prise en charge SAV #${newTicket.ticketNumber}`,
+                        price: newTicket.amount,
+                        quantity: 1,
+                        total: newTicket.amount,
+                        vatId: article.vatId,
+                        discount: 0,
+                        barcode: article.barcode || '',
+                    }],
+                    customerId: newTicket.customerId,
+                    subtotal: newTicket.amount / (1 + (vatRates.find(v => v.id === article.vatId)!.rate / 100)),
+                    tax: newTicket.amount - (newTicket.amount / (1 + (vatRates.find(v => v.id === article.vatId)!.rate / 100))),
+                    total: newTicket.amount,
+                    status: 'pending',
+                    payments: [],
+                }, 'invoice');
+            }
+        }
+        
+        toast({ title: 'Prise en charge créée', description: `La fiche #${ticketNumber} a été enregistrée.` });
+        return newTicket;
+    }, [supportTickets, setSupportTickets, toast, autoInvoiceOnSupportTicket, items, vatRates, recordCommercialDocument]);
+
+    const updateSupportTicket = useCallback(async (ticketData: SupportTicket) => {
+        setSupportTickets(prev => prev.map(t => t.id === ticketData.id ? { ...ticketData, updatedAt: new Date() } : t));
+        toast({ title: 'Prise en charge mise à jour' });
+    }, [setSupportTickets, toast]);
+
+    const deleteSupportTicket = useCallback(async (ticketId: string) => {
+        setSupportTickets(prev => prev.filter(t => t.id !== ticketId));
+        toast({ title: 'Prise en charge supprimée' });
+    }, [setSupportTickets, toast]);
+
+    const addRepairActionPreset = useCallback(async (preset: Omit<RepairActionPreset, 'id'|'createdAt'|'updatedAt'>) => {
+        const newPreset: RepairActionPreset = { id: uuidv4(), ...preset, createdAt: new Date() };
+        setRepairActionPresets(prev => [...prev, newPreset]);
+        return newPreset;
+    }, [setRepairActionPresets]);
+
+    const updateRepairActionPreset = useCallback(async (preset: RepairActionPreset) => {
+        setRepairActionPresets(prev => prev.map(p => p.id === preset.id ? { ...preset, updatedAt: new Date() } : p));
+    }, [setRepairActionPresets]);
     
+    const deleteRepairActionPreset = useCallback(async (presetId: string) => {
+        setRepairActionPresets(prev => prev.filter(p => p.id !== presetId));
+    }, [setRepairActionPresets]);
+
+    const addEquipmentType = useCallback(async (equipmentType: Omit<EquipmentType, 'id'|'createdAt'|'updatedAt'>) => {
+        const newType: EquipmentType = { id: uuidv4(), ...equipmentType, createdAt: new Date() };
+        setEquipmentTypes(prev => [...prev, newType]);
+        return newType;
+    }, [setEquipmentTypes]);
+
+    const updateEquipmentType = useCallback(async (equipmentType: EquipmentType) => {
+        setEquipmentTypes(prev => prev.map(et => et.id === equipmentType.id ? { ...equipmentType, updatedAt: new Date() } : et));
+    }, [setEquipmentTypes]);
+
+    const deleteEquipmentType = useCallback(async (equipmentTypeId: string) => {
+        setEquipmentTypes(prev => prev.filter(et => et.id !== equipmentTypeId));
+    }, [setEquipmentTypes]);
+
     const importDataFromJson = useCallback(async (dataType: string, jsonData: any[]): Promise<ImportReport> => {
         const report: ImportReport = { successCount: 0, errorCount: 0, errors: [], newCustomersCount: 0, newItemsCount: 0, newSalesCount: 0 };
         const toastId = toast({
