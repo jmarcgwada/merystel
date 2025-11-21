@@ -686,12 +686,7 @@ function ReportsPageContent() {
     const resetFilters = () => {
         if (!isDateFilterLocked) setDateRange(undefined);
         if (!isDocTypeFilterLocked) setFilterDocTypes({
-            ticket: true,
-            invoice: true,
-            quote: true,
-            delivery_note: true,
-            supplier_order: true,
-            credit_note: true,
+            ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
         });
         setFilterCustomerName('');
         setFilterOrigin('');
@@ -750,21 +745,8 @@ function ReportsPageContent() {
       if (sale.status === 'invoiced') {
           return <Badge variant="outline">Convertie en Facture</Badge>;
       }
-      if (sale.status === 'paid' || totalPaid >= saleTotal) {
-          return (
-              <div className="flex flex-wrap gap-1">
-                  {sale.payments.map((p, index) => (
-                      <Badge key={index} variant="outline" className="capitalize font-normal">
-                          {p.method.name}: <span className="font-semibold ml-1">{Math.abs(p.amount).toFixed(2)}€</span>
-                      </Badge>
-                  ))}
-                  {sale.change && sale.change > 0 && (
-                      <Badge variant="secondary" className="font-normal bg-amber-200 text-amber-800">
-                          Rendu: <span className="font-semibold ml-1">{Math.abs(sale.change).toFixed(2)}€</span>
-                      </Badge>
-                  )}
-              </div>
-          );
+      if (sale.status === 'paid' || totalPaid >= saleTotal - 0.01) {
+          return <Badge className="bg-green-100 text-green-800">Payé</Badge>;
       }
 
       if (totalPaid > 0) {
@@ -824,17 +806,19 @@ function ReportsPageContent() {
     };
     
     const getRowStyle = (sale: Sale): React.CSSProperties => {
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        
         const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
         const amountDue = sale.total - totalPaid;
     
         if (sale.status === 'paid' || amountDue <= 0.01) {
-            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' };
+            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' }; // green
         }
         if (sale.status === 'pending' && totalPaid > 0) {
-             return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' };
+             return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' }; // orange
         }
         if (sale.status === 'pending') {
-            return { backgroundColor: 'hsla(0, 100%, 97%, 0.5)' };
+            return { backgroundColor: 'hsla(0, 100%, 97%, 0.5)' }; // red
         }
         return {};
     };
@@ -914,6 +898,7 @@ function ReportsPageContent() {
                       </div>
                   </CollapsibleContent>
               </Collapsible>
+              
               <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
                 <Card>
                   <CardHeader className="p-4">
@@ -998,7 +983,7 @@ function ReportsPageContent() {
                         </Popover>
                         <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
                         <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
-                        <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" />
+                        <Input ref={originFilterRef} placeholder="Filtrer par origine (table)..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" />
                         <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="pending">En attente</SelectItem><SelectItem value="partial">Paiement partiel</SelectItem></SelectContent></Select>
                         <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(pm => (<SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>))}</SelectContent></Select>
                     </CardContent>
@@ -1008,7 +993,37 @@ function ReportsPageContent() {
               <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle>{pageTitleText}</CardTitle>
+                        <CardTitle className="flex items-center gap-4">
+                            {pageTitleText}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Columns className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {columnsConfig.map(column => (
+                                        <DropdownMenuCheckboxItem
+                                            key={column.id}
+                                            checked={visibleColumns[column.id] ?? false}
+                                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                            disabled={column.id === 'margin'}
+                                        >
+                                            {column.label}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuCheckboxItem
+                                      checked={visibleColumns['margin']}
+                                      onCheckedChange={handleMarginToggle}
+                                    >
+                                      Marge
+                                    </DropdownMenuCheckboxItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </CardTitle>
                         <div className="flex items-center gap-1">
                           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
                           <Popover>
@@ -1070,7 +1085,7 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'} style={getRowStyle(sale)}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
                             {visibleColumns.date && <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={sale.date} /></TableCell>}
@@ -1205,3 +1220,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
