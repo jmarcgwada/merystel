@@ -94,7 +94,7 @@ const PinKey = ({ value, onClick, 'data-key': dataKey, className }: { value: str
         onClick={() => onClick(value)}
         data-key={dataKey}
     >
-        {value}
+        {children}
     </Button>
 );
 
@@ -696,29 +696,32 @@ function ReportsPageContent() {
         setCurrentPage(1);
     }
 
-    const handleActionClick = (saleId: string) => {
-      setLastSelectedSaleId(saleId);
-      setNavigationAction({ type: 'edit', saleId });
-    };
-    
     useEffect(() => {
         if (navigationAction) {
             const sale = allSales.find(s => s.id === navigationAction.saleId);
-            if (!sale) return;
+            if (!sale) {
+                setNavigationAction(null);
+                return;
+            }
 
             const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-            const typeInfo = documentTypes[docType as keyof typeof documentTypes];
-
-            if (typeInfo && typeInfo.path) {
-                router.push(`${typeInfo.path}?edit=${navigationAction.saleId}`);
-            } else if (docType === 'ticket') {
-                router.push(`/pos?edit=${navigationAction.saleId}`);
-            } else {
-                toast({ variant: 'destructive', title: 'Action non supportée pour ce type de document.' });
+            let path = '';
+            
+            if (navigationAction.type === 'edit') {
+                 const typeInfo = documentTypes[docType as keyof typeof documentTypes];
+                 path = typeInfo?.path || (docType === 'ticket' ? '/pos' : '/commercial/invoices');
+                 router.push(`${path}?edit=${navigationAction.saleId}`);
             }
+
             setNavigationAction(null);
         }
-    }, [navigationAction, allSales, router, toast]);
+    }, [navigationAction, allSales, router]);
+    
+    const handleActionClick = (e: React.MouseEvent, saleId: string, type: 'edit' | 'copy') => {
+        e.stopPropagation();
+        setLastSelectedSaleId(saleId);
+        setNavigationAction({ type, saleId });
+    };
   
   const handleMouseDown = (action: () => void) => {
         const timer = setTimeout(() => {
@@ -825,22 +828,26 @@ function ReportsPageContent() {
     
     const getRowStyle = (sale: Sale): React.CSSProperties => {
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        if (!docType || !filterDocTypes[docType]) return {};
-
+        if (!docType) return {};
+    
         const typeInfo = documentTypes[docType as keyof typeof documentTypes];
-
-        if (typeInfo?.type === 'out') {
-            const color = docType === 'credit_note' ? creditNoteBgColor : supplierOrderBgColor;
-            const opacity = docType === 'credit_note' ? creditNoteBgOpacity : supplierOrderBgOpacity;
-            return { backgroundColor: hexToRgba(color, opacity) }
+        const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
+        const amountDue = sale.total - totalPaid;
+    
+        // Paid status
+        if (sale.status === 'paid' || amountDue <= 0.01) {
+            return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' };
         }
-        if (typeInfo?.type === 'neutral') {
-             const color = docType === 'quote' ? quoteBgColor : deliveryNoteBgColor;
-             const opacity = docType === 'quote' ? quoteBgOpacity : deliveryNoteBgOpacity;
-             return { backgroundColor: hexToRgba(color, opacity) }; 
+        // Partial payment
+        if (sale.status === 'pending' && totalPaid > 0) {
+            return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' };
         }
-        
-        return { backgroundColor: hexToRgba(invoiceBgColor, invoiceBgOpacity) };
+        // Unpaid
+        if (sale.status === 'pending') {
+            return { backgroundColor: 'hsla(0, 100%, 97%, 0.5)' };
+        }
+        // Neutral or other documents
+        return {};
     };
     
     
@@ -1012,38 +1019,7 @@ function ReportsPageContent() {
               <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-2">
-                           Liste des pièces
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                        <Columns className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {columnsConfig.map(column => (
-                                        <DropdownMenuCheckboxItem
-                                            key={column.id}
-                                            checked={visibleColumns[column.id] ?? true}
-                                            onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                            disabled={column.id === 'margin'}
-                                        >
-                                            {column.label}
-                                            {column.id === 'margin' && <Lock className="ml-2 h-3 w-3" />}
-                                        </DropdownMenuCheckboxItem>
-                                    ))}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuCheckboxItem
-                                        checked={visibleColumns['margin']}
-                                        onCheckedChange={handleMarginToggle}
-                                    >
-                                        Marge (Accès Sécurisé)
-                                    </DropdownMenuCheckboxItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </CardTitle>
+                        <CardTitle>{pageTitle}</CardTitle>
                         <div className="flex items-center gap-1">
                             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(1))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
                             <Popover>
@@ -1105,7 +1081,7 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
                             {visibleColumns.date && <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={sale.date} /></TableCell>}
