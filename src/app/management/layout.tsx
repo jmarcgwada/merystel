@@ -60,9 +60,11 @@ export default function ManagementLayout({
       repairActionPresets,
   } = usePos();
   const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  const mainContentRef = React.useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const mainEl = document.querySelector('main');
+    const mainEl = mainContentRef.current;
     if (!mainEl) return;
 
     const checkScroll = () => {
@@ -74,7 +76,7 @@ export default function ManagementLayout({
   }, []);
 
   const scrollToTop = () => {
-    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
 
@@ -168,7 +170,7 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main className="flex-1 flex flex-col overflow-y-auto">
+        <main ref={mainContentRef} className="flex-1 flex flex-col overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
             {children}
           </div>
