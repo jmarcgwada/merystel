@@ -53,18 +53,6 @@ export default function ManagementLayout({
                <ManagementSideNav />
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <Button asChild variant="ghost" className="w-full justify-start">
-                  <Link href="/dashboard">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Tableau de bord</span>
-                  </Link>
-                </Button>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarFooter>
         </Sidebar>
         <main ref={mainContentRef} className="flex-1 overflow-y-auto relative">
           <div className="p-4 sm:p-6 lg:p-8">
