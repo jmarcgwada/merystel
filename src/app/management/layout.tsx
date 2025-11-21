@@ -155,7 +155,7 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main ref={mainContentRef} className="flex-1 flex flex-col">
+        <main ref={mainContentRef} className="flex-1 flex flex-col overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
             {children}
           </div>
