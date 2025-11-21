@@ -217,24 +217,30 @@ export default function ConnectivityPage() {
         try {
             const result = await downloadFtpFile({
                  ftpConfig: {
-                    host: localFtp.host, port: localFtp.port, user: localFtp.user,
-                    password: localFtp.password, secure: localFtp.secure || false,
+                    host: localFtp.host!, port: localFtp.port!, user: localFtp.user!,
+                    password: localFtp.password!, secure: localFtp.secure || false,
                 },
                 filePath: ftpPath.endsWith('/') ? `${ftpPath}${fileName}` : `${ftpPath}/${fileName}`,
             });
 
             if (result.success && result.content) {
-                const byteCharacters = atob(result.content);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-                const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+                // Correctly decode base64 and trigger download
+                const binaryString = window.atob(result.content);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const blob = new Blob([bytes], { type: 'application/octet-stream' });
+                
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+
                 toast({ title: 'Téléchargement réussi !' });
             } else {
                  toast({ variant: 'destructive', title: 'Erreur de téléchargement', description: result.message });
