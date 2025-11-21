@@ -697,11 +697,11 @@ function ReportsPageContent() {
         setCurrentPage(1);
     }
 
-    const handleActionClick = (saleId: string) => {
-        setLastSelectedSaleId(saleId);
-        setNavigationAction({ type: 'edit', saleId });
-    };
-
+  const handleActionClick = (saleId: string) => {
+    setLastSelectedSaleId(saleId);
+    setNavigationAction({ type: 'edit', saleId });
+  };
+    
     useEffect(() => {
         if (navigationAction) {
             const sale = allSales.find(s => s.id === navigationAction.saleId);
@@ -988,7 +988,7 @@ function ReportsPageContent() {
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                           <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
+                            <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
                         </div>
                     </div>
                   </CardHeader>
@@ -1038,13 +1038,6 @@ function ReportsPageContent() {
                                             {column.label}
                                         </DropdownMenuCheckboxItem>
                                     ))}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuCheckboxItem
-                                        checked={visibleColumns.margin}
-                                        onCheckedChange={handleMarginToggle}
-                                    >
-                                        Marge
-                                    </DropdownMenuCheckboxItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </CardTitle>
@@ -1244,3 +1237,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
