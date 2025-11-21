@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { sales: allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
+  const { allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -157,13 +157,13 @@ export default function SupportTicketsPage() {
     const saleItem = {
       id: uuidv4(),
       itemId: article.id,
-      name: article.name,
+      name: `Prise en charge SAV #${ticket.ticketNumber}`,
       price: amountTTC,
       quantity: 1,
       total: amountTTC,
       vatId: article.vatId,
       discount: 0,
-      barcode: article.barcode!,
+      barcode: article.barcode || '',
       description: itemDescription,
     };
 
@@ -298,7 +298,7 @@ export default function SupportTicketsPage() {
                                                   <DropdownMenuItem asChild>
                                                     <Link href={`/reports/${ticket.saleId}?from=support-tickets`}>
                                                         <FileText className="mr-2 h-4 w-4" />
-                                                        <span>Facture: {allSales.find(s=>s.id===ticket.saleId)?.ticketNumber}</span>
+                                                        <span>Voir la facture</span>
                                                     </Link>
                                                   </DropdownMenuItem>
                                                 ) : (
