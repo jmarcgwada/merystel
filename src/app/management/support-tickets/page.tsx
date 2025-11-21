@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 type SortKey = 'ticketNumber' | 'customerName' | 'equipmentType' | 'createdAt' | 'status';
 
 export default function SupportTicketsPage() {
-  const { allSales, supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket } = usePos();
+  const { supportTickets, isLoading, deleteSupportTicket, recordCommercialDocument, items, vatRates, customers, companyInfo, updateSupportTicket, autoInvoiceOnSupportTicket } = usePos();
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const [openDetails, setOpenDetails] = useState<Record<string, boolean>>({});
   const [ticketToDelete, setTicketToDelete] = useState<SupportTicket | null>(null);
@@ -181,6 +181,9 @@ export default function SupportTicketsPage() {
     if (newSale) {
         await updateSupportTicket({ ...ticket, saleId: newSale.id, status: 'Facturé' });
         toast({ title: 'Facture générée', description: 'Une nouvelle facture a été créée pour cette prise en charge.' });
+        if(autoInvoiceOnSupportTicket) {
+             router.push(`/commercial/invoices?edit=${newSale.id}`);
+        }
     }
   };
 
@@ -296,7 +299,7 @@ export default function SupportTicketsPage() {
                                                 </DropdownMenuItem>
                                                  {ticket.saleId ? (
                                                   <DropdownMenuItem asChild>
-                                                    <Link href={`/reports/${ticket.saleId}?from=support-tickets`}>
+                                                    <Link href={`/commercial/invoices?edit=${ticket.saleId}`}>
                                                         <FileText className="mr-2 h-4 w-4" />
                                                         <span>Voir la facture</span>
                                                     </Link>
