@@ -11,7 +11,7 @@ import { fr } from 'date-fns/locale';
 import type { Payment, Sale, User, Item } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag as ShoppingBagIcon, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, Delete, ArrowUp } from 'lucide-react';
+import { TrendingUp, Eye, RefreshCw, ArrowUpDown, Check, X, Calendar as CalendarIcon, ChevronDown, DollarSign, ShoppingBag, Package, Edit, Lock, ArrowLeft, ArrowRight, Trash2, FilePlus, Pencil, FileCog, ShoppingBag as ShoppingBagIcon, Columns, LayoutDashboard, CreditCard, Scale, Truck, Send, Printer, SlidersHorizontal, HelpCircle, Delete, ArrowUp, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -781,7 +781,6 @@ function ReportsPageContent() {
     };
 
     const handleOpenDetailModal = (sale: Sale) => {
-        setLastSelectedSaleId(sale.id);
         setSelectedSaleForModal(sale);
         setIsDetailModalOpen(true);
     };
@@ -856,12 +855,8 @@ function ReportsPageContent() {
         )
     }
     
-    const activeDocTypes = Object.entries(filterDocTypes).filter(([, isActive]) => isActive).map(([type]) => type);
-    
     const pageTitle = isDocTypeFilterLocked && docTypeFilterParam && documentTypes[docTypeFilterParam as keyof typeof documentTypes]
         ? `RAPPORT ${documentTypes[docTypeFilterParam as keyof typeof documentTypes].plural.toUpperCase()}`
-        : activeDocTypes.length === 1 && documentTypes[activeDocTypes[0] as keyof typeof documentTypes]
-        ? `RAPPORT ${documentTypes[activeDocTypes[0] as keyof typeof documentTypes].plural.toUpperCase()}`
         : "Rapports des pièces";
 
     const pageTitleComponent = (
@@ -1007,7 +1002,7 @@ function ReportsPageContent() {
                                                 <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                                             </Button>
                                         </CollapsibleTrigger>
-                                        <div className="relative">
+                                         <div className="relative">
                                             <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" />
                                             <Popover>
                                                 <PopoverTrigger asChild>
@@ -1090,7 +1085,7 @@ function ReportsPageContent() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle className="flex items-center gap-2">
-                                    {pageTitleComponent}
+                                    Liste des Pièces
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1205,28 +1200,18 @@ function ReportsPageContent() {
                                         const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
                                         const totalDiscount = sale.items.reduce((sum, item) => sum + (item.discount || 0), 0);
                                         const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
-
-
+                                        
                                         return (
                                             <TableRow 
                                             key={sale.id}
                                             ref={(el) => {if(el) rowRefs.current[sale.id] = el}}
-                                            className={cn(
-                                                'cursor-pointer',
-                                                sale.id === lastSelectedSaleId
-                                                ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900'
-                                                : ''
-                                            )}
+                                            onClick={() => setLastSelectedSaleId(sale.id)}
+                                            className={cn(sale.id === lastSelectedSaleId && 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/50 dark:hover:bg-blue-900')}
                                             style={getRowStyle(sale)}
-                                            onClick={() => handleOpenDetailModal(sale)}
                                             >
-                                                {visibleColumns.type && <TableCell>
-                                                    <Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge>
-                                                </TableCell>}
+                                                {visibleColumns.type && <TableCell><Badge variant={pieceType === 'Facture' ? 'outline' : pieceType === 'Ticket' ? 'secondary' : 'default'}>{pieceType}</Badge></TableCell>}
                                                 {visibleColumns.ticketNumber && <TableCell>
-                                                  <Link href={`/reports/${sale.id}?${searchParams.toString()}`} className="font-mono text-muted-foreground text-xs hover:text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
-                                                    {sale.ticketNumber}
-                                                  </Link>
+                                                  <span className="font-mono text-muted-foreground text-xs">{sale.ticketNumber}</span>
                                                 </TableCell>}
                                                 {visibleColumns.date && <TableCell className="font-medium text-xs"><ClientFormattedDate date={sale.date} showIcon={!!sale.modifiedAt} /></TableCell>}
                                                 {visibleColumns.userName && <TableCell>{sellerName}</TableCell>}
@@ -1241,19 +1226,33 @@ function ReportsPageContent() {
                                                 {visibleColumns.total && <TableCell className="text-right font-bold">{Math.abs(sale.total || 0).toFixed(2)}€</TableCell>}
                                                 {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
                                                 <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end">
-                                                        <Button variant="ghost" size="icon" disabled={isPrinting && saleToPrint?.id === sale.id} onClick={(e) => { e.stopPropagation(); handlePrint(sale); }}>
-                                                            <Printer className="h-4 w-4" />
-                                                        </Button>
-                                                        {canBeConverted && (
-                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setSaleToConvert(sale); setConfirmOpen(true); }}>
-                                                                <FileCog className="h-4 w-4 text-blue-600" />
-                                                            </Button>
-                                                        )}
-                                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
-                                                            {isValidated ? <Eye className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-                                                        </Button>
-                                                    </div>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setLastSelectedSaleId(sale.id); }}><MoreVertical className="h-4 w-4"/></Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                                                            <DropdownMenuItem onClick={() => handleOpenDetailModal(sale)}>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Détail rapide
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleEdit(sale)}>
+                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                {isValidated ? 'Consulter' : 'Modifier'}
+                                                            </DropdownMenuItem>
+                                                            {canBeConverted && (
+                                                                <DropdownMenuItem onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
+                                                                    <FileCog className="mr-2 h-4 w-4 text-blue-600" /> Transformer en Facture
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={() => handlePrint(sale)} disabled={isPrinting && saleToPrint?.id === sale.id}>
+                                                                <Printer className="mr-2 h-4 w-4" /> Imprimer
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => { setSaleToPrint(sale); setEmailDialogOpen(true); }}>
+                                                                <Send className="mr-2 h-4 w-4" /> Envoyer par E-mail
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </TableCell>
                                             </TableRow>
                                         )
@@ -1300,3 +1299,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
