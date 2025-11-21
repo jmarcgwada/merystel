@@ -270,7 +270,7 @@ function ReportsPageContent() {
     useEffect(() => {
         const mainEl = document.querySelector('main');
         if (!mainEl) return;
-
+    
         const checkScroll = () => {
             if (mainEl.scrollTop > 300) {
                 setShowScrollTop(true);
@@ -278,7 +278,7 @@ function ReportsPageContent() {
                 setShowScrollTop(false);
             }
         };
-
+    
         mainEl.addEventListener('scroll', checkScroll, { passive: true });
         return () => mainEl.removeEventListener('scroll', checkScroll);
     }, []);
@@ -536,7 +536,8 @@ function ReportsPageContent() {
         if (dateRange?.from) params.set('dateFrom', dateRange.from.toISOString());
         if (dateRange?.to) params.set('dateTo', dateRange.to.toISOString());
         router.replace(`${pathname}?${params.toString()}`);
-    }, [generalFilter, sortConfig, currentPage, filterCustomerName, filterOrigin, filterSellerName, filterStatus, filterPaymentMethod, dateRange, router, pathname]);
+        setLastReportsUrl(`${pathname}?${params.toString()}`);
+    }, [generalFilter, sortConfig, currentPage, filterCustomerName, filterOrigin, filterSellerName, filterStatus, filterPaymentMethod, dateRange, router, pathname, setLastReportsUrl]);
     
     const handleSmartDateFilter = () => {
         const periodCycle: ('today' | 'this_week' | 'this_month' | 'none')[] = ['today', 'this_week', 'this_month', 'none'];
@@ -807,43 +808,16 @@ function ReportsPageContent() {
         }
     };
     
-    if (isCashier) {
+    if (isPosLoading) {
         return (
             <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-                <PageHeader title="Accès non autorisé" />
-                <Alert variant="destructive" className="mt-4">
-                    <Lock className="h-4 w-4" />
-                    <AlertTitle>Accès refusé</AlertTitle>
-                    <AlertDescription>
-                        Vous n'avez pas les autorisations nécessaires pour accéder à cette page.
-                    </AlertDescription>
-                </Alert>
+                <PageHeader title="Rapports des pièces" subtitle="Chargement des données..."/>
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <Skeleton className="h-96 w-full" />
+                </div>
             </div>
-        );
+        )
     }
-    
-    const handleMouseDown = (action: () => void) => {
-        const timer = setTimeout(() => {
-            action();
-            setLongPressTimer(null); // Prevent click
-        }, 700); // 700ms for long press
-        setLongPressTimer(timer);
-    };
-    
-    const handleMouseUp = (clickAction: () => void) => {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            setLongPressTimer(null);
-            clickAction();
-        }
-    };
-
-    const handleMouseLeave = () => {
-      if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          setLongPressTimer(null);
-      }
-    };
 
     const pageTitle = (
         <div className="flex items-center gap-4">
@@ -853,17 +827,6 @@ function ReportsPageContent() {
             </span>
         </div>
       );
-
-  if (isPosLoading) {
-    return (
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-            <PageHeader title="Rapports des pièces" subtitle="Chargement des données..."/>
-            <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Skeleton className="h-96 w-full" />
-            </div>
-        </div>
-    )
-  }
 
   return (
     <>
@@ -1196,6 +1159,8 @@ function ReportsPageContent() {
                                         const originalDoc = allSales?.find(s => s.id === sale.originalSaleId);
                                         const originText = originalDoc ? `${originalDoc.documentType === 'quote' ? 'Devis' : 'BL'} #${originalDoc.ticketNumber}` : 'Vente directe';
                                         const totalDiscount = sale.items.reduce((sum, item) => sum + (item.discount || 0), 0);
+                                        const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
+
 
                                         return (
                                             <TableRow 
@@ -1241,7 +1206,7 @@ function ReportsPageContent() {
                                                             </Button>
                                                         )}
                                                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEdit(sale);}}>
-                                                            <Pencil className="h-4 w-4" />
+                                                            {isValidated ? <Eye className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                                                         </Button>
                                                     </div>
                                                 </TableCell>
@@ -1290,8 +1255,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-
-
-
-
