@@ -86,7 +86,7 @@ const columnsConfig = [
     { id: 'payment', label: 'Paiement' },
 ];
 
-const PinKey = ({ value, onClick, 'data-key': dataKey, className }: { value: string, onClick: (value: string) => void, 'data-key'?: string, className?: string }) => (
+const PinKey = ({ value, onClick, 'data-key': dataKey, className, children }: { value: string, onClick: (value: string) => void, 'data-key'?: string, className?: string, children: React.ReactNode }) => (
     <Button
         type="button"
         variant="outline"
@@ -686,7 +686,14 @@ function ReportsPageContent() {
 
     const resetFilters = () => {
         if (!isDateFilterLocked) setDateRange(undefined);
-        if (!isDocTypeFilterLocked) setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
+        if (!isDocTypeFilterLocked) setFilterDocTypes({
+            ticket: true,
+            invoice: true,
+            quote: true,
+            delivery_note: true,
+            supplier_order: true,
+            credit_note: true,
+        });
         setFilterCustomerName('');
         setFilterOrigin('');
         setFilterStatus('all');
@@ -827,26 +834,18 @@ function ReportsPageContent() {
     };
     
     const getRowStyle = (sale: Sale): React.CSSProperties => {
-        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        if (!docType) return {};
-    
-        const typeInfo = documentTypes[docType as keyof typeof documentTypes];
         const totalPaid = (sale.payments || []).reduce((sum, p) => sum + p.amount, 0);
         const amountDue = sale.total - totalPaid;
     
-        // Paid status
         if (sale.status === 'paid' || amountDue <= 0.01) {
             return { backgroundColor: 'hsla(142, 71%, 94%, 0.5)' };
         }
-        // Partial payment
         if (sale.status === 'pending' && totalPaid > 0) {
-            return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' };
+             return { backgroundColor: 'hsla(39, 93%, 95%, 0.5)' };
         }
-        // Unpaid
         if (sale.status === 'pending') {
             return { backgroundColor: 'hsla(0, 100%, 97%, 0.5)' };
         }
-        // Neutral or other documents
         return {};
     };
     
@@ -1019,7 +1018,7 @@ function ReportsPageContent() {
               <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
-                        <CardTitle>{pageTitle}</CardTitle>
+                        <CardTitle>{pageTitleText}</CardTitle>
                         <div className="flex items-center gap-1">
                             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(1))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
                             <Popover>
@@ -1081,7 +1080,7 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'} style={getRowStyle(sale)}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
                             {visibleColumns.date && <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={sale.date} /></TableCell>}
@@ -1155,19 +1154,19 @@ function ReportsPageContent() {
                               </p>
                            </div>
                             <div className="grid grid-cols-3 gap-2">
-                               <PinKey value="1" onClick={handlePinKeyPress} data-key="1" className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="2" onClick={handlePinKeyPress} data-key="2" className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="3" onClick={handlePinKeyPress} data-key="3" className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="4" onClick={handlePinKeyPress} data-key="4" className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="5" onClick={handlePinKeyPress} data-key="5" className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="6" onClick={handlePinKeyPress} data-key="6" className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="7" onClick={handlePinKeyPress} data-key="7" className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="8" onClick={handlePinKeyPress} data-key="8" className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')} />
-                                <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')} />
+                               <PinKey value="1" onClick={handlePinKeyPress} data-key="1" className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')}>1</PinKey>
+                                <PinKey value="2" onClick={handlePinKeyPress} data-key="2" className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')}>2</PinKey>
+                                <PinKey value="3" onClick={handlePinKeyPress} data-key="3" className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')}>3</PinKey>
+                                <PinKey value="4" onClick={handlePinKeyPress} data-key="4" className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')}>4</PinKey>
+                                <PinKey value="5" onClick={handlePinKeyPress} data-key="5" className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')}>5</PinKey>
+                                <PinKey value="6" onClick={handlePinKeyPress} data-key="6" className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')}>6</PinKey>
+                                <PinKey value="7" onClick={handlePinKeyPress} data-key="7" className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')}>7</PinKey>
+                                <PinKey value="8" onClick={handlePinKeyPress} data-key="8" className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')}>8</PinKey>
+                                <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')}>9</PinKey>
                                 <Button type="button" variant="outline" className={cn("h-14 w-14", activeKey === 'Backspace' && 'bg-primary text-primary-foreground')} onClick={handlePinBackspace} data-key="Backspace">
                                     <Delete className="h-6 w-6"/>
                                  </Button>
-                                <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')}>0</PinKey>
                            </div>
                         </div>
                         <AlertDialogFooter>
