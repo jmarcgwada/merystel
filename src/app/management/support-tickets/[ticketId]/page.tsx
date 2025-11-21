@@ -322,8 +322,8 @@ function EditSupportTicketPageContent() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex flex-col flex-1 h-full">
            <Tabs defaultValue="customer" className="w-full max-w-4xl mx-auto flex-1 flex flex-col">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="customer" disabled={isTicketInvoiced}>Client</TabsTrigger>
-              <TabsTrigger value="equipment" disabled={isTicketInvoiced}>Matériel</TabsTrigger>
+              <TabsTrigger value="customer">Client</TabsTrigger>
+              <TabsTrigger value="equipment">Matériel</TabsTrigger>
               <TabsTrigger value="issue">Panne & Devis</TabsTrigger>
               <TabsTrigger value="tracking">Suivi Réparation</TabsTrigger>
             </TabsList>
