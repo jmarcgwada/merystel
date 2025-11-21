@@ -215,7 +215,7 @@ function ReportsPageContent() {
   const [isPrinting, setIsPrinting] = useState(false);
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
-  const [filterDocTypes, setFilterDocTypes] = usePersistentDocTypeFilter('reports.filterDocTypes', {
+  const [filterDocTypes, setFilterDocTypes] = usePersistentState('reports.filterDocTypes', {
       ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true
   });
   
@@ -1077,7 +1077,7 @@ function ReportsPageContent() {
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                         </div>
                     </div>
                 </CardHeader>
