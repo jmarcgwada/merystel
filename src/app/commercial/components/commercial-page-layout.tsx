@@ -6,11 +6,11 @@ import { CommercialOrderForm } from './commercial-order-form';
 import { usePos } from '@/contexts/pos-context';
 import { SerialNumberModal } from '../../pos/components/serial-number-modal';
 import { VariantSelectionModal } from '../../pos/components/variant-selection-modal';
-import { useState, Suspense, useCallback, useRef } from 'react';
+import { useState, Suspense, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3, ArrowLeft, EyeOff, Eye } from 'lucide-react';
-import type { OrderItem, Sale } from '@/lib/types';
+import { Sparkles, FileCog, Lock, Copy, Trash2, BarChart3, ArrowLeft, EyeOff, Eye, Wrench } from 'lucide-react';
+import type { OrderItem, Sale, SupportTicket } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { useSearchParams } from 'next/navigation';
@@ -25,7 +25,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import Link from 'next/link';
 
 type DocumentType = 'invoice' | 'quote' | 'delivery_note' | 'credit_note';
 
@@ -84,6 +85,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       updateQuantity, 
       removeFromOrder, 
       updateItemNote,
+      updateOrderItemField,
       currentSaleContext,
       items,
       customers,
@@ -97,7 +99,7 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
       lastReportsUrl,
       recordCommercialDocument,
       vatRates,
-      updateOrderItemField
+      supportTickets,
   } = usePos();
   
   const isEditing = !!currentSaleId;
@@ -112,6 +114,11 @@ function CommercialPageContent({ documentType }: CommercialPageLayoutProps) {
 
   const config = docTypeConfig[documentType];
   const canBeConverted = isEditing && (documentType === 'quote' || documentType === 'delivery_note') && currentSaleContext?.status !== 'invoiced';
+
+  const linkedSupportTicket = useMemo(() => {
+    if (!currentSaleId || !supportTickets) return null;
+    return supportTickets.find(ticket => ticket.saleId === currentSaleId);
+  }, [currentSaleId, supportTickets]);
 
   const handleSave = useCallback(async () => {
     if (formRef.current) {
@@ -223,6 +230,14 @@ const handleGenerateRandom = async () => {
       <span>{isEditing ? config.editTitle : config.title}</span>
       {currentSaleContext?.ticketNumber && <Badge variant="secondary" className="text-lg font-mono">#{currentSaleContext.ticketNumber}</Badge>}
       {isReadOnly && <Badge variant="destructive" className="text-base font-semibold"><Lock className="mr-2 h-3 w-3" />Lecture Seule</Badge>}
+      {linkedSupportTicket && (
+        <Button variant="outline" size="sm" asChild>
+            <Link href={`/management/support-tickets/${linkedSupportTicket.id}`}>
+                <Wrench className="mr-2 h-4 w-4 text-primary" />
+                #{linkedSupportTicket.ticketNumber}
+            </Link>
+        </Button>
+      )}
     </div>
   );
 
@@ -291,11 +306,11 @@ const handleGenerateRandom = async () => {
                   removeFromOrder={removeFromOrder}
                   updateItemNote={updateItemNote}
                   updateItemPrice={updateItemPrice}
+                  updateOrderItemField={updateOrderItemField}
                   showAcompte={config.showAcompte}
                   onTotalsChange={setTotals}
                   updateItemQuantityInOrder={updateItemQuantityInOrder}
                   documentType={documentType}
-                  updateOrderItemField={updateOrderItemField}
               />
           </div>
         </fieldset>
