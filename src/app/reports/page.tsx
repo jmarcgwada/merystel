@@ -260,7 +260,6 @@ function ReportsPageContent() {
   const sellerNameFilterRef = useRef<HTMLInputElement>(null);
   const originFilterRef = useRef<HTMLInputElement>(null);
   const [itemsPerPageState, setItemsPerPageState] = useState(itemsPerPage);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const [isPinDialogOpen, setPinDialogOpen] = useState(false);
@@ -730,29 +729,20 @@ function ReportsPageContent() {
         setNavigationAction({ type, saleId });
     };
   
-  const handleMouseDown = (action: () => void) => {
+    const handleMouseDown = (action: () => void) => {
         const timer = setTimeout(() => {
             action();
-            setLongPressTimer(null); // Prevent click
-        }, 700); // 700ms for long press
-        setLongPressTimer(timer);
+        }, 700);
     };
     
-    const handleMouseUp = (clickAction: () => void) => {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            setLongPressTimer(null);
-            clickAction();
-        }
+    const handleMouseUp = () => {
+        // No action needed on simple click up for pagination
     };
 
     const handleMouseLeave = () => {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            setLongPressTimer(null);
-        }
+        // No action needed for mouse leave for pagination
     };
-
+    
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
       const totalPaid = Math.abs((sale.payments || []).reduce((acc, p) => acc + p.amount, 0));
       const saleTotal = Math.abs(sale.total);
@@ -1020,32 +1010,32 @@ function ReportsPageContent() {
                     <div className="flex items-center justify-between">
                         <CardTitle>{pageTitleText}</CardTitle>
                         <div className="flex items-center gap-1">
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(1))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.max(1, p - 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
-                                        Page {currentPage} / {totalPages || 1}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-48 p-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
-                                        <div className="flex justify-between items-center text-sm font-bold text-primary">
-                                            <span>{itemsPerPageState}</span>
-                                        </div>
-                                        <Slider
-                                            id="items-per-page-slider"
-                                            value={[itemsPerPageState]}
-                                            onValueChange={(value) => setItemsPerPageState(value[0])}
-                                            onValueCommit={(value) => setItemsPerPage(value[0])}
-                                            min={5}
-                                            max={50}
-                                            step={5}
-                                        />
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleMouseDown(() => setCurrentPage(totalPages))} onMouseUp={() => handleMouseUp(() => setCurrentPage(p => Math.min(totalPages, p + 1)))} onMouseLeave={handleMouseLeave} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                          <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                      Page {currentPage} / {totalPages || 1}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2">
+                                  <div className="space-y-2">
+                                      <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                      <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                          <span>{itemsPerPageState}</span>
+                                      </div>
+                                      <Slider
+                                          id="items-per-page-slider"
+                                          value={[itemsPerPageState]}
+                                          onValueChange={(value) => setItemsPerPageState(value[0])}
+                                          onValueCommit={(value) => setItemsPerPage(value[0])}
+                                          min={5}
+                                          max={50}
+                                          step={5}
+                                      />
+                                  </div>
+                              </PopoverContent>
+                          </Popover>
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages <= 1}><ArrowRight className="h-4 w-4" /></Button>
                         </div>
                     </div>
                 </CardHeader>
@@ -1080,7 +1070,7 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'} style={getRowStyle(sale)}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} data-state={lastSelectedSaleId === sale.id ? 'selected' : 'unselected'}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
                             {visibleColumns.date && <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={sale.date} /></TableCell>}
