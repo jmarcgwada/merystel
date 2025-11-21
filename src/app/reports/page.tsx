@@ -572,7 +572,7 @@ function ReportsPageContent() {
              return format(dateRange.from, "d MMMM yyyy", { locale: fr });
         }
         if (!dateRange || !dateRange.from) return 'Période';
-        if (isSameDay(dateRange.from, new Date()) && (!dateRange.to || isSameDay(dateRange.to, new Date()))) return "Aujourd'hui";
+        if (isSameDay(dateRange.from, new Date()) && !dateRange.to) return "Aujourd'hui";
         if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfWeek(new Date(), {weekStartsOn: 1})) && isSameDay(dateRange.to, endOfWeek(new Date(), {weekStartsOn: 1}))) return "Cette semaine";
         if (dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(new Date())) && isSameDay(dateRange.to, endOfMonth(new Date()))) return "Ce mois-ci";
         if (dateRange.from && !dateRange.to) return format(dateRange.from, "d MMMM yyyy", { locale: fr });
@@ -871,16 +871,378 @@ function ReportsPageContent() {
       );
 
   return (
-    <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <PageHeader
-            title={pageTitleComponent}
-            subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
-        >
-            {/* PageHeader content... */}
-        </PageHeader>
-        {/* Rest of the page */}
-    </div>
-  );
+    <>
+        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 relative">
+           {isDocTypeFilterLocked && docTypeFilterParam && <DocumentTypeWatermark docType={docTypeFilterParam} />}
+             <div className="absolute -left-[9999px] -top-[9999px]">
+                {saleToPrint && vatRates && <InvoicePrintTemplate ref={printRef} sale={saleToPrint} customer={customers.find(c => c.id === saleToPrint.customerId) || null} companyInfo={companyInfo} vatRates={vatRates} />}
+             </div>
+            <PageHeader
+                title={pageTitleComponent}
+                subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
+            >
+              <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('prev')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowLeft className="h-4 w-4" /></Button>
+                    <Button variant="outline" onClick={handleSmartDateFilter} className={cn("h-9", !dateRange && 'text-muted-foreground')}>{getSmartDateButtonLabel()}</Button>
+                     <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleDateArrowClick('next')} disabled={isDateFilterLocked || !dateRange?.from}><ArrowRight className="h-4 w-4" /></Button>
+                  </div>
+                   <Button asChild variant="secondary">
+                      <Link href="/reports/analytics">
+                          <TrendingUp className="mr-2 h-4 w-4" />
+                          Reporting Avancé
+                      </Link>
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" /></Button>
+                  <Button asChild variant="outline" size="icon" className="btn-back">
+                      <Link href="/dashboard">
+                          <LayoutDashboard />
+                      </Link>
+                  </Button>
+                  {isDocTypeFilterLocked && (
+                      <Button onClick={handleNewDocumentClick}>
+                          <FilePlus className="mr-2 h-4 w-4" />
+                          Nouvelle Pièce
+                      </Button>
+                  )}
+              </div>
+            </PageHeader>
+            <div className="mt-8 space-y-4">
+              <Collapsible open={isSummaryOpen} onOpenChange={setSummaryOpen} className="mb-4">
+                  <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-start px-0 -ml-2 text-lg font-semibold">
+                          <ChevronDown className={cn("h-4 w-4 mr-2 transition-transform", !isSummaryOpen && "-rotate-90")} />
+                          Résumé de la sélection
+                      </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 pt-2">
+                          <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">{summaryStats.summaryTitle}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalRevenue.toFixed(2)}€</div></CardContent></Card>
+                          <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Nb. de Pièces</CardTitle><ShoppingBag className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{filteredAndSortedSales.length}</div></CardContent></Card>
+                          <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Avoirs</CardTitle><Truck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalCreditNotes.toFixed(2)}€</div></CardContent></Card>
+                          <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Achats</CardTitle><Package className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{summaryStats.totalPurchases.toFixed(2)}€</div></CardContent></Card>
+                          <Card className="bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800"><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Solde Net</CardTitle><DollarSign className="h-4 w-4 text-emerald-600" /></CardHeader><CardContent><div className="text-2xl font-bold text-emerald-600">{summaryStats.netBalance.toFixed(2)}€</div></CardContent></Card>
+                      </div>
+                  </CollapsibleContent>
+              </Collapsible>
+              <Collapsible open={isFiltersOpen} onOpenChange={setFiltersOpen} asChild>
+                <Card>
+                  <CardHeader className="p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-4">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="justify-start px-2 text-lg font-semibold -ml-2">
+                                    <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                    Filtres
+                                    <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
+                                </Button>
+                            </CollapsibleTrigger>
+                            <div className="relative">
+                                <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" />
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground">
+                                            <HelpCircle className="h-4 w-4" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80">
+                                        <div className="space-y-4 text-sm">
+                                            <h4 className="font-semibold">Syntaxe de recherche</h4>
+                                            {[
+                                                { syntax: "texte", explanation: "Contient le texte" },
+                                                { syntax: "/", explanation: "Sépare les termes (ET logique)" },
+                                                { syntax: "!", explanation: "Ne contient pas le texte" },
+                                                { syntax: "^", explanation: "Commence par le texte" },
+                                                { syntax: "*", explanation: "Ignore tous les filtres" }
+                                            ].map(({ syntax, explanation }) => (
+                                                <div key={syntax} className="flex items-center justify-between">
+                                                    <p><code className="font-mono bg-muted p-1 rounded mr-2">{syntax}</code>{explanation}</p>
+                                                    <Button size="sm" variant="outline" className="px-2 h-7" onClick={() => handleInsertSyntax(syntax)}>Insérer</Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            {!isDocTypeFilterLocked && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" className="w-auto sm:w-[220px] justify-between h-9">
+                                            <span>Types de pièce</span>
+                                            <ChevronDown className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuLabel>Filtrer par type de document</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {Object.entries(documentTypes).map(([type, { label }]) => (
+                                            <DropdownMenuCheckboxItem
+                                                key={type}
+                                                checked={filterDocTypes[type]}
+                                                onCheckedChange={(checked) => setFilterDocTypes(prev => ({...prev, [type]: checked}))}
+                                            >
+                                                {label}
+                                            </DropdownMenuCheckboxItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Button variant="ghost" size="sm" onClick={resetFilters} disabled={isDateFilterLocked}><X className="mr-2 h-4 w-4"/>Réinitialiser</Button>
+                           <div className="flex items-center gap-1">
+                              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}><ArrowLeft className="h-4 w-4" /></Button>
+                              <Popover>
+                                  <PopoverTrigger asChild>
+                                      <Button variant="outline" className="h-9 text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[100px]">
+                                          Page {currentPage} / {totalPages || 1}
+                                      </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-2">
+                                      <div className="space-y-2">
+                                          <Label htmlFor="items-per-page-slider" className="text-sm">Lignes par page</Label>
+                                          <div className="flex justify-between items-center text-sm font-bold text-primary">
+                                              <span>{itemsPerPageState}</span>
+                                          </div>
+                                          <Slider
+                                              id="items-per-page-slider"
+                                              value={[itemsPerPageState]}
+                                              onValueChange={(value) => setItemsPerPageState(value[0])}
+                                              onValueCommit={(value) => setItemsPerPage(value[0])}
+                                              min={5}
+                                              max={50}
+                                              step={5}
+                                          />
+                                      </div>
+                                  </PopoverContent>
+                              </Popover>
+                              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}><ArrowRight className="h-4 w-4" /></Button>
+                            </div>
+                        </div>
+                    </div>
+                  </CardHeader>
+                  <CollapsibleContent>
+                    <CardContent className="flex items-center gap-2 flex-wrap pt-0">
+                        <Popover>
+                            <PopoverTrigger asChild disabled={isDateFilterLocked}>
+                                <Button id="date" variant={"outline"} className={cn("w-[260px] justify-start text-left font-normal h-9", !dateRange && "text-muted-foreground")}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {isDateFilterLocked && <Lock className="mr-2 h-4 w-4 text-destructive" />}
+                                    {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>Choisir une période</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start"><Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} /></PopoverContent>
+                        </Popover>
+                        <Input ref={customerNameFilterRef} placeholder="Filtrer par client..." value={filterCustomerName} onChange={(e) => setFilterCustomerName(e.target.value)} className="max-w-xs h-9" />
+                        <Input ref={sellerNameFilterRef} placeholder="Filtrer par vendeur..." value={filterSellerName} onChange={(e) => setFilterSellerName(e.target.value)} className="max-w-xs h-9" />
+                        <Input ref={originFilterRef} placeholder="Filtrer par origine..." value={filterOrigin} onChange={(e) => setFilterOrigin(e.target.value)} className="max-w-xs h-9" />
+                        <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Statut de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les statuts</SelectItem><SelectItem value="paid">Payé</SelectItem><SelectItem value="pending">En attente</SelectItem><SelectItem value="partial">Paiement partiel</SelectItem></SelectContent></Select>
+                        <Select value={filterPaymentMethod} onValueChange={setFilterPaymentMethod}><SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Moyen de paiement" /></SelectTrigger><SelectContent><SelectItem value="all">Tous les moyens</SelectItem>{paymentMethods.map(pm => (<SelectItem key={pm.id} value={pm.name}>{pm.name}</SelectItem>))}</SelectContent></Select>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+              <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                            Liste des Pièces
+                        </CardTitle>
+                        <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <Columns className="h-4 w-4" />
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                  <DropdownMenuLabel>Colonnes visibles</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {columnsConfig.map(column => (
+                                      <DropdownMenuCheckboxItem
+                                          key={column.id}
+                                          checked={visibleColumns[column.id] ?? true}
+                                          onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
+                                      >
+                                          {column.label}
+                                      </DropdownMenuCheckboxItem>
+                                  ))}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuCheckboxItem
+                                      checked={visibleColumns.margin}
+                                      onCheckedChange={handleMarginToggle}
+                                  >
+                                      Marge
+                                  </DropdownMenuCheckboxItem>
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {columnsConfig.map(col => (
+                            visibleColumns[col.id] && (
+                            <TableHead key={col.id} className={cn((col.id === 'total' || col.id === 'itemCount' || col.id === 'subtotal' || col.id === 'tax' || col.id === 'totalDiscount' || col.id === 'margin') && 'text-right')}>
+                                <Button variant="ghost" onClick={() => requestSort(col.id as SortKey)} className={cn('px-0', (col.id === 'total' || col.id === 'itemCount' || col.id === 'subtotal' || col.id === 'tax' || col.id === 'totalDiscount' || col.id === 'margin') && 'justify-end w-full')}>
+                                {col.label} {getSortIcon(col.id as SortKey)}
+                                </Button>
+                            </TableHead>
+                            )
+                        ))}
+                        <TableHead className="w-[80px] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {!paginatedSales.length && (
+                        <TableRow>
+                        <TableCell colSpan={columnsConfig.filter(c => visibleColumns[c.id]).length + 1} className="h-24 text-center">
+                            {filteredAndSortedSales.length === 0 ? "Aucune pièce trouvée pour les filtres actuels." : "Aucune pièce sur cette page."}
+                        </TableCell>
+                        </TableRow>
+                    )}
+                    {paginatedSales.map((sale, index) => {
+                      const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+                      const typeInfo = documentTypes[docType as keyof typeof documentTypes];
+                      const totalDiscount = sale.items.reduce((acc, item) => acc + (item.discount || 0), 0);
+                      const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
+
+                      return (
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} className={cn(lastSelectedSaleId === sale.id && 'bg-blue-100 dark:bg-blue-900/30')}>
+                            {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
+                            {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
+                            {visibleColumns.date && <TableCell className="text-xs text-muted-foreground"><ClientFormattedDate date={sale.date} /></TableCell>}
+                            {visibleColumns.userName && <TableCell>{getUserName(sale.userId, sale.userName)}</TableCell>}
+                            {visibleColumns.origin && <TableCell>{sale.tableName || 'Vente Directe'}</TableCell>}
+                            {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
+                            {visibleColumns.itemCount && <TableCell className="text-right">{sale.items.length}</TableCell>}
+                            {visibleColumns.details && (
+                                <TableCell>
+                                    <div className="flex flex-col gap-1 text-xs text-muted-foreground max-w-xs truncate">
+                                        {sale.items.slice(0, 2).map(i => <span key={i.id}>- {i.name} (x{i.quantity})</span>)}
+                                        {sale.items.length > 2 && <span>...et {sale.items.length - 2} autre(s)</span>}
+                                    </div>
+                                </TableCell>
+                            )}
+                            {visibleColumns.subtotal && <TableCell className="text-right font-medium">{sale.subtotal.toFixed(2)}€</TableCell>}
+                            {visibleColumns.tax && <TableCell className="text-right">{sale.tax.toFixed(2)}€</TableCell>}
+                            {visibleColumns.totalDiscount && <TableCell className="text-right text-destructive">-{totalDiscount.toFixed(2)}€</TableCell>}
+                            {visibleColumns.margin && <TableCell className={cn("text-right font-semibold", (sale as any).margin < 0 && 'text-destructive')}>{(sale as any).margin.toFixed(2)}€</TableCell>}
+                            {visibleColumns.total && <TableCell className="text-right font-bold">{sale.total.toFixed(2)}€</TableCell>}
+                            {visibleColumns.payment && <TableCell><PaymentBadges sale={sale} /></TableCell>}
+                            <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4"/></Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => handlePrint(sale)}><Printer className="mr-2 h-4 w-4" />Imprimer</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleOpenDetailModal(sale)}><Eye className="mr-2 h-4 w-4"/>Détails Rapides</DropdownMenuItem>
+                                            {(sale.documentType === 'quote' || sale.documentType === 'delivery_note') && sale.status !== 'invoiced' && (
+                                                <>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => { setSaleToConvert(sale); setConfirmOpen(true); }}>
+                                                        <FileCog className="mr-2 h-4 w-4" />Transformer en Facture
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    <TooltipProvider><Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(sale)}>
+                                                {isValidated ? <FileSignature className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>{isValidated ? 'Consulter' : 'Modifier'}</p></TooltipContent>
+                                    </Tooltip></TooltipProvider>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+            <AlertDialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmer la transformation ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Voulez-vous vraiment transformer cette pièce en facture ? Une nouvelle facture sera créée.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Annuler</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => {
+                      if(saleToConvert) convertToInvoice(saleToConvert.id);
+                      setConfirmOpen(false);
+                  }}>
+                      Confirmer
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={isPinDialogOpen} onOpenChange={setPinDialogOpen}>
+                <AlertDialogContent className="sm:max-w-sm">
+                    <form onSubmit={handlePinSubmit}>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Accès Sécurisé</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Veuillez entrer le code PIN dynamique pour afficher la marge.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-4 space-y-4">
+                           <div className="flex justify-center items-center h-12 bg-muted rounded-md border">
+                              <p className="text-3xl font-mono tracking-[0.5em]">
+                                {pin.padEnd(6, '•').substring(0, 6)}
+                              </p>
+                           </div>
+                            <div className="grid grid-cols-3 gap-2">
+                               <PinKey value="1" onClick={handlePinKeyPress} data-key="1" className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="2" onClick={handlePinKeyPress} data-key="2" className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="3" onClick={handlePinKeyPress} data-key="3" className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="4" onClick={handlePinKeyPress} data-key="4" className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="5" onClick={handlePinKeyPress} data-key="5" className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="6" onClick={handlePinKeyPress} data-key="6" className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="7" onClick={handlePinKeyPress} data-key="7" className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="8" onClick={handlePinKeyPress} data-key="8" className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')} />
+                                <Button type="button" variant="outline" className={cn("h-14 w-14", activeKey === 'Backspace' && 'bg-primary text-primary-foreground')} onClick={handlePinBackspace} data-key="Backspace">
+                                    <Delete className="h-6 w-6"/>
+                                 </Button>
+                                <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')} />
+                           </div>
+                        </div>
+                        <AlertDialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setPinDialogOpen(false)}>Annuler</Button>
+                            <AlertDialogAction type="submit">
+                                Valider
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </form>
+                </AlertDialogContent>
+            </AlertDialog>
+             <SaleDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                sale={selectedSaleForModal}
+            />
+            {showScrollTop && (
+                <Button
+                    onClick={scrollToTop}
+                    className="fixed bottom-8 right-8 h-12 w-12 rounded-full shadow-lg"
+                    size="icon"
+                >
+                    <ArrowUp className="h-6 w-6" />
+                </Button>
+            )}
+        </div>
+      </>
+    );
 }
 
 const DocumentTypeWatermark = ({ docType }: { docType: string }) => {
@@ -901,5 +1263,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
