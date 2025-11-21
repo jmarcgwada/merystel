@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { usePos } from '@/contexts/pos-context';
 import type { Sale, Payment, VatBreakdown } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Calendar, Clock, Edit, FileText, CreditCard } from 'lucide-react';
+import { User, Calendar, Clock, Edit, FileText, CreditCard, Scale } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/shared/client-formatted-date';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -49,15 +48,14 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
   const customer = useMemo(() => sale?.customerId ? customers.find(c => c.id === sale.customerId) : null, [sale, customers]);
   const seller = useMemo(() => sale?.userId ? users.find(u => u.id === sale.userId) : null, [sale, users]);
 
-  const { balanceDue, totalPaid, subtotal, tax, vatBreakdown, margin } = useMemo(() => {
-    if (!sale) return { balanceDue: 0, totalPaid: 0, subtotal: 0, tax: 0, vatBreakdown: {}, margin: 0 };
+  const { balanceDue, totalPaid, subtotal, tax, margin } = useMemo(() => {
+    if (!sale) return { balanceDue: 0, totalPaid: 0, subtotal: 0, tax: 0, margin: 0 };
     
     const paid = (sale.payments || []).reduce((acc, p) => acc + p.amount, 0);
     const balance = sale.total - paid;
 
     let calcSubtotal = 0;
     let calcTax = 0;
-    const breakdown: VatBreakdown = {};
     let totalCost = 0;
 
     sale.items.forEach(item => {
@@ -68,27 +66,19 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
 
         calcSubtotal += priceHT;
         calcTax += taxAmount;
-
-        const rateKey = String(vatInfo?.rate || 0);
-        if (breakdown[rateKey]) {
-            breakdown[rateKey].base += priceHT;
-            breakdown[rateKey].total += taxAmount;
-        } else if (vatInfo) {
-            breakdown[rateKey] = { rate: vatInfo.rate, total: taxAmount, base: priceHT, code: vatInfo.code };
-        }
         
         const catalogItem = allItems.find(i => i.id === item.itemId);
         totalCost += (catalogItem?.purchasePrice || 0) * item.quantity;
     });
 
-    const calcMargin = (sale.subtotal ?? calcSubtotal) - totalCost;
+    const finalSubtotal = sale.subtotal ?? calcSubtotal;
+    const calcMargin = finalSubtotal - totalCost;
 
     return { 
         balanceDue: balance, 
         totalPaid: paid, 
-        subtotal: sale.subtotal ?? calcSubtotal,
+        subtotal: finalSubtotal,
         tax: sale.tax ?? calcTax,
-        vatBreakdown: sale.vatBreakdown ?? breakdown,
         margin: calcMargin,
     };
   }, [sale, vatRates, allItems]);
@@ -161,31 +151,25 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
                 </Card>
                  <Card>
                     <CardHeader><CardTitle className="text-base">Résumé Articles</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex justify-between text-sm">
+                    <CardContent className="space-y-2 text-sm">
+                        <div className="flex justify-between">
                             <span className="text-muted-foreground">Nombre d'articles</span>
                             <span className="font-semibold">{sale.items.reduce((acc, item) => acc + item.quantity, 0)}</span>
                         </div>
                         <Separator/>
-                        <div className="flex justify-between text-sm">
+                        <div className="flex justify-between">
                             <span className="text-muted-foreground">Total HT</span>
                             <span className="font-semibold">{subtotal.toFixed(2)}€</span>
                         </div>
-                         {Object.entries(vatBreakdown).map(([rate, values]) => (
-                            <div key={rate} className="flex justify-between text-xs text-muted-foreground pl-4">
-                                <span>Dont TVA à {parseFloat(rate).toFixed(2)}%</span>
-                                <span>{values.total.toFixed(2)}€</span>
-                            </div>
-                        ))}
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Total TVA</span>
-                            <span className="font-semibold">{tax.toFixed(2)}€</span>
+                        <div className="flex justify-between text-muted-foreground">
+                            <span>Total TVA</span>
+                            <span>{tax.toFixed(2)}€</span>
                         </div>
                         {isMarginVisible && (
                             <>
                             <Separator/>
-                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Marge Brute</span>
+                             <div className="flex justify-between">
+                                <span className="text-muted-foreground flex items-center gap-2"><Scale className="h-4 w-4"/>Marge Brute</span>
                                 <span className="font-semibold">{margin.toFixed(2)}€</span>
                             </div>
                             </>
@@ -238,4 +222,3 @@ export function SaleDetailModal({ isOpen, onClose, sale }: SaleDetailModalProps)
     </>
   );
 }
-

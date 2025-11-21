@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useMemo, useEffect, useState, useCallback, Suspense, useRef } from 'react';
@@ -660,14 +658,16 @@ function SaleDetailContent() {
                 <span>{subtotal.toFixed(2)}€</span>
               </div>
               
-              {Object.entries(vatBreakdown).map(([rate, values]) => (
-                <div key={rate} className="flex justify-between text-muted-foreground">
-                    <span>Base TVA ({parseFloat(rate).toFixed(2)}%)</span>
-                    <span>{values.base.toFixed(2)}€</span>
-                </div>
-              ))}
-
-              <div className="flex justify-between text-muted-foreground">
+              <div className="space-y-1 text-sm border-t pt-2">
+                 <h4 className="font-medium mb-1">Détail TVA</h4>
+                 {Object.entries(vatBreakdown).map(([rate, values]) => (
+                    <div key={rate} className="flex justify-between text-muted-foreground pl-2">
+                        <span>Base TVA ({parseFloat(rate).toFixed(2)}%)</span>
+                        <span>{values.base.toFixed(2)}€</span>
+                    </div>
+                ))}
+              </div>
+              <div className="flex justify-between text-muted-foreground font-semibold">
                  <span>Total TVA</span>
                  <span>{tax.toFixed(2)}€</span>
               </div>
