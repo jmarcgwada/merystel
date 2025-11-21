@@ -207,6 +207,8 @@ function ReportsPageContent() {
   const [isDocTypeFilterLocked, setIsDocTypeFilterLocked] = useState(!!docTypeFilterParam);
   const dateFilterParam = searchParams.get('date');
   const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
+  
+  const [navigationAction, setNavigationAction] = useState<{ type: 'edit' | 'copy'; saleId: string } | null>(null);
 
   const [visibleColumns, setVisibleColumns] = usePersistentState('reportsVisibleColumns', {
     type: true, ticketNumber: true, date: true, userName: true, origin: false, customerName: true, itemCount: false, details: true, subtotal: false, tax: false, totalDiscount: false, margin: false, total: true, payment: true,
@@ -268,7 +270,6 @@ function ReportsPageContent() {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
   
-  const [navigationAction, setNavigationAction] = useState<{ type: 'edit' | 'copy'; saleId: string } | null>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -297,6 +298,24 @@ function ReportsPageContent() {
     useEffect(() => {
         setItemsPerPageState(itemsPerPage);
     }, [itemsPerPage]);
+    
+    useEffect(() => {
+      if (navigationAction) {
+        setLastSelectedSaleId(navigationAction.saleId);
+        const sale = allSales.find(s => s.id === navigationAction.saleId);
+        if (sale) {
+          const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+          if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
+            const basePath = documentTypes[docType as keyof typeof documentTypes].path;
+            const actionParam = navigationAction.type === 'edit' ? `?edit=${navigationAction.saleId}` : `?copy=${navigationAction.saleId}`;
+            router.push(`${basePath}${actionParam}`);
+          } else {
+            toast({ variant: 'destructive', title: 'Action impossible', description: "Ce type de document n'est pas modifiable directement." });
+          }
+        }
+        setNavigationAction(null);
+      }
+    }, [navigationAction, allSales, setLastSelectedSaleId, router, toast]);
 
      useEffect(() => {
         if (docTypeFilterParam) {
@@ -685,33 +704,9 @@ function ReportsPageContent() {
         if(!isDocTypeFilterLocked) setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
         setCurrentPage(1);
     }
-    
-    useEffect(() => {
-        if (!navigationAction) return;
-
-        const { type, saleId } = navigationAction;
-        const sale = allSales.find(s => s.id === saleId);
-        if (!sale) {
-            setNavigationAction(null);
-            return;
-        }
-
-        setLastSelectedSaleId(saleId);
-        
-        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-        if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
-            const basePath = documentTypes[docType as keyof typeof documentTypes].path;
-            const actionParam = type === 'edit' ? `?edit=${saleId}` : `?copy=${saleId}`;
-            router.push(`${basePath}${actionParam}`);
-        } else {
-            toast({ variant: 'destructive', title: 'Action impossible', description: "Ce type de document n'est pas modifiable directement." });
-        }
-        setNavigationAction(null);
-
-    }, [navigationAction, router, setLastSelectedSaleId, allSales, toast]);
 
     const handleEdit = (sale: Sale) => {
-      setNavigationAction({ type: 'edit', saleId: sale.id });
+        setNavigationAction({ type: 'edit', saleId: sale.id });
     };
 
     const handleCopy = (sale: Sale) => {
