@@ -208,7 +208,9 @@ function ReportsPageContent() {
   const dateFilterParam = searchParams.get('date');
   const [isDateFilterLocked, setIsDateFilterLocked] = useState(!!dateFilterParam);
 
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({});
+  const [visibleColumns, setVisibleColumns] = usePersistentState('reportsVisibleColumns', {
+    type: true, ticketNumber: true, date: true, userName: true, origin: false, customerName: true, itemCount: false, details: true, subtotal: false, tax: false, totalDiscount: false, margin: false, total: true, payment: true,
+  });
 
   const printRef = useRef<HTMLDivElement>(null);
   const [saleToPrint, setSaleToPrint] = useState<Sale | null>(null);
@@ -265,7 +267,9 @@ function ReportsPageContent() {
   const [pin, setPin] = useState('');
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<'today' | 'this_week' | 'this_month' | 'none'>('none');
-    
+  
+  const [navigationAction, setNavigationAction] = useState<{ type: 'edit' | 'copy'; saleId: string } | null>(null);
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -295,30 +299,6 @@ function ReportsPageContent() {
     }, [itemsPerPage]);
 
      useEffect(() => {
-        const storedColumns = localStorage.getItem('reportsVisibleColumns');
-        if (storedColumns) {
-            setVisibleColumns(JSON.parse(storedColumns));
-        } else {
-             setVisibleColumns({
-                type: true,
-                ticketNumber: true,
-                date: true,
-                userName: true,
-                origin: false,
-                customerName: true,
-                itemCount: false,
-                details: true,
-                subtotal: false,
-                tax: false,
-                totalDiscount: false,
-                margin: false,
-                total: true,
-                payment: true,
-            });
-        }
-    }, []);
-    
-    useEffect(() => {
         if (docTypeFilterParam) {
             const newFilterDocTypes: Record<string, boolean> = {};
             for (const key in documentTypes) {
@@ -360,7 +340,6 @@ function ReportsPageContent() {
     const handleColumnVisibilityChange = (columnId: string, isVisible: boolean) => {
         const newVisibility = { ...visibleColumns, [columnId]: isVisible };
         setVisibleColumns(newVisibility);
-        localStorage.setItem('reportsVisibleColumns', JSON.stringify(newVisibility));
     };
 
     const handleMarginToggle = (checked: boolean) => {
@@ -706,14 +685,41 @@ function ReportsPageContent() {
         if(!isDocTypeFilterLocked) setFilterDocTypes({ ticket: true, invoice: true, quote: true, delivery_note: true, supplier_order: true, credit_note: true });
         setCurrentPage(1);
     }
+    
+    useEffect(() => {
+        if (!navigationAction) return;
 
-    const handleEdit = (sale: Sale) => {
-        setLastSelectedSaleId(sale.id);
+        const { type, saleId } = navigationAction;
+        const sale = allSales.find(s => s.id === saleId);
+        if (!sale) {
+            setNavigationAction(null);
+            return;
+        }
+
+        setLastSelectedSaleId(saleId);
+        
         const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
         if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
-            router.push(`${documentTypes[docType as keyof typeof documentTypes].path}?edit=${sale.id}`);
+            const basePath = documentTypes[docType as keyof typeof documentTypes].path;
+            const actionParam = type === 'edit' ? `?edit=${saleId}` : `?copy=${saleId}`;
+            router.push(`${basePath}${actionParam}`);
         } else {
-            toast({ variant: 'destructive', title: 'Action impossible', description: "Le type de document n'est pas modifiable." });
+            toast({ variant: 'destructive', title: 'Action impossible', description: "Ce type de document n'est pas modifiable directement." });
+        }
+        setNavigationAction(null);
+
+    }, [navigationAction, router, setLastSelectedSaleId, allSales, toast]);
+
+    const handleEdit = (sale: Sale) => {
+      setNavigationAction({ type: 'edit', saleId: sale.id });
+    };
+
+    const handleCopy = (sale: Sale) => {
+        const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
+        if (docType && documentTypes[docType as keyof typeof documentTypes]?.path) {
+            const path = documentTypes[docType as keyof typeof documentTypes].path;
+            router.push(`${path}?fromConversion=${sale.id}`);
+            toast({ title: 'Pièce dupliquée', description: `Préparation d'une nouvelle pièce basée sur ${sale.ticketNumber}.` });
         }
     };
   
@@ -859,13 +865,13 @@ function ReportsPageContent() {
         )
     }
     
-    const pageTitle = isDocTypeFilterLocked && docTypeFilterParam && documentTypes[docTypeFilterParam as keyof typeof documentTypes]
+    const pageTitleText = isDocTypeFilterLocked && docTypeFilterParam && documentTypes[docTypeFilterParam as keyof typeof documentTypes]
         ? `RAPPORT ${documentTypes[docTypeFilterParam as keyof typeof documentTypes].plural.toUpperCase()}`
         : "Rapports des pièces";
 
-    const pageTitleComponent = (
+    const pageTitle = (
         <div className="flex items-center gap-4">
-            <span>{pageTitle}</span>
+            <span>{pageTitleText}</span>
             <span className="text-base font-normal text-muted-foreground">
                 ({filteredAndSortedSales.length} / {allSales?.length || 0})
             </span>
@@ -880,7 +886,7 @@ function ReportsPageContent() {
                 {saleToPrint && vatRates && <InvoicePrintTemplate ref={printRef} sale={saleToPrint} customer={customers.find(c => c.id === saleToPrint.customerId) || null} companyInfo={companyInfo} vatRates={vatRates} />}
              </div>
             <PageHeader
-                title={pageTitleComponent}
+                title={pageTitle}
                 subtitle={`Page ${currentPage} sur ${totalPages || 1}`}
             >
               <div className="flex items-center gap-2">
@@ -939,7 +945,7 @@ function ReportsPageContent() {
                                     <ChevronDown className={cn("h-4 w-4 ml-2 transition-transform", isFiltersOpen && "rotate-180")} />
                                 </Button>
                             </CollapsibleTrigger>
-                            <div className="relative">
+                             <div className="relative">
                                 <Input ref={generalFilterRef} placeholder="Recherche générale..." value={generalFilter} onChange={(e) => setGeneralFilter(e.target.value)} className="max-w-xs h-9 pr-8" />
                                 <Popover>
                                     <PopoverTrigger asChild>
@@ -1022,7 +1028,7 @@ function ReportsPageContent() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
-                           Liste des pièces
+                           {pageTitle}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1112,10 +1118,10 @@ function ReportsPageContent() {
                       const isValidated = sale.status === 'paid' || sale.status === 'invoiced';
 
                       return (
-                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)}>
+                        <TableRow key={sale.id} ref={el => rowRefs.current[sale.id] = el} style={getRowStyle(sale)} data-state={lastSelectedSaleId === sale.id && 'selected'}>
                             {visibleColumns.type && <TableCell><Badge variant="outline" className="capitalize">{typeInfo?.label || 'N/A'}</Badge></TableCell>}
                             {visibleColumns.ticketNumber && <TableCell className="font-mono">{sale.ticketNumber}</TableCell>}
-                            {visibleColumns.date && <TableCell className="text-xs text-muted-foreground"><ClientFormattedDate date={sale.date} /></TableCell>}
+                            {visibleColumns.date && <TableCell className="text-xs text-muted-foreground whitespace-nowrap"><ClientFormattedDate date={sale.date} /></TableCell>}
                             {visibleColumns.userName && <TableCell>{getUserName(sale.userId, sale.userName)}</TableCell>}
                             {visibleColumns.origin && <TableCell>{sale.tableName || 'Vente Directe'}</TableCell>}
                             {visibleColumns.customerName && <TableCell>{getCustomerName(sale.customerId)}</TableCell>}
