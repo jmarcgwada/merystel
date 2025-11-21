@@ -5,7 +5,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks, RefreshCw, Activity, Trash2, Hourglass } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Utensils, Package, BarChart3, FileText, Settings, UserCog, LifeBuoy, TrendingUp, User, Clock, CreditCard, ScanLine, File, FilePlus, DollarSign, Blocks, RefreshCw, Activity, Trash2, Hourglass, Wrench } from 'lucide-react';
 import { usePos } from '@/contexts/pos-context';
 import { useMemo, useState, useEffect } from 'react';
 import { format, isSameDay } from 'date-fns';
@@ -497,6 +497,22 @@ export default function DashboardPage() {
                           </div>
                       </CardContent>
                   </Card>
+
+                  <Card style={buttonStyle} className={cn("transition-all hover:shadow-md", dashboardButtonShowBorder && "hover:border-primary")}>
+                        <CardContent className="pt-6">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <Wrench className="h-8 w-8 text-primary mb-2" />
+                                    <h3 className="text-lg font-semibold font-headline" style={{ color: dashboardButtonTextColor }}>Service Après-Vente</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">Suivi des réparations et prises en charge.</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                <Button asChild variant="secondary" size="sm"><Link href="/management/support-tickets">Prises en charge</Link></Button>
+                                <Button asChild variant="secondary" size="sm"><Link href="/management/repair-actions">Paramètres SAV</Link></Button>
+                            </div>
+                        </CardContent>
+                    </Card>
               </div>
           </div>
           <div className="lg:col-span-1">

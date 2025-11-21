@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sidebar,
   SidebarContent,
@@ -56,12 +57,10 @@ export default function ManagementLayout({
       sales,
       cheques,
       remises,
-      supportTickets,
-      repairActionPresets,
   } = usePos();
   const [showScrollTop, setShowScrollTop] = useState(false);
   
-  const mainContentRef = React.useRef<HTMLElement | null>(null);
+  const mainContentRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const mainEl = mainContentRef.current;
@@ -86,11 +85,6 @@ export default function ManagementLayout({
     { href: '/management/tables', label: 'Tables', icon: Utensils, count: tables?.filter(t => t.id !== 'takeaway').length || 0 },
     { href: '/management/customers', label: 'Clients', icon: Users, count: customers?.length || 0 },
     { href: '/management/suppliers', label: 'Fournisseurs', icon: Truck, count: suppliers?.length || 0 },
-  ];
-
-  const serviceLinks = [
-    { href: '/management/support-tickets', label: 'Prises en charge', icon: Wrench, count: supportTickets?.length || 0 },
-    { href: '/management/repair-actions', label: 'Paramètres SAV', icon: ClipboardList, count: repairActionPresets?.length || 0 },
   ];
   
   const reportLinks = [
@@ -127,15 +121,6 @@ export default function ManagementLayout({
             <SidebarMenu className="flex-1">
               {mainNavLinks.map(renderLink)}
               <Separator className="my-2" />
-               <SidebarGroup>
-                <SidebarGroupLabel>Services</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {serviceLinks.map(renderLink)}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-              <Separator className="my-2" />
               <SidebarGroup>
                 <SidebarGroupLabel>Comptabilité</SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -170,7 +155,7 @@ export default function ManagementLayout({
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-        <main ref={mainContentRef} className="flex-1 flex flex-col overflow-y-auto">
+        <main ref={mainContentRef} className="flex-1 flex flex-col">
           <div className="p-4 sm:p-6 lg:p-8 flex-1 flex flex-col">
             {children}
           </div>
