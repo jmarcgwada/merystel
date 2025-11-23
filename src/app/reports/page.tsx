@@ -85,7 +85,7 @@ const columnsConfig = [
     { id: 'payment', label: 'Paiement' },
 ];
 
-const PinKey = ({ value, onClick, 'data-key': dataKey, className, children }: { value: string, onClick: (value: string) => void, 'data-key'?: string, className?: string, children: React.ReactNode }) => (
+const PinKey = ({ value, onClick, 'data-key': dataKey, className }: { value: string, onClick: (value: string) => void, 'data-key'?: string, className?: string }) => (
     <Button
         type="button"
         variant="outline"
@@ -93,7 +93,7 @@ const PinKey = ({ value, onClick, 'data-key': dataKey, className, children }: { 
         onClick={() => onClick(value)}
         data-key={dataKey}
     >
-        {children}
+        {value}
     </Button>
 );
 
@@ -696,27 +696,6 @@ function ReportsPageContent() {
         setCurrentPage(1);
     }
 
-    useEffect(() => {
-        if (navigationAction) {
-            const sale = allSales.find(s => s.id === navigationAction.saleId);
-            if (!sale) {
-                setNavigationAction(null);
-                return;
-            }
-
-            const docType = sale.documentType || (sale.ticketNumber?.startsWith('Tick-') ? 'ticket' : 'invoice');
-            let path = '';
-            
-            if (navigationAction.type === 'edit') {
-                 const typeInfo = documentTypes[docType as keyof typeof documentTypes];
-                 path = typeInfo?.path || (docType === 'ticket' ? '/pos' : '/commercial/invoices');
-                 router.push(`${path}?edit=${navigationAction.saleId}`);
-            }
-
-            setNavigationAction(null);
-        }
-    }, [navigationAction, allSales, router]);
-    
     const handleActionClick = (e: React.MouseEvent, saleId: string, type: 'edit' | 'copy') => {
         e.stopPropagation();
         setLastSelectedSaleId(saleId);
@@ -850,6 +829,13 @@ function ReportsPageContent() {
     const pageSubtitleText = isClient
         ? `Page ${currentPage} sur ${totalPages || 1} (${filteredAndSortedSales.length} pièces sur ${allSales?.length || 0} au total)`
         : 'Chargement...';
+
+    const listTitle = (
+        <div className="flex items-center gap-4">
+            <span>Liste des Pièces</span>
+            <span className="text-base font-normal text-muted-foreground">({filteredAndSortedSales.length} / {allSales?.length || 0})</span>
+        </div>
+    );
 
   return (
     <>
@@ -1002,7 +988,7 @@ function ReportsPageContent() {
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle className="flex items-center gap-4">
-                            {pageTitleText}
+                            {listTitle}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -1015,7 +1001,7 @@ function ReportsPageContent() {
                                     {columnsConfig.map(column => (
                                         <DropdownMenuCheckboxItem
                                             key={column.id}
-                                            checked={visibleColumns[column.id] ?? false}
+                                            checked={visibleColumns[column.id] ?? true}
                                             onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
                                         >
                                             {column.label}
@@ -1166,19 +1152,19 @@ function ReportsPageContent() {
                               </p>
                            </div>
                             <div className="grid grid-cols-3 gap-2">
-                               <PinKey value="1" onClick={handlePinKeyPress} data-key="1" className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')}>1</PinKey>
-                                <PinKey value="2" onClick={handlePinKeyPress} data-key="2" className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')}>2</PinKey>
-                                <PinKey value="3" onClick={handlePinKeyPress} data-key="3" className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')}>3</PinKey>
-                                <PinKey value="4" onClick={handlePinKeyPress} data-key="4" className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')}>4</PinKey>
-                                <PinKey value="5" onClick={handlePinKeyPress} data-key="5" className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')}>5</PinKey>
-                                <PinKey value="6" onClick={handlePinKeyPress} data-key="6" className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')}>6</PinKey>
-                                <PinKey value="7" onClick={handlePinKeyPress} data-key="7" className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')}>7</PinKey>
-                                <PinKey value="8" onClick={handlePinKeyPress} data-key="8" className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')}>8</PinKey>
-                                <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')}>9</PinKey>
+                               <PinKey value="1" onClick={handlePinKeyPress} data-key="1" className={cn(activeKey === '1' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="2" onClick={handlePinKeyPress} data-key="2" className={cn(activeKey === '2' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="3" onClick={handlePinKeyPress} data-key="3" className={cn(activeKey === '3' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="4" onClick={handlePinKeyPress} data-key="4" className={cn(activeKey === '4' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="5" onClick={handlePinKeyPress} data-key="5" className={cn(activeKey === '5' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="6" onClick={handlePinKeyPress} data-key="6" className={cn(activeKey === '6' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="7" onClick={handlePinKeyPress} data-key="7" className={cn(activeKey === '7' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="8" onClick={handlePinKeyPress} data-key="8" className={cn(activeKey === '8' && 'bg-primary text-primary-foreground')} />
+                                <PinKey value="9" onClick={handlePinKeyPress} data-key="9" className={cn(activeKey === '9' && 'bg-primary text-primary-foreground')} />
                                 <Button type="button" variant="outline" className={cn("h-14 w-14", activeKey === 'Backspace' && 'bg-primary text-primary-foreground')} onClick={handlePinBackspace} data-key="Backspace">
                                     <Delete className="h-6 w-6"/>
                                  </Button>
-                                <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')}>0</PinKey>
+                                <PinKey value="0" onClick={handlePinKeyPress} data-key="0" className={cn(activeKey === '0' && 'bg-primary text-primary-foreground')} />
                            </div>
                         </div>
                         <AlertDialogFooter>
@@ -1227,3 +1213,5 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
+
+    
