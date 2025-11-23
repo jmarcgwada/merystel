@@ -56,10 +56,10 @@ interface EditItemDialogProps {
   item: Item | null;
   isOpen: boolean;
   onClose: () => void;
-  onItemUpdated: (updatedItem: Item) => void;
+  onItemSaved: (updatedItem: Item) => void;
 }
 
-export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditItemDialogProps) {
+export function EditItemDialog({ item, isOpen, onClose, onItemSaved }: EditItemDialogProps) {
   const { toast } = useToast();
   const { categories, vatRates, suppliers, updateItem } = usePos();
   const [isManualPriceEdit, setIsManualPriceEdit] = useState(false);
@@ -142,7 +142,7 @@ export function EditItemDialog({ item, isOpen, onClose, onItemUpdated }: EditIte
     };
     
     await updateItem(updatedItemData);
-    onItemUpdated(updatedItemData);
+    onItemSaved(updatedItemData);
     toast({ title: 'Article modifié', description: `L'article "${data.name}" a été mis à jour.` });
     onClose();
   }
