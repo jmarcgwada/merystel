@@ -81,7 +81,6 @@ const columnsConfig = [
     { id: 'subtotal', label: 'Total HT' },
     { id: 'tax', label: 'Total TVA' },
     { id: 'totalDiscount', label: 'Total Remise' },
-    { id: 'margin', label: 'Marge' },
     { id: 'total', label: 'Total TTC' },
     { id: 'payment', label: 'Paiement' },
 ];
@@ -724,18 +723,27 @@ function ReportsPageContent() {
         setNavigationAction({ type, saleId });
     };
   
-    const handleMouseDown = (action: () => void) => {
+  const handleMouseDown = (action: () => void) => {
         const timer = setTimeout(() => {
             action();
-        }, 700);
+            setLongPressTimer(null); // Prevent click
+        }, 700); // 700ms for long press
+        setLongPressTimer(timer);
     };
     
-    const handleMouseUp = () => {
-        // No action needed on simple click up for pagination
+    const handleMouseUp = (clickAction: () => void) => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+            clickAction();
+        }
     };
 
     const handleMouseLeave = () => {
-        // No action needed for mouse leave for pagination
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
     };
     
     const PaymentBadges = ({ sale }: { sale: Sale }) => {
@@ -1009,7 +1017,6 @@ function ReportsPageContent() {
                                             key={column.id}
                                             checked={visibleColumns[column.id] ?? false}
                                             onCheckedChange={(checked) => handleColumnVisibilityChange(column.id, checked)}
-                                            disabled={column.id === 'margin'}
                                         >
                                             {column.label}
                                         </DropdownMenuCheckboxItem>
@@ -1220,5 +1227,3 @@ export default function ReportsPage() {
       </Suspense>
     )
 }
-
-    
